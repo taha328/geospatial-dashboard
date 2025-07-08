@@ -1,0 +1,148 @@
+<div class="map-container">
+  <div class="map-controls">
+    <div class="control-panel">
+      <h3>Contrôles de la Carte</h3>
+      
+      <div class="drawing-controls">
+        <h4>Dessiner</h4>
+        <div class="draw-type-selector">
+          <label>
+            <input type="radio" [(ngModel)]="drawType" value="Point" name="drawType">
+            Point
+          </label>
+          <label>
+            <input type="radio" [(ngModel)]="drawType" value="Polygon" name="drawType">
+            Polygone
+          </label>
+          <label>
+            <input type="radio" [(ngModel)]="drawType" value="Circle" name="drawType">
+            Cercle
+          </label>
+        </div>
+        
+        <div class="draw-buttons">
+          <button 
+            (click)="startDrawing()" 
+            [disabled]="isDrawing"
+            class="btn btn-primary">
+            {{ isDrawing ? 'Dessin en cours...' : 'Commencer à dessiner' }}
+          </button>
+          <button 
+            (click)="stopDrawing()" 
+            [disabled]="!isDrawing"
+            class="btn btn-secondary">
+            Arrêter le dessin
+          </button>
+        </div>
+      </div>
+
+      <div class="geometry-form" *ngIf="drawType !== 'Point'">
+        <h4>Propriétés de la Zone</h4>
+        <div class="form-group">
+          <label for="name">Nom</label>
+          <input 
+            type="text" 
+            id="name" 
+            [(ngModel)]="newGeometry.name" 
+            class="form-control"
+            placeholder="Nom de la zone">
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea 
+            id="description" 
+            [(ngModel)]="newGeometry.description" 
+            class="form-control"
+            placeholder="Description de la zone"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="color">Couleur</label>
+          <input 
+            type="color" 
+            id="color" 
+            [(ngModel)]="newGeometry.color" 
+            class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="opacity">Opacité</label>
+          <input 
+            type="range" 
+            id="opacity" 
+            [(ngModel)]="newGeometry.opacity" 
+            min="0" 
+            max="1" 
+            step="0.1" 
+            class="form-control">
+          <span>{{ newGeometry.opacity }}</span>
+        </div>
+      </div>
+
+      <div class="geometry-form" *ngIf="drawType === 'Point'">
+        <h4>Propriétés du Point</h4>
+        <div class="form-group">
+          <label for="point-description">Description</label>
+          <input 
+            type="text" 
+            id="point-description" 
+            [(ngModel)]="newGeometry.description" 
+            class="form-control"
+            placeholder="Description du point">
+        </div>
+        <div class="form-group">
+          <label for="point-color">Couleur</label>
+          <input 
+            type="color" 
+            id="point-color" 
+            [(ngModel)]="newGeometry.color" 
+            class="form-control">
+        </div>
+      </div>
+
+      <div class="selection-controls" *ngIf="selectedFeature">
+        <h4>Géométrie Sélectionnée</h4>
+        <div class="selected-info">
+          <p><strong>Type:</strong> {{ selectedFeature.get('type') }}</p>
+          <p><strong>ID:</strong> {{ selectedFeature.get('data')?.id }}</p>
+          <p *ngIf="selectedFeature.get('data')?.name">
+            <strong>Nom:</strong> {{ selectedFeature.get('data')?.name }}
+          </p>
+        </div>
+        <button 
+          (click)="deleteSelectedFeature()" 
+          class="btn btn-danger">
+          Supprimer
+        </button>
+      </div>
+
+      <div class="data-controls">
+        <h4>Données</h4>
+        <button (click)="refreshData()" class="btn btn-info">
+          Actualiser les données
+        </button>
+        <div class="data-stats">
+          <p>Points: {{ points.length }}</p>
+          <p>Zones: {{ zones.length }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="map-wrapper">
+    <div 
+      #mapContainer 
+      class="map-element"
+      [class.drawing]="isDrawing">
+    </div>
+    
+    <div *ngIf="loading" class="loading-overlay">
+      <p>Chargement des données cartographiques...</p>
+    </div>
+    
+    <div *ngIf="error" class="error-overlay">
+      <p>{{ error }}</p>
+      <button (click)="refreshData()" class="btn btn-secondary">
+        Réessayer
+      </button>
+    </div>
+  </div>
+</div>

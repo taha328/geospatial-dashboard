@@ -1,0 +1,49 @@
+<div class="user-detail-container">
+  <div class="header">
+    <h2>User Details</h2>
+    <a routerLink="/users" class="btn btn-secondary">
+      ← Back to Users
+    </a>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading user details...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadUser()" class="btn btn-secondary">Retry</button>
+  </div>
+
+  <div *ngIf="user && !loading && !error" class="user-detail-card">
+    <div class="user-info">
+      <div class="info-row">
+        <label>ID:</label>
+        <span>{{ user.id }}</span>
+      </div>
+      
+      <div class="info-row">
+        <label>Name:</label>
+        <span>{{ user.name }}</span>
+      </div>
+      
+      <div class="info-row">
+        <label>Email:</label>
+        <span>{{ user.email }}</span>
+      </div>
+      
+      <div class="info-row">
+        <label>Role:</label>
+        <span class="role-badge" [class]="'role-' + user.role.toLowerCase()">
+          {{ user.role | titlecase }}
+        </span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a [routerLink]="['/users', user.id, 'edit']" class="btn btn-primary">
+        Edit User
+      </a>
+    </div>
+  </div>
+</div>

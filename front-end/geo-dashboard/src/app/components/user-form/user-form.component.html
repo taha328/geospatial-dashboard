@@ -1,0 +1,66 @@
+<div class="user-form-container">
+  <div class="header">
+    <h2>{{ isEditMode ? 'Edit User' : 'Add New User' }}</h2>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>{{ isEditMode ? 'Loading user...' : 'Saving user...' }}</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+  </div>
+
+  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="user-form">
+    <div class="form-group">
+      <label for="name">Name *</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        [(ngModel)]="user.name"
+        required
+        class="form-control"
+        placeholder="Enter user name"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email *</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        [(ngModel)]="user.email"
+        required
+        class="form-control"
+        placeholder="Enter email address"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="role">Role *</label>
+      <select
+        id="role"
+        name="role"
+        [(ngModel)]="user.role"
+        required
+        class="form-control"
+      >
+        <option value="">Select a role</option>
+        <option *ngFor="let role of roles" [value]="role">
+          {{ role | titlecase }}
+        </option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="loading">
+        {{ isEditMode ? 'Update User' : 'Create User' }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

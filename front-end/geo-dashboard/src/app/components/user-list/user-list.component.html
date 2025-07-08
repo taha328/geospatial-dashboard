@@ -1,0 +1,60 @@
+<div class="user-list-container">
+  <div class="header">
+    <h2>User Management</h2>
+    <a routerLink="/users/create" class="btn btn-primary">
+      <i class="icon-plus"></i> Add New User
+    </a>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading users...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadUsers()" class="btn btn-secondary">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="users-grid">
+    <div *ngIf="users.length === 0" class="no-users">
+      <p>No users found.</p>
+    </div>
+
+    <div class="users-table" *ngIf="users.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>{{ user.id }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span class="role-badge" [class]="'role-' + user.role.toLowerCase()">
+                {{ user.role }}
+              </span>
+            </td>
+            <td class="actions">
+              <a [routerLink]="['/users', user.id]" class="btn btn-sm btn-info">
+                View
+              </a>
+              <a [routerLink]="['/users', user.id, 'edit']" class="btn btn-sm btn-warning">
+                Edit
+              </a>
+              <button (click)="deleteUser(user.id!)" class="btn btn-sm btn-danger">
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
