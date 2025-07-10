@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Point, Polygon } from 'geojson';
 
 @Entity()
 export class Zone {
@@ -9,10 +10,14 @@ export class Zone {
   name: string;
 
   @Column()
-  type: string; // 'polygon', 'circle', 'rectangle', etc.
-
-  @Column('text')
-  geometry: string; // GeoJSON string
+  type: string; 
+  @Column({
+    type: 'geometry',
+    spatialFeatureType: 'Geometry',
+    srid: 26191, // Merchich / Nord Maroc SRID
+    nullable: true 
+  })
+  geometry: any; // PostGIS geometry
 
   @Column({ nullable: true })
   description: string;
@@ -20,6 +25,12 @@ export class Zone {
   @Column({ nullable: true })
   color: string;
 
-  @Column({ default: 1 })
+  @Column({ type: 'decimal', precision: 3, scale: 2, default: 1 })
   opacity: number;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
 }

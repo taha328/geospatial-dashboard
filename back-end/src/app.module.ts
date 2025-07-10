@@ -17,6 +17,10 @@ import { UserModule } from './user/user.module';
       database: 'db',
       autoLoadEntities: true,
       synchronize: true,
+            extra: {
+
+        connectionLimit: 10,
+      },
     }),
     PointModule,
     ZonesModule,

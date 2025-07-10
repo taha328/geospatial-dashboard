@@ -334,7 +334,7 @@ export class MapComponent implements OnInit, OnDestroy {
       const zoneData = {
         name: this.newGeometry.name,
         type: this.drawType.toLowerCase(),
-        geometry: JSON.stringify(geoJsonGeometry),
+        geometry: geoJsonGeometry,
         description: this.newGeometry.description,
         color: this.newGeometry.color,
         opacity: this.newGeometry.opacity
@@ -393,7 +393,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
       const updatedZone = {
         ...data,
-        geometry: JSON.stringify(geoJsonGeometry)
+        geometry: geoJsonGeometry, 
+
       };
 
       this.zoneService.updateZone(data.id, updatedZone).subscribe({
