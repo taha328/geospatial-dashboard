@@ -15,8 +15,8 @@
             Polygone
           </label>
           <label>
-            <input type="radio" [(ngModel)]="drawType" value="Circle" name="drawType">
-            Cercle
+            <input type="radio" [(ngModel)]="drawType" value="LineString" name="drawType">
+            Route/Rue
           </label>
         </div>
         
@@ -37,7 +37,7 @@
       </div>
 
       <div class="geometry-form" *ngIf="drawType !== 'Point'">
-        <h4>Propriétés de la Zone</h4>
+        <h4>Propriétés de {{ drawType === 'LineString' ? 'la Route' : 'la Zone' }}</h4>
         <div class="form-group">
           <label for="name">Nom</label>
           <input 
@@ -45,7 +45,7 @@
             id="name" 
             [(ngModel)]="newGeometry.name" 
             class="form-control"
-            placeholder="Nom de la zone">
+            [placeholder]="drawType === 'LineString' ? 'Nom de la route' : 'Nom de la zone'">
         </div>
         <div class="form-group">
           <label for="description">Description</label>
@@ -53,8 +53,9 @@
             id="description" 
             [(ngModel)]="newGeometry.description" 
             class="form-control"
-            placeholder="Description de la zone"></textarea>
+            [placeholder]="drawType === 'LineString' ? 'Description de la route' : 'Description de la zone'"></textarea>
         </div>
+
         <div class="form-group">
           <label for="color">Couleur</label>
           <input 
@@ -63,7 +64,7 @@
             [(ngModel)]="newGeometry.color" 
             class="form-control">
         </div>
-        <div class="form-group">
+        <div class="form-group" *ngIf="drawType !== 'LineString'">
           <label for="opacity">Opacité</label>
           <input 
             type="range" 
@@ -119,6 +120,7 @@
         <button (click)="refreshData()" class="btn btn-info">
           Actualiser les données
         </button>
+        
         <div class="data-stats">
           <p>Points: {{ points.length }}</p>
           <p>Zones: {{ zones.length }}</p>

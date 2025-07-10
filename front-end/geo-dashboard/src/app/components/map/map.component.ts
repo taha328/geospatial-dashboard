@@ -5,7 +5,7 @@ import { Map, View } from 'ol';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { OSM, Vector as VectorSource } from 'ol/source';
 import { Feature } from 'ol';
-import { Point, Polygon, Circle } from 'ol/geom';
+import { Point, Polygon, LineString  } from 'ol/geom';
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { fromLonLat, transform } from 'ol/proj';
 import { GeoJSON } from 'ol/format';
@@ -34,7 +34,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
   // UI State
   isDrawing = false;
-  drawType: 'Point' | 'Polygon' | 'Circle' = 'Point';
+  drawType: 'Point' | 'Polygon' | 'LineString' = 'Point';
+
   selectedFeature: Feature | null = null;
   
   // Form data
@@ -42,7 +43,8 @@ export class MapComponent implements OnInit, OnDestroy {
     name: '',
     description: '',
     color: '#ff0000',
-    opacity: 0.5
+    opacity: 0.5,
+
   };
 
   // Data arrays
@@ -260,21 +262,28 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  startDrawing() {
-    this.isDrawing = true;
-    this.removeDrawInteraction();
-    
-    this.drawInteraction = new Draw({
-      source: this.vectorSource,
-      type: this.drawType
-    });
+startDrawing() {
+  this.isDrawing = true;
+  this.removeDrawInteraction();
 
-    this.drawInteraction.on('drawend', (e) => {
-      this.onDrawEnd(e.feature);
-    });
+  const drawOptions: any = {
+    source: this.vectorSource,
+    type: this.drawType
+  };
 
-    this.map.addInteraction(this.drawInteraction);
+  if (this.drawType === 'LineString') {
+    drawOptions.maxPoints = 2; 
   }
+
+  this.drawInteraction = new Draw(drawOptions);
+
+  this.drawInteraction.on('drawend', (e) => {
+    this.onDrawEnd(e.feature);
+  });
+
+  this.map.addInteraction(this.drawInteraction);
+}
+
 
   stopDrawing() {
     this.isDrawing = false;
