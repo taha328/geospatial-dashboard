@@ -1,0 +1,14 @@
+declare module 'ol-ext/control/Measure';
+declare module 'ol-ext/control/ZoomSlider';
+declare module 'ol-ext/control/LayerSwitcher';
+declare module 'ol-ext/control/Compass';
+declare module 'ol-ext/layer/AnimatedCluster';
+declare module 'ol-ext/interaction/SelectCluster';
+declare module 'ol-ext/style/FlowLine';
+declare module 'ol-ext/style/Shadow';
+declare module 'ol-ext/style/Symbol';
+declare module 'ol-ext/featureanimation/Pulse';
+declare module 'ol-ext/featureanimation/Slide';
+declare module 'ol-ext/featureanimation/Drop';
+declare module 'ol-ext/overlay/Popup';
+declare module 'ol-ext/overlay/PopupFeature';

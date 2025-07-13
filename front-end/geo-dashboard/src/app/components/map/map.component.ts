@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Map, View } from 'ol';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { OSM, Vector as VectorSource } from 'ol/source';
+import { OSM, Vector as VectorSource, Cluster } from 'ol/source';
+// FIX: Import Feature from 'ol' and FeatureLike (as a type) from 'ol/Feature'
 import { Feature } from 'ol';
-import { Point, Polygon, LineString  } from 'ol/geom';
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import type { FeatureLike } from 'ol/Feature';
+import { Point, Polygon, LineString, Geometry } from 'ol/geom';
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style';
 import { fromLonLat, transform } from 'ol/proj';
 import { GeoJSON } from 'ol/format';
 import { Draw, Modify, Select } from 'ol/interaction';
@@ -14,6 +16,8 @@ import { click } from 'ol/events/condition';
 import { PointService } from '../../services/point.service';
 import { ZoneService } from '../../services/zone.service';
 import { UserService } from '../../services/user.service';
+import { SelectEvent } from 'ol/interaction/Select';
+import { ol_layer_AnimatedCluster } from './ol-animated-cluster-ext.layer';
 
 @Component({
   selector: 'app-map',
@@ -26,31 +30,27 @@ export class MapComponent implements OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef;
 
   private map!: Map;
-  private vectorSource!: VectorSource;
-  private vectorLayer!: VectorLayer<VectorSource>;
+  private pointSource!: VectorSource;
+  private zoneSource!: VectorSource;
+  private clusterLayer!: ol_layer_AnimatedCluster;
+  private zoneLayer!: VectorLayer<VectorSource>;
   private drawInteraction!: Draw;
   private modifyInteraction!: Modify;
   private selectInteraction!: Select;
 
-  // UI State
   isDrawing = false;
   drawType: 'Point' | 'Polygon' | 'LineString' = 'Point';
-
-  selectedFeature: Feature | null = null;
+  selectedFeature: Feature<Geometry> | null = null;
   
-  // Form data
   newGeometry = {
     name: '',
     description: '',
     color: '#ff0000',
     opacity: 0.5,
-
   };
 
-  // Data arrays
   points: any[] = [];
   zones: any[] = [];
-  
   loading = false;
   error: string | null = null;
 
@@ -72,32 +72,40 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   private initializeMap() {
-    // Create vector source and layer
-    this.vectorSource = new VectorSource();
-    this.vectorLayer = new VectorLayer({
-      source: this.vectorSource,
-      style: this.getFeatureStyle.bind(this)
+    this.pointSource = new VectorSource();
+    const clusterSource = new Cluster({
+      distance: 40,
+      source: this.pointSource,
+    });
+    this.zoneSource = new VectorSource();
+
+    this.clusterLayer = new ol_layer_AnimatedCluster({
+      source: clusterSource,
+      style: (feature: FeatureLike) => this.getFeatureStyle(feature)
     });
 
-    // Create map
+    this.zoneLayer = new VectorLayer({
+      source: this.zoneSource,
+      style: (feature: FeatureLike) => this.getFeatureStyle(feature)
+    });
+
     this.map = new Map({
       target: this.mapContainer.nativeElement,
       layers: [
-        new TileLayer({
-          source: new OSM()
-        }),
-        this.vectorLayer
+        new TileLayer({ source: new OSM() }),
+        this.zoneLayer,
+        this.clusterLayer,
       ],
       view: new View({
-        center: fromLonLat([-5.5026, 35.8845]), // Tanger Med, Morocco
+        center: fromLonLat([-5.5026, 35.8845]),
         zoom: 12
       })
     });
 
-    // Add interactions
     this.selectInteraction = new Select({
       condition: click,
-      style: this.getSelectedStyle.bind(this)
+      layers: [this.clusterLayer, this.zoneLayer],
+      style: (feature: FeatureLike) => this.getSelectedStyle(feature)
     });
     
     this.modifyInteraction = new Modify({
@@ -107,17 +115,23 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.addInteraction(this.selectInteraction);
     this.map.addInteraction(this.modifyInteraction);
 
-    // Handle feature selection
-    this.selectInteraction.on('select', (e) => {
+    this.selectInteraction.on('select', (e: SelectEvent) => {
+      this.selectedFeature = null;
+      this.resetForm();
+
       if (e.selected.length > 0) {
-        this.selectedFeature = e.selected[0];
-        this.onFeatureSelected(this.selectedFeature);
-      } else {
-        this.selectedFeature = null;
+        const feature = e.selected[0];
+        const clusteredFeatures = feature.get('features');
+
+        if (clusteredFeatures && clusteredFeatures.length > 1) {
+          this.selectInteraction.getFeatures().clear();
+        } else {
+          this.selectedFeature = clusteredFeatures ? clusteredFeatures[0] : feature as Feature<Geometry>;
+          this.onFeatureSelected(this.selectedFeature);
+        }
       }
     });
 
-    // Handle feature modification
     this.modifyInteraction.on('modifyend', (e) => {
       if (this.selectedFeature) {
         this.updateGeometry(this.selectedFeature);
@@ -129,30 +143,21 @@ export class MapComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    // Load points
     this.pointService.getPoints().subscribe({
       next: (points) => {
         this.points = points;
         this.addPointsToMap(points);
       },
-      error: (error) => {
-        console.error('Error loading points:', error);
-        this.error = 'Failed to load points';
-      }
+      error: (err) => { this.error = 'Failed to load points'; console.error(err); }
     });
 
-    // Load zones
     this.zoneService.getZones().subscribe({
       next: (zones) => {
         this.zones = zones;
         this.addZonesToMap(zones);
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error loading zones:', error);
-        this.error = 'Failed to load zones';
-        this.loading = false;
-      }
+      error: (err) => { this.error = 'Failed to load zones'; console.error(err); this.loading = false; }
     });
   }
 
@@ -165,19 +170,17 @@ export class MapComponent implements OnInit, OnDestroy {
           type: 'point',
           data: point
         });
-        this.vectorSource.addFeature(feature);
+        this.pointSource.addFeature(feature);
       }
     });
   }
 
   private addZonesToMap(zones: any[]) {
     const geoJsonFormat = new GeoJSON();
-    
     zones.forEach(zone => {
       try {
         if (zone.geometry) {
-          const geoJsonObject = JSON.parse(zone.geometry);
-          const features = geoJsonFormat.readFeatures(geoJsonObject, {
+          const features = geoJsonFormat.readFeatures(JSON.parse(zone.geometry), {
             featureProjection: 'EPSG:3857'
           });
           
@@ -187,8 +190,7 @@ export class MapComponent implements OnInit, OnDestroy {
               type: 'zone',
               data: zone
             });
-            
-            this.vectorSource.addFeature(feature);
+            this.zoneSource.addFeature(feature);
           });
         }
       } catch (error) {
@@ -197,93 +199,78 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getFeatureStyle(feature: any) {
-    const data = feature.get('data');
-    const type = feature.get('type');
-    
-    let fillColor = '#ff0000';
-    let strokeColor = '#ff0000';
-    let opacity = 0.5;
-    
-    if (data?.color) {
-      fillColor = data.color;
-      strokeColor = data.color;
+  private getFeatureStyle(feature: FeatureLike): Style | Style[] {
+    const clusteredFeatures = feature.get('features');
+    if (clusteredFeatures) {
+      const size = clusteredFeatures.length;
+      if (size > 1) {
+        return new Style({
+          image: new CircleStyle({
+            radius: 12 + Math.min(size, 20) / 2,
+            fill: new Fill({ color: 'rgba(0, 153, 255, 0.8)' }),
+            stroke: new Stroke({ color: '#fff', width: 2 })
+          }),
+          text: new Text({
+            text: size.toString(),
+            fill: new Fill({ color: '#fff' }),
+            font: 'bold 12px sans-serif'
+          }),
+        });
+      }
     }
     
-    if (data?.opacity) {
-      opacity = data.opacity;
-    }
+    const actualFeature = clusteredFeatures ? clusteredFeatures[0] : feature;
+    const data = actualFeature.get('data');
+    const type = actualFeature.get('type');
+    
+    const color = data?.color || '#ff0000';
+    const opacity = data?.opacity || 0.5;
 
     if (type === 'point') {
       return new Style({
         image: new CircleStyle({
           radius: 8,
-          fill: new Fill({
-            color: fillColor
-          }),
-          stroke: new Stroke({
-            color: strokeColor,
-            width: 2
-          })
+          fill: new Fill({ color: color }),
+          stroke: new Stroke({ color: '#fff', width: 2 })
         })
       });
     } else {
+      const rgb = [parseInt(color.slice(1, 3), 16), parseInt(color.slice(3, 5), 16), parseInt(color.slice(5, 7), 16)];
       return new Style({
-        fill: new Fill({
-          color: fillColor.replace('rgb', 'rgba').replace(')', `, ${opacity})`)
-        }),
-        stroke: new Stroke({
-          color: strokeColor,
-          width: 2
-        })
+        fill: new Fill({ color: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})` }),
+        stroke: new Stroke({ color: color, width: 2 })
       });
     }
   }
 
-  private getSelectedStyle(feature: any) {
+  private getSelectedStyle(feature: FeatureLike): Style {
     return new Style({
-      fill: new Fill({
-        color: 'rgba(255, 255, 0, 0.3)'
-      }),
-      stroke: new Stroke({
-        color: '#ffff00',
-        width: 3
-      }),
+      fill: new Fill({ color: 'rgba(255, 255, 0, 0.4)' }),
+      stroke: new Stroke({ color: '#ffff00', width: 4 }),
       image: new CircleStyle({
         radius: 10,
-        fill: new Fill({
-          color: 'rgba(255, 255, 0, 0.3)'
-        }),
-        stroke: new Stroke({
-          color: '#ffff00',
-          width: 3
-        })
+        fill: new Fill({ color: 'rgba(255, 255, 0, 0.4)' }),
+        stroke: new Stroke({ color: '#ffff00', width: 4 })
       })
     });
   }
 
-startDrawing() {
-  this.isDrawing = true;
-  this.removeDrawInteraction();
+  startDrawing() {
+    this.isDrawing = true;
+    this.removeDrawInteraction();
+    const source = this.drawType === 'Point' ? this.pointSource : this.zoneSource;
+    
+    this.drawInteraction = new Draw({
+      source: source,
+      type: this.drawType
+    });
 
-  const drawOptions: any = {
-    source: this.vectorSource,
-    type: this.drawType
-  };
+    this.drawInteraction.on('drawend', (e) => {
+      this.onDrawEnd(e.feature as Feature<Geometry>);
+    });
 
-  if (this.drawType === 'LineString') {
-    drawOptions.maxPoints = 2; 
+    this.map.addInteraction(this.drawInteraction);
   }
-
-  this.drawInteraction = new Draw(drawOptions);
-
-  this.drawInteraction.on('drawend', (e) => {
-    this.onDrawEnd(e.feature);
-  });
-
-  this.map.addInteraction(this.drawInteraction);
-}
-
 
   stopDrawing() {
     this.isDrawing = false;
@@ -296,25 +283,18 @@ startDrawing() {
     }
   }
 
-  private onDrawEnd(feature: Feature) {
+  private onDrawEnd(feature: Feature<Geometry>) {
     this.selectedFeature = feature;
     this.saveNewGeometry(feature);
   }
 
-  private saveNewGeometry(feature: Feature) {
+  private saveNewGeometry(feature: Feature<Geometry>) {
     const geometry = feature.getGeometry();
     if (!geometry) return;
 
-    const geoJsonFormat = new GeoJSON();
-    const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, {
-      featureProjection: 'EPSG:3857'
-    });
-
     if (this.drawType === 'Point') {
-      // Save as point
       const coords = (geometry as Point).getCoordinates();
       const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
-      
       const pointData = {
         longitude: lonLat[0],
         latitude: lonLat[1],
@@ -325,21 +305,15 @@ startDrawing() {
 
       this.pointService.createPoint(pointData).subscribe({
         next: (point) => {
-          feature.setProperties({
-            id: point.id,
-            type: 'point',
-            data: point
-          });
+          feature.setProperties({ id: point.id, type: 'point', data: point });
           this.points.push(point);
           this.resetForm();
         },
-        error: (error) => {
-          console.error('Error saving point:', error);
-          this.vectorSource.removeFeature(feature);
-        }
+        error: (err) => { console.error('Error saving point:', err); this.pointSource.removeFeature(feature); }
       });
     } else {
-      // Save as zone
+      const geoJsonFormat = new GeoJSON();
+      const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, { featureProjection: 'EPSG:3857' });
       const zoneData = {
         name: this.newGeometry.name,
         type: this.drawType.toLowerCase(),
@@ -351,76 +325,44 @@ startDrawing() {
 
       this.zoneService.createZone(zoneData).subscribe({
         next: (zone) => {
-          feature.setProperties({
-            id: zone.id,
-            type: 'zone',
-            data: zone
-          });
+          feature.setProperties({ id: zone.id, type: 'zone', data: zone });
           this.zones.push(zone);
           this.resetForm();
         },
-        error: (error) => {
-          console.error('Error saving zone:', error);
-          this.vectorSource.removeFeature(feature);
-        }
+        error: (err) => { console.error('Error saving zone:', err); this.zoneSource.removeFeature(feature); }
       });
     }
-
     this.stopDrawing();
   }
 
-  private updateGeometry(feature: Feature) {
+  private updateGeometry(feature: Feature<Geometry>) {
     const data = feature.get('data');
     const type = feature.get('type');
     const geometry = feature.getGeometry();
-    
     if (!geometry || !data) return;
 
     if (type === 'point') {
       const coords = (geometry as Point).getCoordinates();
       const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
-      
-      const updatedPoint = {
-        ...data,
-        longitude: lonLat[0],
-        latitude: lonLat[1]
-      };
-
+      const updatedPoint = { ...data, longitude: lonLat[0], latitude: lonLat[1] };
       this.pointService.updatePoint(data.id, updatedPoint).subscribe({
-        next: (point) => {
-          feature.set('data', point);
-        },
-        error: (error) => {
-          console.error('Error updating point:', error);
-        }
+        next: (point) => feature.set('data', point),
+        error: (err) => console.error('Error updating point:', err)
       });
     } else {
       const geoJsonFormat = new GeoJSON();
-      const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, {
-        featureProjection: 'EPSG:3857'
-      });
-
-      const updatedZone = {
-        ...data,
-        geometry: geoJsonGeometry, 
-
-      };
-
+      const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, { featureProjection: 'EPSG:3857' });
+      const updatedZone = { ...data, geometry: geoJsonGeometry };
       this.zoneService.updateZone(data.id, updatedZone).subscribe({
-        next: (zone) => {
-          feature.set('data', zone);
-        },
-        error: (error) => {
-          console.error('Error updating zone:', error);
-        }
+        next: (zone) => feature.set('data', zone),
+        error: (err) => console.error('Error updating zone:', err)
       });
     }
   }
 
-  private onFeatureSelected(feature: Feature) {
+  private onFeatureSelected(feature: Feature<Geometry> | null) {
+    if (!feature) return;
     const data = feature.get('data');
-    const type = feature.get('type');
-    
     if (data) {
       this.newGeometry = {
         name: data.name || '',
@@ -436,43 +378,37 @@ startDrawing() {
 
     const data = this.selectedFeature.get('data');
     const type = this.selectedFeature.get('type');
+    const source = type === 'point' ? this.pointSource : this.zoneSource;
+
+    const featureToRemove = this.selectedFeature;
+    this.selectedFeature = null;
 
     if (type === 'point') {
       this.pointService.deletePoint(data.id).subscribe({
         next: () => {
-          this.vectorSource.removeFeature(this.selectedFeature!);
+          source.removeFeature(featureToRemove);
           this.points = this.points.filter(p => p.id !== data.id);
-          this.selectedFeature = null;
         },
-        error: (error) => {
-          console.error('Error deleting point:', error);
-        }
+        error: (err) => console.error('Error deleting point:', err)
       });
     } else {
       this.zoneService.deleteZone(data.id).subscribe({
         next: () => {
-          this.vectorSource.removeFeature(this.selectedFeature!);
+          source.removeFeature(featureToRemove);
           this.zones = this.zones.filter(z => z.id !== data.id);
-          this.selectedFeature = null;
         },
-        error: (error) => {
-          console.error('Error deleting zone:', error);
-        }
+        error: (err) => console.error('Error deleting zone:', err)
       });
     }
   }
 
   private resetForm() {
-    this.newGeometry = {
-      name: '',
-      description: '',
-      color: '#ff0000',
-      opacity: 0.5
-    };
+    this.newGeometry = { name: '', description: '', color: '#ff0000', opacity: 0.5 };
   }
 
   refreshData() {
-    this.vectorSource.clear();
+    this.pointSource.clear();
+    this.zoneSource.clear();
     this.loadMapData();
   }
 }

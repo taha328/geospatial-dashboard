@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "@nestjs/jwt": "^11.0.0",
+    "leaflet": "^1.9.4",
+    "ol-ext": "^4.0.33"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.19"

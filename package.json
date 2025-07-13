@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@nestjs/jwt": "^11.0.0",
     "@types/pg": "^8.15.4",
     "ol": "^10.6.1",
     "ol-ext": "^4.0.33",

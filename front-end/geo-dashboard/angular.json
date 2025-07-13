@@ -91,8 +91,11 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
-            ],
+              "src/styles.scss",
+                "node_modules/ol/ol.css",
+              "node_modules/ol-ext/dist/ol-ext.css"
+            ]
+,
             "scripts": []
           }
         }
