@@ -1,0 +1,254 @@
+<div class="vessel-finder-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>🚢 Trafic Maritime - Port Tanger Med</h1>
+      <p>Surveillance en temps réel des navires dans le détroit de Gibraltar</p>
+    </div>
+    
+    <div class="header-controls">
+      <div class="view-selector">
+        <button 
+          [class.active]="selectedView === 'both'"
+          (click)="onViewChange('both')"
+          class="view-btn">
+          📊 Vue Complète
+        </button>
+        <button 
+          [class.active]="selectedView === 'map'"
+          (click)="onViewChange('map')"
+          class="view-btn">
+          🗺️ Carte Seulement
+        </button>
+        <button 
+          [class.active]="selectedView === 'list'"
+          (click)="onViewChange('list')"
+          class="view-btn">
+          📋 Liste Seulement
+        </button>
+      </div>
+      
+      <button (click)="refreshData()" class="refresh-btn" [disabled]="loading">
+        <span *ngIf="!loading">🔄</span>
+        <span *ngIf="loading" class="spinner">⟳</span>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Dashboard -->
+  <div class="stats-dashboard">
+    <div class="stat-card">
+      <div class="stat-number">{{ vesselStats.total }}</div>
+      <div class="stat-label">Total Navires</div>
+    </div>
+    <div class="stat-card active">
+      <div class="stat-number">{{ vesselStats.active }}</div>
+      <div class="stat-label">En Mouvement</div>
+    </div>
+    <div class="stat-card anchored">
+      <div class="stat-number">{{ vesselStats.anchored }}</div>
+      <div class="stat-label">Au Mouillage</div>
+    </div>
+    <div class="stat-card moored">
+      <div class="stat-number">{{ vesselStats.moored }}</div>
+      <div class="stat-label">À Quai</div>
+    </div>
+    <div class="stat-card containers">
+      <div class="stat-number">{{ vesselStats.containers }}</div>
+      <div class="stat-label">Porte-Conteneurs</div>
+    </div>
+    <div class="stat-card tankers">
+      <div class="stat-number">{{ vesselStats.tankers }}</div>
+      <div class="stat-label">Pétroliers</div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content" [class.map-only]="selectedView === 'map'" [class.list-only]="selectedView === 'list'">
+    
+    <!-- VesselFinder.com Embedded Map -->
+    <div class="map-section" *ngIf="showEmbeddedMap">
+      <div class="map-header">
+        <h2>🗺️ Carte en Temps Réel - VesselFinder</h2>
+        <div class="map-controls">
+          <div class="map-info">
+            <span class="coordinate">Lat: {{ mapConfig.latitude }}°</span>
+            <span class="coordinate">Lon: {{ mapConfig.longitude }}°</span>
+            <span class="zoom-level">Zoom: {{ mapConfig.zoom }}</span>
+          </div>
+          <div class="map-options">
+            <button 
+              (click)="toggleVesselNames()" 
+              [class.active]="mapConfig.names"
+              class="map-option-btn">
+              📝 Noms
+            </button>
+            <button 
+              (click)="toggleTrackLines()" 
+              [class.active]="mapConfig.show_track"
+              class="map-option-btn">
+              📍 Traces
+            </button>
+            <button 
+              (click)="resetMapView()" 
+              class="map-option-btn reset">
+              🔄 Reset
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-container">
+        <div #vesselMapContainer class="vessel-map" [style.height.px]="mapConfig.height">
+          <div *ngIf="error" class="map-error">
+            <p>❌ {{ error }}</p>
+            <button (click)="reloadVesselFinderMap()" class="retry-btn">Réessayer</button>
+          </div>
+          <!-- VesselFinder map will be injected here via JavaScript -->
+        </div>
+      </div>
+      
+      <div class="map-legend">
+        <div class="legend-item">
+          <span class="legend-icon">🚢</span>
+          <span>Navires en mouvement</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon">⚓</span>
+          <span>Au mouillage</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon">🔗</span>
+          <span>À quai</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vessel List Section -->
+    <div class="list-section" *ngIf="showVesselList">
+      <div class="list-header">
+        <h2>📋 Navires Détectés</h2>
+        <div class="list-info">
+          <span>{{ vessels.length }} navires dans la zone</span>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner-large">⟳</div>
+        <p>Chargement des données des navires...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !loading" class="error-state">
+        <p class="error-message">{{ error }}</p>
+        <button (click)="loadVessels()" class="retry-btn">Réessayer</button>
+      </div>
+
+      <!-- Vessel List -->
+      <div *ngIf="!loading && !error" class="vessel-list">
+        <div *ngIf="vessels.length === 0" class="no-vessels">
+          <p>📡 Chargement des données des navires...</p>
+          <p>Utilisez les liens de la carte ci-dessus pour voir les navires en temps réel</p>
+          <p><small>Services externes: VesselFinder, MarineTraffic, MyShipTracking</small></p>
+        </div>
+
+        <div class="vessels-grid" *ngIf="vessels.length > 0">
+          <div 
+            *ngFor="let vessel of vessels; trackBy: trackByVesselId" 
+            class="vessel-card"
+            [class.status-active]="vessel.status === 'active'"
+            [class.status-anchored]="vessel.status === 'anchored'"
+            [class.status-moored]="vessel.status === 'moored'">
+            
+            <div class="vessel-header">
+              <div class="vessel-name">
+                <span class="type-icon">{{ getVesselTypeIcon(vessel.vesselType) }}</span>
+                <strong>{{ vessel.name }}</strong>
+                <span class="status-icon">{{ getStatusIcon(vessel.status) }}</span>
+              </div>
+              <div class="vessel-flag">
+                <span class="flag-emoji">{{ getFlagEmoji(vessel.flag || '') }}</span>
+                <span class="flag-code">{{ vessel.flag }}</span>
+              </div>
+            </div>
+
+            <div class="vessel-details">
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <label>Type:</label>
+                  <span>{{ vessel.vesselType }}</span>
+                </div>
+                
+                <div class="detail-item" *ngIf="vessel.imo">
+                  <label>IMO:</label>
+                  <span>{{ vessel.imo }}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <label>MMSI:</label>
+                  <span>{{ vessel.mmsi }}</span>
+                </div>
+                
+                <div class="detail-item">
+                  <label>Position:</label>
+                  <span>{{ vessel.latitude.toFixed(4) }}°, {{ vessel.longitude.toFixed(4) }}°</span>
+                </div>
+                
+                <div class="detail-item" *ngIf="vessel.speed !== undefined && vessel.speed > 0">
+                  <label>Vitesse:</label>
+                  <span class="speed">{{ vessel.speed.toFixed(1) }} nœuds</span>
+                </div>
+                
+                <div class="detail-item" *ngIf="vessel.heading !== undefined">
+                  <label>Cap:</label>
+                  <span>{{ vessel.heading.toFixed(0) }}°</span>
+                </div>
+                
+                <div class="detail-item">
+                  <label>Statut:</label>
+                  <span class="status" [class]="'status-' + vessel.status">
+                    {{ vessel.status === 'active' ? 'En mouvement' : 
+                       vessel.status === 'anchored' ? 'Au mouillage' : 
+                       vessel.status === 'moored' ? 'À quai' : 'Inconnu' }}
+                  </span>
+                </div>
+                
+                <div class="detail-item" *ngIf="vessel.length">
+                  <label>Dimensions:</label>
+                  <span>{{ vessel.length }}m × {{ vessel.width }}m</span>
+                </div>
+                
+                <div class="detail-item">
+                  <label>Dernière MAJ:</label>
+                  <span class="last-update">{{ formatLastUpdate(vessel.lastUpdated) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="vessel-footer">
+              <div class="last-seen">
+                Vu {{ formatLastUpdate(vessel.lastUpdated) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Info -->
+  <div class="page-footer">
+    <div class="footer-content">
+      <div class="data-source">
+        <strong>Sources de données:</strong>
+        <span>VesselFinder.com AIS • Système d'Identification Automatique</span>
+      </div>
+      <div class="update-info">
+        <strong>Fréquence de mise à jour:</strong>
+        <span>Temps réel • Dernière actualisation: {{ getCurrentTimeString() }}</span>
+      </div>
+    </div>
+  </div>
+</div>
