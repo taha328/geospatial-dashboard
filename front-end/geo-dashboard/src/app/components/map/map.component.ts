@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Map, View } from 'ol';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { OSM, Vector as VectorSource, Cluster } from 'ol/source';
+import { OSM, Vector as VectorSource, Cluster, XYZ } from 'ol/source';
 // FIX: Import Feature from 'ol' and FeatureLike (as a type) from 'ol/Feature'
 import { Feature } from 'ol';
 import type { FeatureLike } from 'ol/Feature';
@@ -54,6 +54,11 @@ export class MapComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
 
+  // UI state properties
+  sidebarCollapsed = false;
+  isFullscreen = false;
+  mouseCoordinates = '';
+
   constructor(
     private pointService: PointService,
     private zoneService: ZoneService,
@@ -92,7 +97,8 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map = new Map({
       target: this.mapContainer.nativeElement,
       layers: [
-        new TileLayer({ source: new OSM() }),
+        // new TileLayer({ source: new OSM() }),
+        new TileLayer({ source: new XYZ({url: 'http://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'}) }),
         this.zoneLayer,
         this.clusterLayer,
       ],
@@ -114,6 +120,12 @@ export class MapComponent implements OnInit, OnDestroy {
 
     this.map.addInteraction(this.selectInteraction);
     this.map.addInteraction(this.modifyInteraction);
+
+    // Add mouse coordinate tracking
+    this.map.on('pointermove', (evt) => {
+      const coordinate = transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
+      this.mouseCoordinates = `${coordinate[1].toFixed(4)}°N, ${coordinate[0].toFixed(4)}°E`;
+    });
 
     this.selectInteraction.on('select', (e: SelectEvent) => {
       this.selectedFeature = null;
@@ -410,5 +422,110 @@ export class MapComponent implements OnInit, OnDestroy {
     this.pointSource.clear();
     this.zoneSource.clear();
     this.loadMapData();
+  }
+
+  // UI control methods
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  resetView() {
+    if (this.map) {
+      this.map.getView().setCenter(fromLonLat([2.3522, 48.8566])); // Paris center
+      this.map.getView().setZoom(10);
+    }
+  }
+
+  zoomIn() {
+    if (this.map) {
+      const view = this.map.getView();
+      const zoom = view.getZoom();
+      if (zoom !== undefined) {
+        view.setZoom(zoom + 1);
+      }
+    }
+  }
+
+  zoomOut() {
+    if (this.map) {
+      const view = this.map.getView();
+      const zoom = view.getZoom();
+      if (zoom !== undefined) {
+        view.setZoom(zoom - 1);
+      }
+    }
+  }
+
+  toggleLayer(layerType: string) {
+    // Implementation for layer switching (satellite, terrain, etc.)
+    console.log('Toggle layer:', layerType);
+    // TODO: Implement layer switching logic
+  }
+
+  toggleFullscreen() {
+    this.isFullscreen = !this.isFullscreen;
+    if (this.isFullscreen) {
+      this.mapContainer.nativeElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  exportData() {
+    // Export current map data
+    const features = [
+      ...this.pointSource.getFeatures(),
+      ...this.zoneSource.getFeatures()
+    ];
+    
+    const geojson = new GeoJSON().writeFeatures(features, {
+      featureProjection: 'EPSG:3857',
+      dataProjection: 'EPSG:4326'
+    });
+    
+    const blob = new Blob([geojson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'map-data.geojson';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  importData() {
+    // Create file input for importing data
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.geojson';
+    input.onchange = (event: any) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e: any) => {
+          try {
+            const geojson = JSON.parse(e.target.result);
+            const features = new GeoJSON().readFeatures(geojson, {
+              featureProjection: 'EPSG:3857',
+              dataProjection: 'EPSG:4326'
+            });
+            
+            features.forEach(feature => {
+              const geom = feature.getGeometry();
+              if (geom instanceof Point) {
+                this.pointSource.addFeature(feature);
+              } else {
+                this.zoneSource.addFeature(feature);
+              }
+            });
+            
+            console.log('Data imported successfully');
+          } catch (error) {
+            console.error('Error importing data:', error);
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
   }
 }

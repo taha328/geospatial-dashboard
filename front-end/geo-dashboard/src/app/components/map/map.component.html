@@ -1,150 +1,327 @@
 <div class="map-container">
-  <div class="map-controls">
-    <div class="control-panel">
-      <h3>Contrôles de la Carte</h3>
-      
-      <div class="drawing-controls">
-        <h4>Dessiner</h4>
-        <div class="draw-type-selector">
-          <label>
-            <input type="radio" [(ngModel)]="drawType" value="Point" name="drawType">
-            Point
-          </label>
-          <label>
-            <input type="radio" [(ngModel)]="drawType" value="Polygon" name="drawType">
-            Polygone
-          </label>
-          <label>
-            <input type="radio" [(ngModel)]="drawType" value="LineString" name="drawType">
-            Route/Rue
-          </label>
-        </div>
-        
-        <div class="draw-buttons">
-          <button 
-            (click)="startDrawing()" 
-            [disabled]="isDrawing"
-            class="btn btn-primary">
-            {{ isDrawing ? 'Dessin en cours...' : 'Commencer à dessiner' }}
-          </button>
-          <button 
-            (click)="stopDrawing()" 
-            [disabled]="!isDrawing"
-            class="btn btn-secondary">
-            Arrêter le dessin
-          </button>
-        </div>
+  <!-- Modern Header -->
+  <div class="map-header">
+    <div class="header-content">
+      <h1>🗺️ Carte Interactive Géospatiale</h1>
+      <p>Système de gestion et visualisation des données géographiques</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ points.length }}</span>
+        <span class="stat-label">Points</span>
       </div>
-
-      <div class="geometry-form" *ngIf="drawType !== 'Point'">
-        <h4>Propriétés de {{ drawType === 'LineString' ? 'la Route' : 'la Zone' }}</h4>
-        <div class="form-group">
-          <label for="name">Nom</label>
-          <input 
-            type="text" 
-            id="name" 
-            [(ngModel)]="newGeometry.name" 
-            class="form-control"
-            [placeholder]="drawType === 'LineString' ? 'Nom de la route' : 'Nom de la zone'">
-        </div>
-        <div class="form-group">
-          <label for="description">Description</label>
-          <textarea 
-            id="description" 
-            [(ngModel)]="newGeometry.description" 
-            class="form-control"
-            [placeholder]="drawType === 'LineString' ? 'Description de la route' : 'Description de la zone'"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="color">Couleur</label>
-          <input 
-            type="color" 
-            id="color" 
-            [(ngModel)]="newGeometry.color" 
-            class="form-control">
-        </div>
-        <div class="form-group" *ngIf="drawType !== 'LineString'">
-          <label for="opacity">Opacité</label>
-          <input 
-            type="range" 
-            id="opacity" 
-            [(ngModel)]="newGeometry.opacity" 
-            min="0" 
-            max="1" 
-            step="0.1" 
-            class="form-control">
-          <span>{{ newGeometry.opacity }}</span>
-        </div>
-      </div>
-
-      <div class="geometry-form" *ngIf="drawType === 'Point'">
-        <h4>Propriétés du Point</h4>
-        <div class="form-group">
-          <label for="point-description">Description</label>
-          <input 
-            type="text" 
-            id="point-description" 
-            [(ngModel)]="newGeometry.description" 
-            class="form-control"
-            placeholder="Description du point">
-        </div>
-        <div class="form-group">
-          <label for="point-color">Couleur</label>
-          <input 
-            type="color" 
-            id="point-color" 
-            [(ngModel)]="newGeometry.color" 
-            class="form-control">
-        </div>
-      </div>
-
-      <div class="selection-controls" *ngIf="selectedFeature">
-        <h4>Géométrie Sélectionnée</h4>
-        <div class="selected-info">
-          <p><strong>Type:</strong> {{ selectedFeature.get('type') }}</p>
-          <p><strong>ID:</strong> {{ selectedFeature.get('data')?.id }}</p>
-          <p *ngIf="selectedFeature.get('data')?.name">
-            <strong>Nom:</strong> {{ selectedFeature.get('data')?.name }}
-          </p>
-        </div>
-        <button 
-          (click)="deleteSelectedFeature()" 
-          class="btn btn-danger">
-          Supprimer
-        </button>
-      </div>
-
-      <div class="data-controls">
-        <h4>Données</h4>
-        <button (click)="refreshData()" class="btn btn-info">
-          Actualiser les données
-        </button>
-        
-        <div class="data-stats">
-          <p>Points: {{ points.length }}</p>
-          <p>Zones: {{ zones.length }}</p>
-        </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ zones.length }}</span>
+        <span class="stat-label">Zones</span>
       </div>
     </div>
   </div>
 
-  <div class="map-wrapper">
-    <div 
-      #mapContainer 
-      class="map-element"
-      [class.drawing]="isDrawing">
+  <!-- Main Content Layout -->
+  <div class="map-layout">
+    <!-- Enhanced Control Panel -->
+    <div class="control-sidebar">
+      <div class="sidebar-header">
+        <h3>🛠️ Outils de Cartographie</h3>
+        <button class="sidebar-toggle" (click)="toggleSidebar()">
+          <span class="toggle-icon">{{ sidebarCollapsed ? '▶' : '◀' }}</span>
+        </button>
+      </div>
+
+      <div class="sidebar-content" [class.collapsed]="sidebarCollapsed">
+        <!-- Drawing Tools -->
+        <div class="tool-section">
+          <div class="section-header">
+            <div class="section-icon">✏️</div>
+            <h4>Outils de Dessin</h4>
+          </div>
+          
+          <div class="draw-type-grid">
+            <label class="draw-type-card" [class.active]="drawType === 'Point'">
+              <input type="radio" [(ngModel)]="drawType" value="Point" name="drawType">
+              <div class="card-content">
+                <div class="card-icon">📍</div>
+                <span>Point</span>
+              </div>
+            </label>
+            <label class="draw-type-card" [class.active]="drawType === 'Polygon'">
+              <input type="radio" [(ngModel)]="drawType" value="Polygon" name="drawType">
+              <div class="card-content">
+                <div class="card-icon">⬟</div>
+                <span>Zone</span>
+              </div>
+            </label>
+            <label class="draw-type-card" [class.active]="drawType === 'LineString'">
+              <input type="radio" [(ngModel)]="drawType" value="LineString" name="drawType">
+              <div class="card-content">
+                <div class="card-icon">📏</div>
+                <span>Route</span>
+              </div>
+            </label>
+          </div>
+          
+          <div class="action-buttons">
+            <button 
+              (click)="startDrawing()" 
+              [disabled]="isDrawing"
+              class="btn btn-primary btn-with-icon">
+              <span class="btn-icon">{{ isDrawing ? '⏳' : '✨' }}</span>
+              {{ isDrawing ? 'Dessin en cours...' : 'Commencer' }}
+            </button>
+            <button 
+              (click)="stopDrawing()" 
+              [disabled]="!isDrawing"
+              class="btn btn-secondary btn-with-icon">
+              <span class="btn-icon">⏹️</span>
+              Arrêter
+            </button>
+          </div>
+        </div>
+
+        <!-- Properties Form -->
+        <div class="tool-section" *ngIf="drawType !== 'Point'">
+          <div class="section-header">
+            <div class="section-icon">⚙️</div>
+            <h4>Propriétés {{ drawType === 'LineString' ? 'Route' : 'Zone' }}</h4>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="name">
+                <span class="label-icon">🏷️</span>
+                Nom
+              </label>
+              <input 
+                type="text" 
+                id="name" 
+                [(ngModel)]="newGeometry.name" 
+                class="form-input"
+                [placeholder]="drawType === 'LineString' ? 'Nom de la route' : 'Nom de la zone'">
+            </div>
+            
+            <div class="form-group">
+              <label for="description">
+                <span class="label-icon">📝</span>
+                Description
+              </label>
+              <textarea 
+                id="description" 
+                [(ngModel)]="newGeometry.description" 
+                class="form-input form-textarea"
+                rows="3"
+                [placeholder]="drawType === 'LineString' ? 'Description de la route' : 'Description de la zone'"></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="color">
+                  <span class="label-icon">🎨</span>
+                  Couleur
+                </label>
+                <div class="color-input-wrapper">
+                  <input 
+                    type="color" 
+                    id="color" 
+                    [(ngModel)]="newGeometry.color" 
+                    class="form-color">
+                  <span class="color-preview" [style.background-color]="newGeometry.color"></span>
+                </div>
+              </div>
+              
+              <div class="form-group" *ngIf="drawType !== 'LineString'">
+                <label for="opacity">
+                  <span class="label-icon">👁️</span>
+                  Opacité
+                </label>
+                <div class="range-input-wrapper">
+                  <input 
+                    type="range" 
+                    id="opacity" 
+                    [(ngModel)]="newGeometry.opacity" 
+                    min="0" 
+                    max="1" 
+                    step="0.1" 
+                    class="form-range">
+                  <span class="range-value">{{ (newGeometry.opacity * 100) | number:'1.0-0' }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Point Properties -->
+        <div class="tool-section" *ngIf="drawType === 'Point'">
+          <div class="section-header">
+            <div class="section-icon">📍</div>
+            <h4>Propriétés Point</h4>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="point-description">
+                <span class="label-icon">📝</span>
+                Description
+              </label>
+              <input 
+                type="text" 
+                id="point-description" 
+                [(ngModel)]="newGeometry.description" 
+                class="form-input"
+                placeholder="Description du point">
+            </div>
+            
+            <div class="form-group">
+              <label for="point-color">
+                <span class="label-icon">🎨</span>
+                Couleur
+              </label>
+              <div class="color-input-wrapper">
+                <input 
+                  type="color" 
+                  id="point-color" 
+                  [(ngModel)]="newGeometry.color" 
+                  class="form-color">
+                <span class="color-preview" [style.background-color]="newGeometry.color"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selection Info -->
+        <div class="tool-section" *ngIf="selectedFeature">
+          <div class="section-header">
+            <div class="section-icon">🎯</div>
+            <h4>Sélection Active</h4>
+          </div>
+          
+          <div class="selection-card">
+            <div class="selection-info">
+              <div class="info-item">
+                <span class="info-label">Type:</span>
+                <span class="info-value">{{ selectedFeature.get('type') }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">ID:</span>
+                <span class="info-value">{{ selectedFeature.get('data')?.id }}</span>
+              </div>
+              <div class="info-item" *ngIf="selectedFeature.get('data')?.name">
+                <span class="info-label">Nom:</span>
+                <span class="info-value">{{ selectedFeature.get('data')?.name }}</span>
+              </div>
+            </div>
+            
+            <button 
+              (click)="deleteSelectedFeature()" 
+              class="btn btn-danger btn-with-icon btn-full">
+              <span class="btn-icon">🗑️</span>
+              Supprimer
+            </button>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="tool-section">
+          <div class="section-header">
+            <div class="section-icon">💾</div>
+            <h4>Gestion des Données</h4>
+          </div>
+          
+          <div class="data-actions">
+            <button (click)="refreshData()" class="btn btn-info btn-with-icon btn-full">
+              <span class="btn-icon">🔄</span>
+              Actualiser
+            </button>
+            
+            <button (click)="exportData()" class="btn btn-success btn-with-icon btn-full">
+              <span class="btn-icon">📤</span>
+              Exporter
+            </button>
+            
+            <button (click)="importData()" class="btn btn-warning btn-with-icon btn-full">
+              <span class="btn-icon">📥</span>
+              Importer
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <div *ngIf="loading" class="loading-overlay">
-      <p>Chargement des données cartographiques...</p>
-    </div>
-    
-    <div *ngIf="error" class="error-overlay">
-      <p>{{ error }}</p>
-      <button (click)="refreshData()" class="btn btn-secondary">
-        Réessayer
-      </button>
+
+    <!-- Map Display Area -->
+    <div class="map-display">
+      <div class="map-toolbar">
+        <div class="toolbar-left">
+          <div class="view-controls">
+            <button class="toolbar-btn" (click)="resetView()" title="Vue par défaut">
+              <span class="btn-icon">🏠</span>
+            </button>
+            <button class="toolbar-btn" (click)="zoomIn()" title="Zoom avant">
+              <span class="btn-icon">🔍</span>
+              <span class="btn-icon small">+</span>
+            </button>
+            <button class="toolbar-btn" (click)="zoomOut()" title="Zoom arrière">
+              <span class="btn-icon">🔍</span>
+              <span class="btn-icon small">−</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="toolbar-center">
+          <div class="coordinates-display">
+            <span class="coord-label">Coordonnées:</span>
+            <span class="coord-value">{{ mouseCoordinates }}</span>
+          </div>
+        </div>
+        
+        <div class="toolbar-right">
+          <div class="layer-controls">
+            <button class="toolbar-btn" (click)="toggleLayer('satellite')" title="Vue satellite">
+              <span class="btn-icon">🛰️</span>
+            </button>
+            <button class="toolbar-btn" (click)="toggleLayer('terrain')" title="Vue terrain">
+              <span class="btn-icon">🏔️</span>
+            </button>
+            <button class="toolbar-btn" (click)="toggleFullscreen()" title="Plein écran">
+              <span class="btn-icon">⛶</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-wrapper">
+        <div 
+          #mapContainer 
+          class="map-element"
+          [class.drawing]="isDrawing"
+          [class.fullscreen]="isFullscreen">
+        </div>
+        
+        <!-- Status Overlays -->
+        <div *ngIf="loading" class="status-overlay loading">
+          <div class="status-content">
+            <div class="loading-spinner"></div>
+            <p>Chargement des données cartographiques...</p>
+          </div>
+        </div>
+        
+        <div *ngIf="error" class="status-overlay error">
+          <div class="status-content">
+            <div class="error-icon">⚠️</div>
+            <p>{{ error }}</p>
+            <button (click)="refreshData()" class="btn btn-secondary btn-with-icon">
+              <span class="btn-icon">🔄</span>
+              Réessayer
+            </button>
+          </div>
+        </div>
+        
+        <!-- Drawing Status -->
+        <div *ngIf="isDrawing" class="drawing-status">
+          <div class="drawing-info">
+            <span class="drawing-icon">✏️</span>
+            <span>Mode dessin: {{ drawType === 'Point' ? 'Point' : drawType === 'Polygon' ? 'Zone' : 'Route' }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

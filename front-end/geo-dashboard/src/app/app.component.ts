@@ -11,4 +11,13 @@ import { CommonModule } from '@angular/common';
 })
 export class AppComponent {
   title = 'geo-dashboard';
+  mobileMenuOpen = false;
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen = false;
+  }
 }
