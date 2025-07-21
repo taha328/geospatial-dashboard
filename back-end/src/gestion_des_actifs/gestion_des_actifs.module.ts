@@ -16,6 +16,7 @@ import { GroupeActifService } from './services/groupe-actif.service';
 import { ActifService } from './services/actif.service';
 import { AnomalieService } from './services/anomalie.service';
 import { MaintenanceService } from './services/maintenance.service';
+import { KPIService } from './services/kpi.service';
 
 // Controllers
 import { PortefeuilleController } from './controllers/portefeuille.controller';
@@ -24,6 +25,7 @@ import { GroupeActifController } from './controllers/groupe-actif.controller';
 import { ActifController } from './controllers/actif.controller';
 import { AnomalieController } from './controllers/anomalie.controller';
 import { MaintenanceController } from './controllers/maintenance.controller';
+import { KPIController } from './controllers/kpi.controller';
 
 @Module({
   imports: [
@@ -42,7 +44,8 @@ import { MaintenanceController } from './controllers/maintenance.controller';
     GroupeActifController,
     ActifController,
     AnomalieController,
-    MaintenanceController
+    MaintenanceController,
+    KPIController
   ],
   providers: [
     PortefeuilleService,
@@ -50,7 +53,8 @@ import { MaintenanceController } from './controllers/maintenance.controller';
     GroupeActifService,
     ActifService,
     AnomalieService,
-    MaintenanceService
+    MaintenanceService,
+    KPIService
   ],
   exports: [
     PortefeuilleService,
@@ -59,7 +63,8 @@ import { MaintenanceController } from './controllers/maintenance.controller';
     ActifService,
     AnomalieService,
     MaintenanceService,
-    TypeOrmModule // Export TypeOrmModule for other modules that import this one
+    KPIService,
+    TypeOrmModule
   ]
 })
 export class GestionDesActifsModule {}
