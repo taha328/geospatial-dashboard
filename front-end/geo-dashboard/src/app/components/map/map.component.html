@@ -3,9 +3,17 @@
   <div class="map-header">
     <div class="header-content">
       <h1>🗺️ Carte Interactive Géospatiale</h1>
-      <p>Système de gestion et visualisation des données géographiques</p>
+      <p>Gestion des actifs portuaires et signalement d'anomalies</p>
     </div>
     <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ actifs.length }}</span>
+        <span class="stat-label">Actifs</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ anomalies.length }}</span>
+        <span class="stat-label">Anomalies</span>
+      </div>
       <div class="stat-item">
         <span class="stat-number">{{ points.length }}</span>
         <span class="stat-label">Points</span>
@@ -29,6 +37,42 @@
       </div>
 
       <div class="sidebar-content" [class.collapsed]="sidebarCollapsed">
+        <!-- Asset Management Tools -->
+        <div class="tool-section">
+          <div class="section-header">
+            <div class="section-icon">🏗️</div>
+            <h4>Gestion des Actifs</h4>
+          </div>
+          
+          <div class="asset-controls">
+            <label class="checkbox-control">
+              <input type="checkbox" [(ngModel)]="showActifs" (change)="toggleActifsLayer()">
+              <span class="checkbox-label">
+                <span class="checkbox-icon">⚙️</span>
+                Afficher les Actifs
+              </span>
+            </label>
+            
+            <label class="checkbox-control">
+              <input type="checkbox" [(ngModel)]="showAnomalies" (change)="toggleAnomaliesLayer()">
+              <span class="checkbox-label">
+                <span class="checkbox-icon">🚨</span>
+                Afficher les Anomalies
+              </span>
+            </label>
+            
+            <button class="action-button primary" (click)="toggleActifCreationMode()">
+              <span class="button-icon">🏗️</span>
+              {{ actifCreationMode ? 'Annuler Création' : 'Créer un Actif' }}
+            </button>
+            
+            <button class="action-button secondary" (click)="toggleSignalementMode()">
+              <span class="button-icon">📝</span>
+              {{ signalementMode ? 'Annuler Signalement' : 'Signaler Anomalie' }}
+            </button>
+          </div>
+        </div>
+
         <!-- Drawing Tools -->
         <div class="tool-section">
           <div class="section-header">
@@ -321,7 +365,38 @@
             <span>Mode dessin: {{ drawType === 'Point' ? 'Point' : drawType === 'Polygon' ? 'Zone' : 'Route' }}</span>
           </div>
         </div>
+
+        <!-- Signalement Mode Status -->
+        <div *ngIf="signalementMode" class="signalement-status">
+          <div class="signalement-info">
+            <span class="signalement-icon">🎯</span>
+            <span>Cliquez sur la carte pour signaler une anomalie</span>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Formulaire de signalement d'anomalie -->
+  <div *ngIf="showSignalementForm" class="signalement-overlay">
+    <div class="signalement-modal">
+      <app-signalement-anomalie
+        [latitude]="clickCoordinates?.[0]"
+        [longitude]="clickCoordinates?.[1]"
+        (anomalieSignaled)="onAnomalieSignaled()"
+        (cancelled)="onSignalementCancelled()">
+      </app-signalement-anomalie>
+    </div>
+  </div>
+
+  <!-- Formulaire d'ajout d'actif -->
+  <div *ngIf="showActifForm" class="actif-overlay">
+    <div class="actif-modal">
+      <app-actif-form
+        [coordinates]="clickCoordinates ? [clickCoordinates[1], clickCoordinates[0]] : null"
+        (submit)="onActifFormSubmit($event)"
+        (cancel)="showActifForm = false; clickCoordinates = null; actifCreationMode = false">
+      </app-actif-form>
     </div>
   </div>
 </div>

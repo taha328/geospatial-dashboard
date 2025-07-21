@@ -17,7 +17,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed": "ts-node src/scripts/init-db.ts",
+    "db:init": "npm run seed",
+    "add-actifs": "ts-node src/scripts/add-actifs-to-map.ts",
+    "create-actifs": "ts-node src/scripts/create-actifs-gps.ts",
+    "create-actifs-fixed": "ts-node src/scripts/create-actifs-fixed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

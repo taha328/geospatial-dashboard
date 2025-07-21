@@ -1,0 +1,642 @@
+<div class="asset-management-container">
+  <!-- Header avec navigation -->
+  <div class="asset-header">
+    <div class="header-content">
+      <h1>🏗️ Gestion des Actifs Portuaires</h1>
+      <p>Système de gestion et suivi des infrastructures du Port de Tanger Med</p>
+    </div>
+    <div class="header-actions">
+      <button 
+        class="btn btn-primary"
+        (click)="loadDashboardData()"
+        title="Actualiser les données">
+        <span class="btn-icon">🔄</span>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Navigation par onglets -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'dashboard'"
+      (click)="setActiveTab('dashboard')">
+      <span class="tab-icon">📊</span>
+      Tableau de Bord
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'hierarchy'"
+      (click)="setActiveTab('hierarchy')">
+      <span class="tab-icon">🌳</span>
+      Hiérarchie
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'map'"
+      (click)="setActiveTab('map')">
+      <span class="tab-icon">🗺️</span>
+      Carte
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'assets'"
+      (click)="setActiveTab('assets')">
+      <span class="tab-icon">📋</span>
+      Actifs
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'anomalies'"
+      (click)="setActiveTab('anomalies')">
+      <span class="tab-icon">⚠️</span>
+      Anomalies
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'maintenance'"
+      (click)="setActiveTab('maintenance')">
+      <span class="tab-icon">🔧</span>
+      Maintenance
+    </button>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Chargement des données...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-icon">⚠️</div>
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="loadDashboardData()">Réessayer</button>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content" *ngIf="!loading && !error">
+    
+    <!-- Dashboard Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'dashboard'">
+      <div class="dashboard-grid">
+        
+        <!-- KPI Cards -->
+        <div class="kpi-section">
+          <h2>📈 Indicateurs Clés de Performance</h2>
+          <div class="kpi-grid">
+            
+            <!-- Actifs KPI - Fix property names -->
+            <div class="kpi-card" *ngIf="statistiquesActifs">
+              <div class="kpi-header">
+                <h3>🏗️ Actifs</h3>
+              </div>
+              <div class="kpi-metrics">
+                <div class="metric-item primary">
+                  <span class="metric-value">{{ statistiquesActifs.total }}</span>
+                  <span class="metric-label">Total Actifs</span>
+                </div>
+                <div class="metric-item success">
+                  <span class="metric-value">{{ statistiquesActifs.operationnels }}</span>
+                  <span class="metric-label">Opérationnels</span>
+                </div>
+                <div class="metric-item warning">
+                  <span class="metric-value">{{ statistiquesActifs.enMaintenance }}</span>
+                  <span class="metric-label">En Maintenance</span>
+                </div>
+                <div class="metric-item danger">
+                  <span class="metric-value">{{ statistiquesActifs.horsService }}</span>
+                  <span class="metric-label">Hors Service</span>
+                </div>
+              </div>
+              <div class="kpi-footer">
+                <span class="availability-rate">
+                  {{ formatPercentage(statistiquesActifs.tauxDisponibilite || 0) }} de disponibilité
+                </span>
+              </div>
+            </div>
+
+            <!-- Anomalies KPI - Fix property names -->
+            <div class="kpi-card" *ngIf="statistiquesAnomalies">
+              <div class="kpi-header">
+                <h3>⚠️ Anomalies</h3>
+              </div>
+              <div class="kpi-metrics">
+                <div class="metric-item primary">
+                  <span class="metric-value">{{ statistiquesAnomalies.total }}</span>
+                  <span class="metric-label">Total Anomalies</span>
+                </div>
+                <div class="metric-item info">
+                  <span class="metric-value">{{ statistiquesAnomalies.nouvelles }}</span>
+                  <span class="metric-label">Nouvelles</span>
+                </div>
+                <div class="metric-item warning">
+                  <span class="metric-value">{{ statistiquesAnomalies.enCours }}</span>
+                  <span class="metric-label">En Cours</span>
+                </div>
+                <div class="metric-item danger">
+                  <span class="metric-value">{{ statistiquesAnomalies.critiques }}</span>
+                  <span class="metric-label">Critiques</span>
+                </div>
+              </div>
+              <div class="kpi-footer">
+                <span class="resolution-rate">
+                  {{ formatPercentage(statistiquesAnomalies.tauxResolution || 0) }} de résolution
+                </span>
+              </div>
+            </div>
+
+            <!-- Maintenance KPI - Fix property names -->
+            <div class="kpi-card" *ngIf="statistiquesMaintenance">
+              <div class="kpi-header">
+                <h3>🔧 Maintenance</h3>
+              </div>
+              <div class="kpi-metrics">
+                <div class="metric-item primary">
+                  <span class="metric-value">{{ statistiquesMaintenance.total }}</span>
+                  <span class="metric-label">Total Maintenances</span>
+                </div>
+                <div class="metric-item info">
+                  <span class="metric-value">{{ statistiquesMaintenance.planifiees }}</span>
+                  <span class="metric-label">Planifiées</span>
+                </div>
+                <div class="metric-item warning">
+                  <span class="metric-value">{{ statistiquesMaintenance.enCours }}</span>
+                  <span class="metric-label">En Cours</span>
+                </div>
+                <div class="metric-item success">
+                  <span class="metric-value">{{ statistiquesMaintenance.terminees }}</span>
+                  <span class="metric-label">Terminées</span>
+                </div>
+              </div>
+              <div class="kpi-footer">
+                <span class="cost-total">
+                  {{ formatCurrency(statistiquesMaintenance.coutTotal || 0) }} de coûts
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats-section">
+          <h2>📊 Statistiques Rapides</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🔴</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ getTotalAnomaliesActives() }}</span>
+                <span class="stat-label">Anomalies Actives</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🔧</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ getTotalMaintenancesPrevues() }}</span>
+                <span class="stat-label">Maintenances Prévues</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ getUniqueTypes().length }}</span>
+                <span class="stat-label">Types d'Actifs</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🗺️</div>
+              <div class="stat-content">
+                <span class="stat-value">{{ actifsPourCarte.length }}</span>
+                <span class="stat-label">Actifs Cartographiés</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- End dashboard-grid -->
+    </div> <!-- End tab-content -->
+
+    <!-- Hierarchy Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'hierarchy'">
+      <div class="hierarchy-layout">
+        <div class="hierarchy-tree">
+          <h2>🌳 Hiérarchie des Actifs</h2>
+          <div class="tree-container">
+            <div *ngFor="let portefeuille of hierarchyData" class="tree-node portefeuille">
+              <div class="node-header" (click)="toggleNode('p' + portefeuille.id)">
+                <span class="expand-icon">{{ isNodeExpanded('p' + portefeuille.id) ? '📂' : '📁' }}</span>
+                <span class="node-icon">{{ getNodeIcon(portefeuille) }}</span>
+                <span class="node-name">{{ portefeuille.nom }}</span>
+                <span class="node-status" [style.color]="getStatutColor(portefeuille.statut || '')">
+                  {{ portefeuille.statut }}
+                </span>
+              </div>
+              
+              <div class="node-children" *ngIf="isNodeExpanded('p' + portefeuille.id) && portefeuille.children">
+                <div *ngFor="let famille of portefeuille.children" class="tree-node famille">
+                  <div class="node-header" (click)="toggleNode('f' + famille.id)">
+                    <span class="expand-icon">{{ isNodeExpanded('f' + famille.id) ? '📂' : '📁' }}</span>
+                    <span class="node-icon">{{ getNodeIcon(famille) }}</span>
+                    <span class="node-name">{{ famille.nom }}</span>
+                    <span class="node-status" [style.color]="getStatutColor(famille.statut || '')">
+                      {{ famille.statut }}
+                    </span>
+                  </div>
+                  
+                  <div class="node-children" *ngIf="isNodeExpanded('f' + famille.id) && famille.children">
+                    <div *ngFor="let groupe of famille.children" class="tree-node groupe">
+                      <div class="node-header" (click)="toggleNode('g' + groupe.id)">
+                        <span class="expand-icon">{{ isNodeExpanded('g' + groupe.id) ? '📂' : '📁' }}</span>
+                        <span class="node-icon">{{ getNodeIcon(groupe) }}</span>
+                        <span class="node-name">{{ groupe.nom }}</span>
+                        <span class="node-status" [style.color]="getStatutColor(groupe.statut || '')">
+                          {{ groupe.statut }}
+                        </span>
+                      </div>
+                      
+                      <div class="node-children" *ngIf="isNodeExpanded('g' + groupe.id) && groupe.children">
+                        <div *ngFor="let actif of groupe.children" class="tree-node actif" (click)="selectNode(actif)">
+                          <div class="node-header" [class.selected]="selectedNode?.id === actif.id">
+                            <span class="node-icon">{{ getNodeIcon(actif) }}</span>
+                            <span class="node-name">{{ actif.nom }}</span>
+                            <span class="node-code">{{ actif.code }}</span>
+                            <span class="node-status" [style.color]="getStatutColor(actif.statutOperationnel || '')">
+                              {{ actif.statutOperationnel }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Node Details -->
+        <div class="node-details" *ngIf="selectedNode">
+          <h3>📋 Détails de l'Actif</h3>
+          <div class="details-card">
+            <div class="details-header">
+              <span class="details-icon">{{ getNodeIcon(selectedNode) }}</span>
+              <h4>{{ selectedNode.nom }}</h4>
+            </div>
+            <div class="details-content">
+              <div class="detail-row" *ngIf="selectedNode.code">
+                <span class="detail-label">Code:</span>
+                <span class="detail-value">{{ selectedNode.code }}</span>
+              </div>
+              <div class="detail-row" *ngIf="selectedNode.numeroSerie">
+                <span class="detail-label">N° Série:</span>
+                <span class="detail-value">{{ selectedNode.numeroSerie }}</span>
+              </div>
+              <div class="detail-row" *ngIf="selectedNode.statutOperationnel">
+                <span class="detail-label">Statut:</span>
+                <span class="detail-value status-badge" [style.color]="getStatutColor(selectedNode.statutOperationnel)">
+                  {{ selectedNode.statutOperationnel }}
+                </span>
+              </div>
+              <div class="detail-row" *ngIf="selectedNode.etatGeneral">
+                <span class="detail-label">État:</span>
+                <span class="detail-value" [style.color]="getEtatColor(selectedNode.etatGeneral)">
+                  {{ selectedNode.etatGeneral }}
+                </span>
+              </div>
+              <div class="detail-row" *ngIf="selectedNode.latitude && selectedNode.longitude">
+                <span class="detail-label">Coordonnées:</span>
+                <span class="detail-value coordinates">
+                  {{ selectedNode.latitude.toFixed(6) }}, {{ selectedNode.longitude.toFixed(6) }}
+                </span>
+              </div>
+            </div>
+            <div class="details-actions" *ngIf="selectedActif">
+              <button class="btn btn-warning btn-sm" 
+                      (click)="updateActifStatut(selectedActif.id, 'maintenance')">
+                🔧 Maintenance
+              </button>
+              <button class="btn btn-success btn-sm" 
+                      (click)="updateActifStatut(selectedActif.id, 'operationnel')">
+                ✅ Opérationnel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'map'">
+      <div class="map-section">
+        <h2>🗺️ Carte Interactive des Actifs</h2>
+        
+        <!-- Map Controls -->
+        <div class="map-controls">
+          <div class="control-group">
+            <label class="control-label">
+              <input type="checkbox" [(ngModel)]="showActifsOnMap" (change)="toggleMapActifs()">
+              <span>Afficher les actifs ({{ actifsPourCarte.length }})</span>
+            </label>
+          </div>
+          
+          <div class="control-group">
+            <label class="control-label">
+              <input type="checkbox" [(ngModel)]="showAnomaliesOnMap" (change)="toggleMapAnomalies()">
+              <span>Afficher les anomalies</span>
+            </label>
+          </div>
+          
+          <div class="control-group">
+            <select [(ngModel)]="selectedMapFilter" class="map-filter-select">
+              <option value="tous">Tous les actifs</option>
+              <option value="operationnel">Opérationnels</option>
+              <option value="maintenance">En maintenance</option>
+              <option value="hors_service">Hors service</option>
+            </select>
+          </div>
+          
+          <button class="btn btn-primary" (click)="centerMapOnActifs()">
+            <span class="btn-icon">📍</span>
+            Centrer sur les actifs
+          </button>
+        </div>
+
+        <!-- Embedded Map -->
+        <div class="embedded-map">
+          <iframe 
+            [src]="getMapUrl()" 
+            width="100%" 
+            height="500px" 
+            frameborder="0"
+            style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+          </iframe>
+        </div>
+
+        <!-- Map Legend -->
+        <div class="map-legend">
+          <h4>Légende</h4>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #28a745;"></span>
+              <span>Opérationnel</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #ffc107;"></span>
+              <span>En maintenance</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #dc3545;"></span>
+              <span>Hors service</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #fd7e14;"></span>
+              <span>Alerte</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="map-actions">
+          <button class="btn btn-warning" (click)="signalAnomalieFromMap()">
+            <span class="btn-icon">⚠️</span>
+            Signaler une anomalie
+          </button>
+          <button class="btn btn-info" (click)="openFullMap()">
+            <span class="btn-icon">🔍</span>
+            Ouvrir la carte complète
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assets List Section -->
+    <div class="tab-content" [class.active]="activeTab === 'assets'">
+      <div class="assets-section">
+        <div class="assets-header">
+          <h2>📋 Liste des Actifs</h2>
+          
+          <!-- Filters -->
+          <div class="assets-filters">
+            <div class="filter-group">
+              <label>Statut:</label>
+              <select [(ngModel)]="filtreStatut" class="filter-select">
+                <option value="tous">Tous les statuts</option>
+                <option value="operationnel">Opérationnel</option>
+                <option value="maintenance">En maintenance</option>
+                <option value="hors_service">Hors service</option>
+                <option value="alerte">Alerte</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label>Type:</label>
+              <select [(ngModel)]="filtreType" class="filter-select">
+                <option value="tous">Tous les types</option>
+                <option *ngFor="let type of getUniqueTypes()" [value]="type">{{ type }}</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label>Recherche:</label>
+              <input type="text" 
+                     [(ngModel)]="rechercheTexte" 
+                     placeholder="Nom ou code..."
+                     class="filter-input">
+            </div>
+          </div>
+          
+          <div class="assets-count">
+            <h3>📋 Liste des Actifs ({{ getFilteredActifs().length }})</h3>
+          </div>
+        </div>
+        
+        <div class="assets-grid">
+          <div *ngFor="let actif of getFilteredActifs()" class="asset-card">
+            <div class="asset-header">
+              <span class="asset-icon">{{ getActifIcon(actif) }}</span>
+              <div class="asset-info">
+                <h4>{{ actif.nom }}</h4>
+                <span class="asset-code">{{ actif.code }}</span>
+              </div>
+              <span class="asset-status" [style.color]="getStatutColor(actif.statutOperationnel)">
+                {{ actif.statutOperationnel }}
+              </span>
+            </div>
+            <div class="asset-details">
+              <div class="detail-item">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">{{ actif.type }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">État:</span>
+                <span class="detail-value" [style.color]="getEtatColor(actif.etatGeneral)">
+                  {{ actif.etatGeneral }}
+                </span>
+              </div>
+              <div class="detail-item" *ngIf="actif.latitude && actif.longitude">
+                <span class="detail-label">Coordonnées:</span>
+                <span class="detail-value coordinates">
+                  {{ actif.latitude.toFixed(4) }}, {{ actif.longitude.toFixed(4) }}
+                </span>
+              </div>
+            </div>
+            <div class="asset-alerts" *ngIf="actif.anomaliesActives > 0 || actif.maintenancesPrevues > 0">
+              <div class="alert-item" *ngIf="actif.anomaliesActives > 0">
+                <span class="alert-icon">🔴</span>
+                <span class="alert-text">{{ actif.anomaliesActives }} anomalie(s)</span>
+              </div>
+              <div class="alert-item" *ngIf="actif.maintenancesPrevues > 0">
+                <span class="alert-icon">🔧</span>
+                <span class="alert-text">{{ actif.maintenancesPrevues }} maintenance(s)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anomalies Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'anomalies'">
+      <div class="anomalies-section">
+        <div class="section-header">
+          <h2>⚠️ Gestion des Anomalies</h2>
+          <div class="anomalies-stats">
+            <div class="stat-item">
+              <span class="stat-number">{{ anomaliesData.length }}</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-item critical">
+              <span class="stat-number">{{ getAnomaliesByPriorite('critique').length }}</span>
+              <span class="stat-label">Critiques</span>
+            </div>
+            <div class="stat-item new">
+              <span class="stat-number">{{ getAnomaliesByStatut('nouveau').length }}</span>
+              <span class="stat-label">Nouvelles</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des anomalies -->
+        <div class="anomalies-list">
+          <div *ngFor="let anomalie of anomaliesData" class="anomalie-card" 
+               [class]="'priority-' + anomalie.priorite">
+            <div class="anomalie-header">
+              <div class="anomalie-info">
+                <h4>{{ anomalie.titre }}</h4>
+                <p class="anomalie-description">{{ anomalie.description }}</p>
+              </div>
+              <div class="anomalie-priority" [style.color]="getPrioriteColor(anomalie.priorite)">
+                {{ anomalie.priorite?.toUpperCase() }}
+              </div>
+            </div>
+            
+            <div class="anomalie-details">
+              <div class="detail-item">
+                <strong>Type:</strong> {{ anomalie.typeAnomalie }}
+              </div>
+              <div class="detail-item">
+                <strong>Statut:</strong> 
+                <span [class]="'status-' + anomalie.statut">{{ anomalie.statut }}</span>
+              </div>
+              <div class="detail-item" *ngIf="anomalie.actif">
+                <strong>Actif:</strong> {{ anomalie.actif.nom }} ({{ anomalie.actif.code }})
+              </div>
+              <div class="detail-item">
+                <strong>Détecté le:</strong> {{ anomalie.dateDetection | date:'dd/MM/yyyy HH:mm' }}
+              </div>
+              <div class="detail-item" *ngIf="anomalie.rapportePar">
+                <strong>Rapporté par:</strong> {{ anomalie.rapportePar }}
+              </div>
+            </div>
+            
+            <div class="anomalie-actions" *ngIf="anomalie.statut !== 'resolu'">
+              <button class="btn btn-success btn-sm" (click)="resolveAnomalie(anomalie)">
+                ✅ Résoudre
+              </button>
+            </div>
+          </div>
+          
+          <div *ngIf="anomaliesData.length === 0" class="empty-state">
+            <p>Aucune anomalie trouvée</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'maintenance'">
+      <div class="maintenance-section">
+        <div class="section-header">
+          <h2>🔧 Gestion de la Maintenance</h2>
+          <div class="maintenance-stats">
+            <div class="stat-item">
+              <span class="stat-number">{{ maintenanceData.length }}</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-item planned">
+              <span class="stat-number">{{ getMaintenancesByStatut('planifiee').length }}</span>
+              <span class="stat-label">Planifiées</span>
+            </div>
+            <div class="stat-item active">
+              <span class="stat-number">{{ getMaintenancesByStatut('en_cours').length }}</span>
+              <span class="stat-label">En Cours</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des maintenances -->
+        <div class="maintenance-list">
+          <div *ngFor="let maintenance of maintenanceData" class="maintenance-card" 
+               [class]="'type-' + maintenance.typeMaintenance">
+            <div class="maintenance-header">
+              <div class="maintenance-info">
+                <h4>{{ maintenance.titre }}</h4>
+                <p class="maintenance-description">{{ maintenance.description }}</p>
+              </div>
+              <div class="maintenance-type">
+                {{ maintenance.typeMaintenance?.toUpperCase() }}
+              </div>
+            </div>
+            
+            <div class="maintenance-details">
+              <div class="detail-item">
+                <strong>Statut:</strong> 
+                <span [class]="'status-' + maintenance.statut">{{ maintenance.statut }}</span>
+              </div>
+              <div class="detail-item" *ngIf="maintenance.actif">
+                <strong>Actif:</strong> {{ maintenance.actif.nom }} ({{ maintenance.actif.code }})
+              </div>
+              <div class="detail-item">
+                <strong>Date prévue:</strong> {{ maintenance.datePrevue | date:'dd/MM/yyyy' }}
+              </div>
+              <div class="detail-item" *ngIf="maintenance.technicienResponsable">
+                <strong>Technicien:</strong> {{ maintenance.technicienResponsable }}
+              </div>
+              <div class="detail-item" *ngIf="maintenance.coutEstime">
+                <strong>Coût estimé:</strong> {{ formatCurrency(maintenance.coutEstime) }}
+              </div>
+            </div>
+            
+            <div class="maintenance-actions">
+              <button class="btn btn-primary btn-sm" 
+                      *ngIf="maintenance.statut === 'planifiee'"
+                      (click)="startMaintenance(maintenance)">
+                ▶️ Démarrer
+              </button>
+              <button class="btn btn-success btn-sm" 
+                      *ngIf="maintenance.statut === 'en_cours'"
+                      (click)="completeMaintenance(maintenance)">
+                ✅ Terminer
+              </button>
+            </div>
+          </div>
+          
+          <div *ngIf="maintenanceData.length === 0" class="empty-state">
+            <p>Aucune maintenance trouvée</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

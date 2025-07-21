@@ -1,0 +1,159 @@
+<div class="signalement-container">
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title">
+        <i class="fas fa-exclamation-triangle"></i>
+        Signaler une Anomalie
+      </h5>
+    </div>
+    
+    <div class="card-body">
+      <!-- Message de succès -->
+      <div *ngIf="showSuccess" class="alert alert-success d-flex align-items-center">
+        <i class="fas fa-check-circle me-2"></i>
+        <span>Anomalie signalée avec succès ! Elle sera prise en compte dans les meilleurs délais.</span>
+      </div>
+
+      <!-- Message d'erreur -->
+      <div *ngIf="errorMessage" class="alert alert-danger d-flex align-items-center">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <form [formGroup]="signalementForm" (ngSubmit)="onSubmit()">
+        <!-- Titre -->
+        <div class="mb-3">
+          <label for="titre" class="form-label">Titre de l'anomalie *</label>
+          <input 
+            type="text" 
+            id="titre"
+            class="form-control"
+            [class.is-invalid]="isFieldInvalid('titre')"
+            formControlName="titre"
+            placeholder="Ex: Défense endommagée sur quai C1">
+          <div *ngIf="isFieldInvalid('titre')" class="invalid-feedback">
+            {{ getFieldErrorMessage('titre') }}
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+          <label for="description" class="form-label">Description détaillée *</label>
+          <textarea 
+            id="description"
+            class="form-control"
+            [class.is-invalid]="isFieldInvalid('description')"
+            formControlName="description"
+            rows="4"
+            placeholder="Décrivez l'anomalie observée, les risques potentiels et les actions recommandées..."></textarea>
+          <div *ngIf="isFieldInvalid('description')" class="invalid-feedback">
+            {{ getFieldErrorMessage('description') }}
+          </div>
+        </div>
+
+        <!-- Type d'anomalie -->
+        <div class="mb-3">
+          <label for="typeAnomalie" class="form-label">Type d'anomalie *</label>
+          <select 
+            id="typeAnomalie"
+            class="form-select"
+            [class.is-invalid]="isFieldInvalid('typeAnomalie')"
+            formControlName="typeAnomalie">
+            <option value="">Sélectionnez un type</option>
+            <option *ngFor="let type of typesAnomalies" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('typeAnomalie')" class="invalid-feedback">
+            {{ getFieldErrorMessage('typeAnomalie') }}
+          </div>
+        </div>
+
+        <!-- Priorité -->
+        <div class="mb-3">
+          <label class="form-label">Priorité *</label>
+          <div class="row">
+            <div *ngFor="let priorite of priorites" class="col-6 col-md-3 mb-2">
+              <div class="form-check">
+                <input 
+                  class="form-check-input" 
+                  type="radio" 
+                  [id]="'priorite-' + priorite.value"
+                  [value]="priorite.value"
+                  formControlName="priorite">
+                <label class="form-check-label" [for]="'priorite-' + priorite.value">
+                  <span 
+                    class="priority-indicator" 
+                    [style.background-color]="priorite.color"></span>
+                  {{ priorite.label }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coordonnées -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="latitude" class="form-label">Latitude *</label>
+            <input 
+              type="number" 
+              id="latitude"
+              class="form-control"
+              [class.is-invalid]="isFieldInvalid('latitude')"
+              formControlName="latitude"
+              placeholder="36.8065"
+              step="0.000001">
+            <div *ngIf="isFieldInvalid('latitude')" class="invalid-feedback">
+              {{ getFieldErrorMessage('latitude') }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="longitude" class="form-label">Longitude *</label>
+            <input 
+              type="number" 
+              id="longitude"
+              class="form-control"
+              [class.is-invalid]="isFieldInvalid('longitude')"
+              formControlName="longitude"
+              placeholder="10.1815"
+              step="0.000001">
+            <div *ngIf="isFieldInvalid('longitude')" class="invalid-feedback">
+              {{ getFieldErrorMessage('longitude') }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Rapporté par -->
+        <div class="mb-3">
+          <label for="rapportePar" class="form-label">Rapporté par</label>
+          <input 
+            type="text" 
+            id="rapportePar"
+            class="form-control"
+            formControlName="rapportePar"
+            placeholder="Nom de la personne qui signale">
+        </div>
+
+        <!-- Boutons -->
+        <div class="d-flex gap-2">
+          <button 
+            type="submit" 
+            class="btn btn-primary"
+            [disabled]="signalementForm.invalid || isSubmitting">
+            <i *ngIf="isSubmitting" class="fas fa-spinner fa-spin me-2"></i>
+            <i *ngIf="!isSubmitting" class="fas fa-paper-plane me-2"></i>
+            {{ isSubmitting ? 'Signalement...' : 'Signaler l\'anomalie' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            (click)="onCancel()">
+            <i class="fas fa-times me-2"></i>
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -16,13 +16,18 @@ import { click } from 'ol/events/condition';
 import { PointService } from '../../services/point.service';
 import { ZoneService } from '../../services/zone.service';
 import { UserService } from '../../services/user.service';
+import { CarteIntegrationService, ActifPourCarte, AnomaliePourCarte } from '../../services/carte-integration.service';
+import { ActifService } from '../../services/actif.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { SelectEvent } from 'ol/interaction/Select';
 import { ol_layer_AnimatedCluster } from './ol-animated-cluster-ext.layer';
+import { SignalementAnomalieComponent } from '../signalement-anomalie/signalement-anomalie.component';
+import { ActifFormComponent } from '../actif-form/actif-form.component';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SignalementAnomalieComponent, ActifFormComponent],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss']
 })
@@ -32,8 +37,12 @@ export class MapComponent implements OnInit, OnDestroy {
   private map!: Map;
   private pointSource!: VectorSource;
   private zoneSource!: VectorSource;
+  private actifSource!: VectorSource;
+  private anomalieSource!: VectorSource;
   private clusterLayer!: ol_layer_AnimatedCluster;
   private zoneLayer!: VectorLayer<VectorSource>;
+  private actifLayer!: VectorLayer<VectorSource>;
+  private anomalieLayer!: VectorLayer<VectorSource>;
   private drawInteraction!: Draw;
   private modifyInteraction!: Modify;
   private selectInteraction!: Select;
@@ -51,6 +60,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
   points: any[] = [];
   zones: any[] = [];
+  actifs: ActifPourCarte[] = [];
+  anomalies: AnomaliePourCarte[] = [];
   loading = false;
   error: string | null = null;
 
@@ -58,16 +69,30 @@ export class MapComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
   isFullscreen = false;
   mouseCoordinates = '';
+  
+  // Nouvelles propriétés pour la gestion des actifs
+  showActifs = true;
+  showAnomalies = true;
+  showSignalementForm = false;
+  showActifForm = false;
+  signalementMode = false;
+  actifCreationMode = false;
+  clickCoordinates: [number, number] | null = null;
 
   constructor(
     private pointService: PointService,
     private zoneService: ZoneService,
-    private userService: UserService
+    private userService: UserService,
+    private carteIntegrationService: CarteIntegrationService,
+    private actifService: ActifService,
+    private dataRefreshService: DataRefreshService
   ) {}
 
   ngOnInit() {
     this.initializeMap();
     this.loadMapData();
+    this.loadActifsData();
+    this.loadAnomaliesData();
   }
 
   ngOnDestroy() {
@@ -527,5 +552,296 @@ export class MapComponent implements OnInit, OnDestroy {
       }
     };
     input.click();
+  }
+
+  // Nouvelles méthodes pour la gestion des actifs
+  private loadActifsData() {
+    this.carteIntegrationService.getActifsForMap().subscribe({
+      next: (actifs) => {
+        this.actifs = actifs;
+        this.addActifsToMap(actifs);
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des actifs:', err);
+      }
+    });
+  }
+
+  private loadAnomaliesData() {
+    this.carteIntegrationService.getAnomaliesForMap().subscribe({
+      next: (anomalies) => {
+        this.anomalies = anomalies;
+        this.addAnomaliesToMap(anomalies);
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des anomalies:', err);
+      }
+    });
+  }
+
+  private addActifsToMap(actifs: ActifPourCarte[]) {
+    if (!this.actifSource) {
+      this.actifSource = new VectorSource();
+      this.actifLayer = new VectorLayer({
+        source: this.actifSource,
+        style: (feature: FeatureLike) => this.getActifStyle(feature)
+      });
+      this.map.addLayer(this.actifLayer);
+    }
+
+    actifs.forEach(actif => {
+      if (actif.latitude && actif.longitude) {
+        const feature = new Feature({
+          geometry: new Point(fromLonLat([actif.longitude, actif.latitude])),
+          id: actif.id,
+          type: 'actif',
+          data: actif
+        });
+        this.actifSource.addFeature(feature);
+      }
+    });
+  }
+
+  private addAnomaliesToMap(anomalies: AnomaliePourCarte[]) {
+    if (!this.anomalieSource) {
+      this.anomalieSource = new VectorSource();
+      this.anomalieLayer = new VectorLayer({
+        source: this.anomalieSource,
+        style: (feature: FeatureLike) => this.getAnomalieStyle(feature)
+      });
+      this.map.addLayer(this.anomalieLayer);
+    }
+
+    anomalies.forEach(anomalie => {
+      if (anomalie.latitude && anomalie.longitude) {
+        const feature = new Feature({
+          geometry: new Point(fromLonLat([anomalie.longitude, anomalie.latitude])),
+          id: anomalie.id,
+          type: 'anomalie',
+          data: anomalie
+        });
+        this.anomalieSource.addFeature(feature);
+      }
+    });
+  }
+
+  private getActifStyle(feature: FeatureLike): Style {
+    const data = feature.get('data');
+    return new Style({
+      image: new CircleStyle({
+        radius: 8,
+        fill: new Fill({ color: data?.statusColor || '#007bff' }),
+        stroke: new Stroke({ color: '#fff', width: 2 })
+      }),
+      text: new Text({
+        text: data?.nom || '',
+        font: '12px Arial',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 2 }),
+        offsetY: -20
+      })
+    });
+  }
+
+  private getAnomalieStyle(feature: FeatureLike): Style {
+    const data = feature.get('data');
+    return new Style({
+      image: new CircleStyle({
+        radius: 6,
+        fill: new Fill({ color: data?.priorityColor || '#ffc107' }),
+        stroke: new Stroke({ color: '#fff', width: 2 })
+      }),
+      text: new Text({
+        text: '⚠️',
+        font: '14px Arial',
+        fill: new Fill({ color: '#000' }),
+        offsetY: -15
+      })
+    });
+  }
+
+  toggleActifsLayer() {
+    if (this.actifLayer) {
+      this.actifLayer.setVisible(this.showActifs);
+    }
+  }
+
+  toggleAnomaliesLayer() {
+    if (this.anomalieLayer) {
+      this.anomalieLayer.setVisible(this.showAnomalies);
+    }
+  }
+
+  toggleSignalementMode() {
+    this.signalementMode = !this.signalementMode;
+    
+    if (this.signalementMode) {
+      // Activer le mode signalement
+      this.map.getViewport().style.cursor = 'crosshair';
+      this.map.once('click', (evt) => {
+        const coordinate = transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
+        this.clickCoordinates = [coordinate[1], coordinate[0]]; // [lat, lng]
+        this.showSignalementForm = true;
+        this.signalementMode = false;
+        this.map.getViewport().style.cursor = 'default';
+      });
+    } else {
+      // Désactiver le mode signalement
+      this.map.getViewport().style.cursor = 'default';
+      this.showSignalementForm = false;
+    }
+  }
+
+  onAnomalieSignaled() {
+    console.log('Anomalie signalée depuis la carte!');
+    
+    // Notifier le service de rafraîchissement des données
+    this.dataRefreshService.notifyAnomalieAdded();
+    
+    // Recharger les anomalies après signalement
+    this.loadAnomaliesData();
+    this.showSignalementForm = false;
+    this.clickCoordinates = null;
+    
+    // Informer l'utilisateur
+    alert('Anomalie signalée avec succès! Les KPI seront mis à jour automatiquement.');
+  }
+  
+  /**
+   * Gère l'annulation du signalement d'anomalie
+   */
+  onSignalementCancelled() {
+    this.showSignalementForm = false;
+    this.signalementMode = false;
+    this.clickCoordinates = null;
+    this.map.getViewport().style.cursor = 'default';
+  }
+
+  /**
+   * Active/désactive le mode de création d'actif
+   */
+  toggleActifCreationMode() {
+    this.actifCreationMode = !this.actifCreationMode;
+    
+    if (this.actifCreationMode) {
+      // Désactiver d'autres modes interactifs s'ils sont actifs
+      if (this.signalementMode) {
+        this.signalementMode = false;
+      }
+      
+      // Changer le curseur pour indiquer le mode de création
+      this.map.getViewport().style.cursor = 'crosshair';
+      
+      // Activer l'interaction pour cliquer sur la carte
+      this.map.once('click', this.handleMapClickForActif);
+    } else {
+      // Désactiver l'interaction de clic et restaurer le curseur
+      this.map.getViewport().style.cursor = 'default';
+    }
+  }
+  
+  /**
+   * Gère le clic sur la carte pour la création d'un actif
+   */
+  handleMapClickForActif = (e: any) => {
+    if (!this.actifCreationMode) return;
+    
+    // Convertir les coordonnées du clic en coordonnées lon/lat
+    const clickCoords = this.map.getEventCoordinate(e.originalEvent);
+    const lonLat = transform(clickCoords, 'EPSG:3857', 'EPSG:4326');
+    
+    // Stocker les coordonnées pour le formulaire
+    this.clickCoordinates = [lonLat[0], lonLat[1]];
+    
+    // Afficher le formulaire d'actif
+    this.showActifForm = true;
+  }
+  
+  /**
+   * Gère l'annulation de la création d'actif
+   */
+  onActifFormCancel() {
+    this.showActifForm = false;
+    this.clickCoordinates = null;
+    this.actifCreationMode = false;
+    this.map.getViewport().style.cursor = 'default';
+  }
+  
+  /**
+   * Gère la soumission du formulaire d'actif
+   */
+  onActifFormSubmit(actifData: any) {
+    // Convertir les données pour les envoyer à l'API si nécessaire
+    if (actifData.latitude && actifData.longitude) {
+      const geoData = {
+        ...actifData,
+        geom: {
+          type: 'Point',
+          coordinates: [actifData.longitude, actifData.latitude]
+        }
+      };
+      
+      // Envoyer à l'API
+      this.carteIntegrationService.createActif(geoData).subscribe({
+        next: (response) => {
+          // Recharger les actifs sur la carte
+          this.loadActifsData();
+          // Fermer le formulaire et réinitialiser l'état
+          this.showActifForm = false;
+          this.clickCoordinates = null;
+          this.actifCreationMode = false;
+          this.map.getViewport().style.cursor = 'default';
+          
+          // Informer l'utilisateur
+          alert('Actif créé avec succès!');
+        },
+        error: (error) => {
+          console.error('Erreur lors de la création de l\'actif:', error);
+          // Ajouter localement pour la démo en cas d'erreur
+          this.addLocalActifFeature(actifData);
+        }
+      });
+    }
+  }
+
+  /**
+   * Ajoute un actif localement à la carte (fallback si l'API échoue)
+   */
+  addLocalActifFeature(actifData: any) {
+    // Créer une feature pour l'actif
+    const feature = new Feature({
+      geometry: new Point(fromLonLat([actifData.longitude, actifData.latitude])),
+      nom: actifData.nom,
+      code: actifData.code,
+      type: actifData.type,
+      statutOperationnel: actifData.statutOperationnel,
+      etatGeneral: actifData.etatGeneral
+    });
+    
+    // Style pour l'actif
+    feature.setStyle(new Style({
+      image: new CircleStyle({
+        radius: 8,
+        fill: new Fill({
+          color: '#007bff'
+        }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 2
+        })
+      })
+    }));
+    
+    // Ajouter à la couche d'actifs
+    this.actifSource.addFeature(feature);
+    
+    // Fermer le formulaire et réinitialiser l'état
+    this.showActifForm = false;
+    this.clickCoordinates = null;
+    this.actifCreationMode = false;
+    this.map.getViewport().style.cursor = 'default';
+    
+    // Informer l'utilisateur
+    alert('Actif créé localement (mode démo) !');
   }
 }

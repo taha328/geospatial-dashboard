@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { SeedService } from './seed/seed.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,15 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
+
+  // Execute database seeding
+  const seedService = app.get(SeedService);
+  try {
+    await seedService.seedAll();
+    console.log('Database seeded successfully!');
+  } catch (error) {
+    console.error('Error seeding database:', error);
+  }
   
   await app.listen(process.env.PORT ?? 3000);
 }
