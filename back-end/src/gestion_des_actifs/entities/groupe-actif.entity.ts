@@ -16,8 +16,27 @@ export class GroupeActif {
   @Column({ length: 100 })
   code: string;
 
-  @Column({ type: 'enum', enum: ['bollards', 'defenses', 'grues', 'eclairage', 'signalisation'], default: 'bollards' })
-  type: string;
+@Column({
+  type: 'enum',
+  enum: [
+    'bollards',
+    'ducs_albe',
+    'defenses',
+    'grues_portiques',
+    'grues_mobiles',
+    'chariots_elevateurs',
+    'reach_stackers',
+    'eclairage',
+    'signalisation',
+    'systemes_securite',
+    'alimentations_electriques',
+    'vehicules_service',
+    'remorques_specialisees',
+    'navettes'
+  ],
+  default: 'bollards'
+})
+type: string;
 
   @Column({ type: 'enum', enum: ['actif', 'inactif', 'maintenance'], default: 'actif' })
   statut: string;

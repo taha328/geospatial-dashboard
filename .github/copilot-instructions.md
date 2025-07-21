@@ -4,11 +4,11 @@
 - **Monorepo** with two main apps:
   - **Backend**: `back-end/` (NestJS, TypeORM, PostgreSQL, GeoJSON)
   - **Frontend**: `front-end/geo-dashboard/` (Angular 18, OpenLayers 7, ol-ext)
-- Purpose: Manage and visualize geospatial data (points, zones, vessels) on an interactive map with user management.
+- Purpose: Manage and visualize geospatial data (points, zones, vessels) on an interactive map with user management and asset management.
 
 ## Architecture & Data Flow
-- **Backend** exposes REST APIs for points, zones, and users. Entities: `point`, `zone`, `user`.
-  - Example: `back-end/src/point/point.controller.ts`, `back-end/src/zones/zones.controller.ts`
+- **Backend** exposes REST APIs for points, zones, users, and assets. Entities: `point`, `zone`, `user`, `actif`.
+  - Example: `back-end/src/point/point.controller.ts`, `back-end/src/zones/zones.controller.ts`, `back-end/src/gestion_des_actifs/controllers/actif.controller.ts`
   - Uses PostgreSQL with PostGIS (see `AddPostGISSupport.ts` migration).
   - CORS enabled for frontend at `http://localhost:4200`.
 - **Frontend** consumes backend APIs via Angular services (see `src/app/services/`).
@@ -57,7 +57,7 @@
 - `USER_MANAGEMENT_README.md`: User management flows, roles, endpoints.
 - `back-end/README.md`, `front-end/geo-dashboard/README.md`: Build/test commands.
 - `src/app/components/`, `src/app/services/`: Main Angular features.
-- `back-end/src/point/`, `back-end/src/zones/`: Main backend features.
+- `back-end/src/point/`, `back-end/src/zones/`, `back-end/src/gestion_des_actifs/`: Main backend features.
 
 ## Example: Adding a New Geometry Type
 1. Backend: Add entity/service/controller in `back-end/src/`.

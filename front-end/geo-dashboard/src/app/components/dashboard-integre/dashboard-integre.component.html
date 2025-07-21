@@ -1,273 +1,137 @@
 <div class="dashboard-container">
-  <!-- Header -->
   <div class="dashboard-header">
-    <div class="header-content">
-      <h1>
-        <i class="fas fa-chart-line"></i>
-        Tableau de Bord Intégré
-      </h1>
-      <p>Vue d'ensemble des actifs portuaires et anomalies signalées</p>
-    </div>
-    <div class="header-actions">
-      <button class="btn btn-primary" (click)="refreshDashboard()">
-        <i class="fas fa-sync-alt"></i>
-        Actualiser
-      </button>
-      <!-- Navigation following geospatial asset management structure -->
-      <button class="btn btn-secondary" (click)="navigateToMap()">
-        <i class="fas fa-map"></i>
-        Voir la Carte
-      </button>
-      <button class="btn btn-secondary" (click)="navigateToDashboard()">
-        <i class="fas fa-chart-line"></i>
-        Analytics
-      </button>
-      <button class="btn btn-outline-secondary" (click)="navigateToMapWithAnomalies()">
-        <i class="fas fa-plus"></i>
-        Signaler
-      </button>
-    </div>
+    <h1>Tableau de Bord - KPIs</h1>
+    <button class="btn btn-primary" (click)="refreshDashboard()">
+      <i class="fas fa-sync"></i> Actualiser
+    </button>
   </div>
 
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-state">
     <div class="spinner"></div>
-    <p>Chargement du tableau de bord...</p>
+    <p>Chargement des indicateurs...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-state">
-    <i class="fas fa-exclamation-triangle"></i>
-    <h3>Erreur de chargement</h3>
-    <p>{{ error }}</p>
-    <button class="btn btn-primary" (click)="refreshDashboard()">
-      <i class="fas fa-redo"></i>
-      Réessayer
-    </button>
+  <div *ngIf="error" class="error-state">
+    <div class="alert alert-danger">
+      {{ error }}
+    </div>
   </div>
 
-  <!-- Dashboard Content -->
-  <div *ngIf="carteDashboard && !loading" class="dashboard-content">
-    
-    <!-- KPI Cards -->
-    <div class="kpi-section">
-      <div class="section-header">
-        <h2>
-          <i class="fas fa-tachometer-alt"></i>
-          Indicateurs Clés de Performance
-        </h2>
-      </div>
-      
-      <div class="kpi-grid">
-        <!-- Total Actifs -->
-        <div class="kpi-card primary">
-          <div class="kpi-icon">
-            <i class="fas fa-cogs"></i>
-          </div>
-          <div class="kpi-content">
-            <div class="kpi-number">{{ getTotalActifs() }}</div>
-            <div class="kpi-label">Total Actifs</div>
-            <div class="kpi-sublabel">Géolocalisés</div>
-          </div>
+  <!-- KPI Dashboard -->
+  <div *ngIf="kpiData && !loading" class="dashboard-content">
+    <!-- Main KPIs -->
+    <div class="kpi-grid">
+      <!-- Total Actifs -->
+      <div class="kpi-card primary">
+        <div class="kpi-icon">
+          <i class="fas fa-cogs"></i>
         </div>
-
-        <!-- Actifs Opérationnels -->
-        <div class="kpi-card success">
-          <div class="kpi-icon">
-            <i class="fas fa-check-circle"></i>
-          </div>
-          <div class="kpi-content">
-            <div class="kpi-number">{{ getOperationnelCount() }}</div>
-            <div class="kpi-label">Opérationnels</div>
-            <div class="kpi-sublabel">En service</div>
-          </div>
-        </div>
-
-        <!-- Anomalies Signalées -->
-        <div class="kpi-card warning">
-          <div class="kpi-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          <div class="kpi-content">
-            <div class="kpi-number">{{ getTotalAnomalies() }}</div>
-            <div class="kpi-label">Anomalies</div>
-            <div class="kpi-sublabel">Signalées</div>
-          </div>
-        </div>
-
-        <!-- Anomalies Critiques -->
-        <div class="kpi-card danger">
-          <div class="kpi-icon">
-            <i class="fas fa-exclamation-circle"></i>
-          </div>
-          <div class="kpi-content">
-            <div class="kpi-number">{{ getCritiqueCount() }}</div>
-            <div class="kpi-label">Critiques</div>
-            <div class="kpi-sublabel">Priorité haute</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="charts-section">
-      <div class="row">
-        <!-- Répartition des Actifs par Statut -->
-        <div class="col-md-6">
-          <div class="chart-card">
-            <div class="chart-header">
-              <h3>
-                <i class="fas fa-pie-chart"></i>
-                Répartition des Actifs par Statut
-              </h3>
-            </div>
-            <div class="chart-content">
-              <div class="status-distribution">
-                <!-- Fix: Remove optional chaining warnings by using safe method access -->
-                <div *ngFor="let statut of getObjectKeys(carteDashboard.statistiques.actifs.parStatut)" 
-                     class="status-item">
-                  <div class="status-indicator" 
-                       [style.background-color]="getStatutColor(statut)"></div>
-                  <span class="status-label">{{ statut }}</span>
-                  <span class="status-count">{{ safeGetValue(carteDashboard.statistiques.actifs.parStatut, statut) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Répartition des Anomalies par Priorité -->
-        <div class="col-md-6">
-          <div class="chart-card">
-            <div class="chart-header">
-              <h3>
-                <i class="fas fa-exclamation-triangle"></i>
-                Anomalies par Priorité
-              </h3>
-            </div>
-            <div class="chart-content">
-              <div class="priority-distribution">
-                <!-- Fix: Remove optional chaining warnings -->
-                <div *ngFor="let priorite of getObjectKeys(carteDashboard.statistiques.anomalies.parPriorite)" 
-                     class="priority-item">
-                  <div class="priority-indicator" 
-                       [style.background-color]="getPrioriteColor(priorite)"></div>
-                  <span class="priority-label">{{ priorite }}</span>
-                  <span class="priority-count">{{ safeGetValue(carteDashboard.statistiques.anomalies.parPriorite, priorite) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="kpi-content">
+          <h3>Total Actifs</h3>
+          <p class="kpi-value">{{ getKpiValue(kpiData.totalActifs) }}</p>
+          <p class="kpi-subtitle">Actifs Géolocalisés</p>
         </div>
       </div>
 
-      <!-- Famille d'Actifs -->
-      <div class="row">
-        <div class="col-12">
-          <div class="chart-card">
-            <div class="chart-header">
-              <h3>
-                <i class="fas fa-layer-group"></i>
-                Répartition par Famille d'Actifs
-              </h3>
-            </div>
-            <div class="chart-content">
-              <div class="famille-distribution">
-                <!-- Fix: Remove optional chaining warnings -->
-                <div *ngFor="let famille of getObjectKeys(carteDashboard.statistiques.actifs.parFamille)" 
-                     class="famille-item">
-                  <div class="famille-header">
-                    <span class="famille-name">{{ famille }}</span>
-                    <span class="famille-count">{{ safeGetValue(carteDashboard.statistiques.actifs.parFamille, famille) }} actifs</span>
-                  </div>
-                  <div class="famille-bar">
-                    <div class="famille-progress" 
-                         [style.width.%]="getPercentage(safeGetValue(carteDashboard.statistiques.actifs.parFamille, famille), getTotalActifs())">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <!-- Actifs Opérationnels -->
+      <div class="kpi-card success">
+        <div class="kpi-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Opérationnels</h3>
+          <p class="kpi-value">{{ getKpiValue(kpiData.actifsOperationnels) }}</p>
+          <p class="kpi-subtitle">En Service</p>
         </div>
       </div>
-    </div>
 
-    <!-- Actions Section following geospatial asset management patterns -->
-    <div class="actions-section">
-      <div class="section-header">
-        <h2>
+      <!-- Actifs en Maintenance -->
+      <div class="kpi-card warning">
+        <div class="kpi-icon">
           <i class="fas fa-tools"></i>
-          Actions Rapides
-        </h2>
+        </div>
+        <div class="kpi-content">
+          <h3>En Maintenance</h3>
+          <p class="kpi-value">{{ getKpiValue(kpiData.actifsEnMaintenance) }}</p>
+          <p class="kpi-subtitle">Maintenance Planifiée</p>
+        </div>
       </div>
-      
-      <div class="actions-grid">
-        <!-- Following OpenLayers 7 + ol-ext map integration from MAP_SYSTEM_README.md -->
-        <button class="action-card" (click)="navigateToMap()">
-          <div class="action-icon">
-            <i class="fas fa-map-marked-alt"></i>
-          </div>
-          <div class="action-content">
-            <h4>Carte Interactive</h4>
-            <p>Visualiser et gérer les actifs géolocalisés</p>
-          </div>
-        </button>
 
-        <!-- Asset anomaly reporting through map interface -->
-        <button class="action-card" (click)="navigateToMapWithAnomalies()">
-          <div class="action-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          <div class="action-content">
-            <h4>Signaler une Anomalie</h4>
-            <p>Utiliser la carte pour signaler des problèmes</p>
-          </div>
-        </button>
+      <!-- Taux de Disponibilité -->
+      <div class="kpi-card info">
+        <div class="kpi-icon">
+          <i class="fas fa-percentage"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Disponibilité</h3>
+          <p class="kpi-value">{{ getPercentage(kpiData.tauxDisponibilite) }}</p>
+          <p class="kpi-subtitle">Taux Global</p>
+        </div>
+      </div>
 
-        <!-- Following vessel tracking with real-time updates -->
-        <button class="action-card" (click)="navigateToVessels()">
-          <div class="action-icon">
-            <i class="fas fa-ship"></i>
-          </div>
-          <div class="action-content">
-            <h4>Suivi des Navires</h4>
-            <p>Localisation et tracking en temps réel</p>
-          </div>
-        </button>
+      <!-- Anomalies -->
+      <div class="kpi-card danger">
+        <div class="kpi-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Anomalies</h3>
+          <p class="kpi-value">{{ getKpiValue(kpiData.totalAnomalies) }}</p>
+          <p class="kpi-subtitle">Total Signalé</p>
+        </div>
+      </div>
 
-        <!-- Asset maintenance planning -->
-        <button class="action-card" (click)="navigateToMaintenance()">
-          <div class="action-icon">
-            <i class="fas fa-wrench"></i>
-          </div>
-          <div class="action-content">
-            <h4>Planifier Maintenance</h4>
-            <p>Programmer les interventions préventives</p>
-          </div>
-        </button>
+      <!-- Maintenances Prévues -->
+      <div class="kpi-card secondary">
+        <div class="kpi-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Maintenances</h3>
+          <p class="kpi-value">{{ getKpiValue(kpiData.maintenancesPrevues) }}</p>
+          <p class="kpi-subtitle">Planifiées</p>
+        </div>
+      </div>
+    </div>
 
-        <!-- Zone management through map interface (PostGIS integration) -->
-        <button class="action-card" (click)="navigateToZones()">
-          <div class="action-icon">
-            <i class="fas fa-vector-square"></i>
+    <!-- Detailed Statistics -->
+    <div class="statistics-grid">
+      <!-- Répartition par Statut -->
+      <div class="stat-card">
+        <h3>Répartition par Statut</h3>
+        <div class="status-list">
+          <div *ngFor="let status of kpiData.statistiques.actifs.parStatut | keyvalue" 
+               class="status-item" [ngClass]="getStatusClass(status.key)">
+            <span class="status-label">{{ status.key }}</span>
+            <span class="status-value">{{ status.value }}</span>
           </div>
-          <div class="action-content">
-            <h4>Gestion des Zones</h4>
-            <p>Définir et gérer les zones portuaires</p>
-          </div>
-        </button>
+        </div>
+      </div>
 
-        <!-- Asset portfolio reports -->
-        <button class="action-card" (click)="navigateToReports()">
-          <div class="action-icon">
-            <i class="fas fa-chart-bar"></i>
+      <!-- Anomalies par Priorité -->
+      <div class="stat-card">
+        <h3>Anomalies par Priorité</h3>
+        <div class="status-list">
+          <div *ngFor="let priority of kpiData.statistiques.anomalies.parPriorite | keyvalue"
+               class="status-item" [ngClass]="getStatusClass(priority.key)">
+            <span class="status-label">{{ priority.key }}</span>
+            <span class="status-value">{{ priority.value }}</span>
           </div>
-          <div class="action-content">
-            <h4>Rapports d'Actifs</h4>
-            <p>Analyser les performances par portefeuille</p>
+        </div>
+      </div>
+
+      <!-- Maintenance par Type -->
+      <div class="stat-card">
+        <h3>Maintenance par Type</h3>
+        <div class="status-list">
+          <div *ngFor="let type of kpiData.statistiques.maintenance.parType | keyvalue"
+               class="status-item">
+            <span class="status-label">{{ type.key }}</span>
+            <span class="status-value">{{ type.value }}</span>
           </div>
-        </button>
+        </div>
       </div>
     </div>
   </div>
