@@ -135,6 +135,43 @@
             placeholder="Nom de la personne qui signale">
         </div>
 
+        <!-- Upload d'image -->
+        <div class="mb-3">
+          <label for="imageUpload" class="form-label">
+            <i class="fas fa-camera me-2"></i>
+            Ajouter une Photo (Optionnel)
+          </label>
+          <input 
+            type="file" 
+            id="imageUpload"
+            class="form-control"
+            accept="image/*"
+            (change)="onFileSelected($event)">
+          <div class="form-text">
+            Formats acceptés: JPEG, PNG, GIF. Taille maximum: 5MB
+          </div>
+          
+          <!-- Preview de l'image -->
+          <div *ngIf="imagePreview" class="image-preview-container mt-3">
+            <div class="image-preview">
+              <img [src]="imagePreview" alt="Aperçu de l'image" class="preview-image">
+              <button 
+                type="button" 
+                class="btn btn-sm btn-danger remove-image-btn"
+                (click)="removeImage()"
+                title="Supprimer l'image">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="image-info">
+              <small class="text-muted">
+                <i class="fas fa-file-image me-1"></i>
+                {{ selectedFile?.name }} ({{ (selectedFile?.size! / 1024).toFixed(1) }} KB)
+              </small>
+            </div>
+          </div>
+        </div>
+
         <!-- Boutons -->
         <div class="d-flex gap-2">
           <button 

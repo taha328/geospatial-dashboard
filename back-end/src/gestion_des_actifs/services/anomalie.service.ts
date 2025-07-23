@@ -50,6 +50,7 @@ export class AnomalieService {
     longitude: number;
     rapportePar?: string;
     actifId?: number;
+    photosAnnexes?: any;
   }): Promise<Anomalie> {
     const anomalie = this.anomalieRepository.create({
       ...anomalieData,

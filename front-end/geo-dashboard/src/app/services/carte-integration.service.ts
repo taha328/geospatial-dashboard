@@ -73,7 +73,7 @@ export class CarteIntegrationService {
   }
 
   // Signaler une anomalie depuis la carte
-  signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie): Observable<any> {
+  signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie | FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}/signaler-anomalie`, anomalie);
   }
 

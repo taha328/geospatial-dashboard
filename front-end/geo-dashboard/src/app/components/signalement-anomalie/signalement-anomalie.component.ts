@@ -20,6 +20,8 @@ export class SignalementAnomalieComponent implements OnInit {
   isSubmitting = false;
   showSuccess = false;
   errorMessage = '';
+  selectedFile: File | null = null;
+  imagePreview: string | null = null;
 
   typesAnomalies = [
     { value: 'structural', label: 'Structurel' },
@@ -48,7 +50,8 @@ export class SignalementAnomalieComponent implements OnInit {
       latitude: [null, [Validators.required, Validators.min(-90), Validators.max(90)]],
       longitude: [null, [Validators.required, Validators.min(-180), Validators.max(180)]],
       rapportePar: [''],
-      actifId: [null]
+      actifId: [null],
+      image: [null]
     });
   }
 
@@ -74,20 +77,86 @@ export class SignalementAnomalieComponent implements OnInit {
     });
   }
 
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        this.errorMessage = 'Seuls les fichiers image (JPEG, PNG, GIF) sont autorisés.';
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        this.errorMessage = 'La taille du fichier ne doit pas dépasser 5MB.';
+        return;
+      }
+
+      this.selectedFile = file;
+      this.signalementForm.patchValue({ image: file });
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.imagePreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous error
+      this.errorMessage = '';
+    }
+  }
+
+  removeImage(): void {
+    this.selectedFile = null;
+    this.imagePreview = null;
+    this.signalementForm.patchValue({ image: null });
+    
+    // Reset file input
+    const fileInput = document.getElementById('imageUpload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
   onSubmit() {
     if (this.signalementForm.valid) {
       this.isSubmitting = true;
       this.errorMessage = '';
 
-      const signalement: SignalementAnomalie = this.signalementForm.value;
+      // Prepare FormData for file upload
+      const formData = new FormData();
+      const formValue = this.signalementForm.value;
+      
+      // Add form fields to FormData
+      Object.keys(formValue).forEach(key => {
+        if (key !== 'image' && formValue[key] !== null && formValue[key] !== undefined) {
+          formData.append(key, formValue[key]);
+        }
+      });
 
-      this.carteIntegrationService.signalerAnomalieDepuisCarte(signalement)
+      // Add image file if selected
+      if (this.selectedFile) {
+        formData.append('image', this.selectedFile, this.selectedFile.name);
+      }
+
+      this.carteIntegrationService.signalerAnomalieDepuisCarte(formData)
         .subscribe({
           next: (response) => {
             this.showSuccess = true;
             this.signalementForm.reset();
             this.signalementForm.patchValue({ priorite: 'moyen' });
             this.isSubmitting = false;
+            this.selectedFile = null;
+            this.imagePreview = null;
+            
+            // Reset file input
+            const fileInput = document.getElementById('imageUpload') as HTMLInputElement;
+            if (fileInput) {
+              fileInput.value = '';
+            }
             
             // Émettre l'événement de succès
             this.anomalieSignaled.emit();

@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import { CarteIntegrationService } from '../services/carte-integration.service';
 import { AnomalieService } from '../gestion_des_actifs/services/anomalie.service';
 
@@ -25,17 +27,44 @@ export class CarteIntegrationController {
   }
 
   @Post('signaler-anomalie')
-  async signalerAnomalieDepuisCarte(@Body() anomalieData: {
-    titre: string;
-    description: string;
-    typeAnomalie: 'structural' | 'mecanique' | 'electrique' | 'securite' | 'autre';
-    priorite: 'faible' | 'moyen' | 'eleve' | 'critique';
-    latitude: number;
-    longitude: number;
-    rapportePar?: string;
-    actifId?: number;
-  }) {
-    return this.anomalieService.createFromMap(anomalieData);
+  @UseInterceptors(FileInterceptor('image'))
+  async signalerAnomalieDepuisCarte(
+    @Body() anomalieData: {
+      titre: string;
+      description: string;
+      typeAnomalie: 'structural' | 'mecanique' | 'electrique' | 'securite' | 'autre';
+      priorite: 'faible' | 'moyen' | 'eleve' | 'critique';
+      latitude: string;
+      longitude: string;
+      rapportePar?: string;
+      actifId?: string;
+    },
+    @UploadedFile() image?: Express.Multer.File
+  ) {
+    // Convert string coordinates to numbers
+    const processedData = {
+      ...anomalieData,
+      latitude: parseFloat(anomalieData.latitude),
+      longitude: parseFloat(anomalieData.longitude),
+      actifId: anomalieData.actifId ? parseInt(anomalieData.actifId, 10) : undefined,
+    };
+
+    // Handle image if uploaded
+    let photosAnnexes: any = null;
+    if (image) {
+      photosAnnexes = {
+        filename: image.originalname,
+        mimetype: image.mimetype,
+        size: image.size,
+        data: image.buffer.toString('base64'), // Convert to base64 for JSON storage
+        uploadDate: new Date().toISOString()
+      };
+    }
+
+    return this.anomalieService.createFromMap({
+      ...processedData,
+      photosAnnexes
+    });
   }
 
   @Post('actifs')
