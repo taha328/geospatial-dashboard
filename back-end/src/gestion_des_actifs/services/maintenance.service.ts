@@ -98,19 +98,19 @@ export class MaintenanceService {
     const maintenancesEnCours = await this.maintenanceRepository.count({ where: { statut: 'en_cours' } });
     const maintenancesTerminees = await this.maintenanceRepository.count({ where: { statut: 'terminee' } });
     
-    const coutTotal = await this.maintenanceRepository
+    const coutTotalResult = await this.maintenanceRepository
       .createQueryBuilder('maintenance')
       .select('SUM(maintenance.coutReel)', 'total')
-      .where('maintenance.coutReel IS NOT NULL')
       .getRawOne();
+      
+    const coutTotal = coutTotalResult.total || 0;
 
     return {
-      totalMaintenances,
-      maintenancesPlanifiees,
-      maintenancesEnCours,
-      maintenancesTerminees,
-      coutTotalMaintenance: coutTotal?.total || 0,
-      tauxCompletion: totalMaintenances > 0 ? (maintenancesTerminees / totalMaintenances * 100).toFixed(2) : 0
+      total: totalMaintenances,
+      planifiees: maintenancesPlanifiees,
+      enCours: maintenancesEnCours,
+      terminees: maintenancesTerminees,
+      coutTotal: parseFloat(coutTotal)
     };
   }
 

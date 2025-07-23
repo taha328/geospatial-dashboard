@@ -99,30 +99,28 @@ export class PortefeuilleService {
     portefeuilles.forEach(portefeuille => {
       portefeuille.famillesActifs?.forEach(famille => {
         famille.groupesActifs?.forEach(groupe => {
+          totalActifs += groupe.actifs?.length || 0;
           groupe.actifs?.forEach(actif => {
-            totalActifs++;
-            switch (actif.statutOperationnel) {
-              case 'operationnel':
-                actifsOperationnels++;
-                break;
-              case 'maintenance':
-                actifsEnMaintenance++;
-                break;
-              case 'hors_service':
-                actifsHorsService++;
-                break;
+            if (actif.statutOperationnel === 'operationnel') {
+              actifsOperationnels++;
+            } else if (actif.statutOperationnel === 'maintenance') {
+              actifsEnMaintenance++;
+            } else if (actif.statutOperationnel === 'hors_service') {
+              actifsHorsService++;
             }
           });
         });
       });
     });
-
+    
+    const tauxDisponibilite = totalActifs > 0 ? (actifsOperationnels / totalActifs) * 100 : 0;
+    
     return {
-      totalActifs,
-      actifsOperationnels,
-      actifsEnMaintenance,
-      actifsHorsService,
-      tauxDisponibilite: totalActifs > 0 ? (actifsOperationnels / totalActifs * 100).toFixed(2) : 0
+      total: totalActifs,
+      operationnels: actifsOperationnels,
+      enMaintenance: actifsEnMaintenance,
+      horsService: actifsHorsService,
+      tauxDisponibilite: parseFloat(tauxDisponibilite.toFixed(2))
     };
   }
 }

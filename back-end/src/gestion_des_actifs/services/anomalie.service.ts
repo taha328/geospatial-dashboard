@@ -121,11 +121,11 @@ export class AnomalieService {
     const anomaliesCritiques = await this.anomalieRepository.count({ where: { priorite: 'critique' } });
     
     return {
-      totalAnomalies,
-      anomaliesNouveaux,
-      anomaliesEnCours,
-      anomaliesResolus,
-      anomaliesCritiques,
+      total: totalAnomalies,
+      nouvelles: anomaliesNouveaux,
+      enCours: anomaliesEnCours,
+      resolues: anomaliesResolus,
+      critiques: anomaliesCritiques,
       tauxResolution: totalAnomalies > 0 ? (anomaliesResolus / totalAnomalies * 100).toFixed(2) : 0
     };
   }
