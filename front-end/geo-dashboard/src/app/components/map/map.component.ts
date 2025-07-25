@@ -558,6 +558,7 @@ export class MapComponent implements OnInit, OnDestroy {
   private loadActifsData() {
     this.carteIntegrationService.getActifsForMap().subscribe({
       next: (actifs) => {
+        console.log(`Chargement de ${actifs.length} actifs sur la carte:`, actifs);
         this.actifs = actifs;
         this.addActifsToMap(actifs);
       },
@@ -588,6 +589,9 @@ export class MapComponent implements OnInit, OnDestroy {
       });
       this.map.addLayer(this.actifLayer);
     }
+
+    // Vider la source avant d'ajouter les nouveaux actifs pour éviter les doublons
+    this.actifSource.clear();
 
     actifs.forEach(actif => {
       if (actif.latitude && actif.longitude) {
@@ -680,7 +684,7 @@ export class MapComponent implements OnInit, OnDestroy {
       this.map.getViewport().style.cursor = 'crosshair';
       this.map.once('click', (evt) => {
         const coordinate = transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
-        this.clickCoordinates = [coordinate[1], coordinate[0]]; // [lat, lng]
+        this.clickCoordinates = [coordinate[0], coordinate[1]]; // [lng, lat] - format standard
         this.showSignalementForm = true;
         this.signalementMode = false;
         this.map.getViewport().style.cursor = 'default';
@@ -768,40 +772,19 @@ export class MapComponent implements OnInit, OnDestroy {
   }
   
   /**
-   * Gère la soumission du formulaire d'actif
+   * Gère la création réussie d'un actif depuis le formulaire
    */
-  onActifFormSubmit(actifData: any) {
-    // Convertir les données pour les envoyer à l'API si nécessaire
-    if (actifData.latitude && actifData.longitude) {
-      const geoData = {
-        ...actifData,
-        geom: {
-          type: 'Point',
-          coordinates: [actifData.longitude, actifData.latitude]
-        }
-      };
-      
-      // Envoyer à l'API
-      this.carteIntegrationService.createActif(geoData).subscribe({
-        next: (response) => {
-          // Recharger les actifs sur la carte
-          this.loadActifsData();
-          // Fermer le formulaire et réinitialiser l'état
-          this.showActifForm = false;
-          this.clickCoordinates = null;
-          this.actifCreationMode = false;
-          this.map.getViewport().style.cursor = 'default';
-          
-          // Informer l'utilisateur
-          alert('Actif créé avec succès!');
-        },
-        error: (error) => {
-          console.error('Erreur lors de la création de l\'actif:', error);
-          // Ajouter localement pour la démo en cas d'erreur
-          this.addLocalActifFeature(actifData);
-        }
-      });
-    }
+  onActifCreated(actifData: any) {
+    console.log('Actif créé avec succès:', actifData);
+    
+    // Recharger les actifs sur la carte
+    this.loadActifsData();
+    
+    // Fermer le formulaire et réinitialiser l'état
+    this.showActifForm = false;
+    this.clickCoordinates = null;
+    this.actifCreationMode = false;
+    this.map.getViewport().style.cursor = 'default';
   }
 
   /**

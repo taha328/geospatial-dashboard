@@ -20,10 +20,7 @@ import { CarteIntegrationModule } from './modules/carte-integration.module';
       database: 'db',
       autoLoadEntities: true,
       synchronize: true,
-            extra: {
 
-        connectionLimit: 10,
-      },
     }),
     PointModule,
     ZonesModule,

@@ -393,9 +393,9 @@
   <div *ngIf="showActifForm" class="actif-overlay">
     <div class="actif-modal">
       <app-actif-form
-        [coordinates]="clickCoordinates ? [clickCoordinates[1], clickCoordinates[0]] : null"
-        (submit)="onActifFormSubmit($event)"
-        (cancel)="showActifForm = false; clickCoordinates = null; actifCreationMode = false">
+        [coordinates]="clickCoordinates"
+        (submit)="onActifCreated($event)"
+        (cancel)="onActifFormCancel()">
       </app-actif-form>
     </div>
   </div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { CarteIntegrationService } from '../services/carte-integration.service';
@@ -79,6 +79,15 @@ export class CarteIntegrationController {
       coordinates: [number, number];
     };
   }) {
-    return this.carteIntegrationService.createActif(actifData);
+    try {
+      return await this.carteIntegrationService.createActif(actifData);
+    } catch (error) {
+      // Renvoyer une réponse d'erreur appropriée
+      throw new HttpException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: error.message || 'Erreur lors de la création de l\'actif',
+        error: 'Bad Request'
+      }, HttpStatus.BAD_REQUEST);
+    }
   }
 }

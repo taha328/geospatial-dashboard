@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActifService, Portefeuille, FamilleActif, GroupeActif } from '../../services/actif.service';
+import { CarteIntegrationService } from '../../services/carte-integration.service';
 
 @Component({
   selector: 'app-actif-form',
@@ -11,7 +12,11 @@ import { ActifService, Portefeuille, FamilleActif, GroupeActif } from '../../ser
     <div class="actif-form-container">
       <div class="form-header">
         <h2>{{ editMode ? 'Modifier' : 'Créer' }} un actif</h2>
-        <button type="button" class="btn-close" (click)="onCancel()">×</button>
+        <button type="button" class="btn-close" (click)="cancel.emit()">×</button>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
       </div>
 
       <form [formGroup]="actifForm" (ngSubmit)="onSubmit()">
@@ -173,8 +178,8 @@ import { ActifService, Portefeuille, FamilleActif, GroupeActif } from '../../ser
         </div>
         
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="onCancel()">Annuler</button>
-          <button type="submit" class="btn btn-primary" [disabled]="actifForm.invalid">
+          <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="actifForm.invalid || isSubmitting">
             {{ editMode ? 'Mettre à jour' : 'Créer' }}
           </button>
         </div>
@@ -318,6 +323,8 @@ export class ActifFormComponent implements OnInit {
   @Output() submit = new EventEmitter<any>();
   
   actifForm!: FormGroup;
+  isSubmitting = false;
+  errorMessage: string | null = null;
   
   portefeuilles: Portefeuille[] = [];
   familles: FamilleActif[] = [];
@@ -325,7 +332,8 @@ export class ActifFormComponent implements OnInit {
   
   constructor(
     private fb: FormBuilder,
-    private actifService: ActifService
+    private actifService: ActifService,
+    private carteIntegrationService: CarteIntegrationService
   ) {}
   
   ngOnInit(): void {
@@ -333,8 +341,7 @@ export class ActifFormComponent implements OnInit {
     this.loadPortefeuilles();
     
     if (this.coordinates) {
-      // Coordonnées sont dans le format [longitude, latitude], mais nous devons stocker
-      // comme [latitude, longitude] pour correspondre aux champs du formulaire
+      // Coordonnées sont dans le format [longitude, latitude] standard GeoJSON
       this.actifForm.patchValue({
         longitude: this.coordinates[0], // longitude
         latitude: this.coordinates[1]   // latitude
@@ -481,7 +488,7 @@ export class ActifFormComponent implements OnInit {
   }
   
   onSubmit(): void {
-    if (this.actifForm.invalid) {
+    if (this.actifForm.invalid || this.isSubmitting) {
       // Marquer tous les champs comme touchés pour montrer les validations
       Object.keys(this.actifForm.controls).forEach(key => {
         const control = this.actifForm.get(key);
@@ -490,29 +497,87 @@ export class ActifFormComponent implements OnInit {
       return;
     }
     
+    this.isSubmitting = true;
+    this.errorMessage = null;
     const actifData = this.prepareActifData();
     
     if (this.editMode && this.actifId) {
       this.actifService.updateActif(this.actifId, actifData).subscribe({
         next: (response) => {
+          this.isSubmitting = false;
           this.submit.emit(response);
+          this.actifForm.reset();
         },
         error: (error) => {
+          this.isSubmitting = false;
+          this.errorMessage = error.message || 'Une erreur est survenue lors de la mise à jour.';
           console.error('Erreur lors de la mise à jour de l\'actif', error);
         }
       });
     } else {
-      this.actifService.createActif(actifData).subscribe({
-        next: (response) => {
-          this.submit.emit(response);
-        },
-        error: (error) => {
-          console.error('Erreur lors de la création de l\'actif', error);
-        }
-      });
+      this.createActifWithRetry(actifData);
     }
   }
-  
+
+  /**
+   * Crée un actif avec retry automatique en cas de code dupliqué
+   */
+  private createActifWithRetry(actifData: any, retryCount: number = 0): void {
+    if (retryCount >= 3) {
+      this.isSubmitting = false;
+      this.errorMessage = 'Impossible de générer un code unique après 3 tentatives. Veuillez réessayer.';
+      return;
+    }
+
+    // Si l'actif a des coordonnées, utiliser le service de carte (pour les actifs créés depuis la carte)
+    // Sinon, utiliser le service actif normal (pour les actifs créés depuis le formulaire de gestion)
+    let createObservable;
+    
+    if (actifData.latitude && actifData.longitude && this.coordinates) {
+      // Préparer les données pour l'API de carte (format GeoJSON)
+      const geoData = {
+        ...actifData,
+        geom: {
+          type: 'Point',
+          coordinates: [actifData.longitude, actifData.latitude]
+        }
+      };
+      createObservable = this.carteIntegrationService.createActif(geoData);
+    } else {
+      // Utiliser le service actif normal
+      createObservable = this.actifService.createActif(actifData);
+    }
+
+    createObservable.subscribe({
+      next: (response) => {
+        this.isSubmitting = false;
+        this.submit.emit(response);
+        this.actifForm.reset();
+      },
+      error: (error) => {
+        // Vérifier s'il s'agit d'une erreur de code dupliqué
+        if (error?.error?.message && error.error.message.includes('existe déjà')) {
+          console.log(`Code dupliqué détecté, tentative ${retryCount + 1}/3 - Génération d'un nouveau code...`);
+          
+          // Générer un nouveau code
+          const formValue = this.actifForm.getRawValue();
+          const newCode = this.generateUniqueCode(formValue.nom, formValue.type);
+          
+          // Mettre à jour les données avec le nouveau code
+          const newActifData = { ...actifData, code: newCode };
+          
+          // Retry avec le nouveau code
+          this.createActifWithRetry(newActifData, retryCount + 1);
+        } else {
+          // Autre type d'erreur
+          this.isSubmitting = false;
+          this.errorMessage = error?.error?.message || error.message || 'Une erreur est survenue lors de la création.';
+          console.error('Erreur lors de la création de l\'actif', error);
+        }
+      }
+    });
+  }
+
   prepareActifData(): any {
     // Récupérer les valeurs, y compris celles des contrôles désactivés
     const formValue = this.actifForm.getRawValue();
@@ -556,9 +621,11 @@ export class ActifFormComponent implements OnInit {
    * Format: [Préfixe du type]-[Trois premières lettres du nom]-[Timestamp + nombre aléatoire]
    */
   generateUniqueCode(nom: string, type: string): string {
-    // Utilise les millisecondes actuelles + un nombre aléatoire pour garantir l'unicité
-    const timestamp = new Date().getTime().toString().substr(-6);
-    const randomPart = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    // Utilise un timestamp plus précis (incluant millisecondes) + un nombre aléatoire plus grand
+    const now = new Date();
+    const timestamp = now.getTime().toString(); // Timestamp complet en millisecondes
+    const microTimestamp = performance.now().toString().replace('.', ''); // Plus de précision
+    const randomPart = Math.floor(Math.random() * 999999).toString().padStart(6, '0'); // Nombre aléatoire à 6 chiffres
     
     // Définir un préfixe en fonction du type d'actif
     let prefix = 'ACT';
@@ -591,6 +658,9 @@ export class ActifFormComponent implements OnInit {
     // Extraire les trois premières lettres du nom (ou moins si le nom est plus court)
     const nomPrefix = nom ? nom.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() : 'XXX';
     
-    return `${prefix}-${nomPrefix}-${timestamp}${randomPart}`;
+    // Combiner timestamp et nombre aléatoire pour plus d'unicité
+    const uniqueId = (timestamp.slice(-8) + microTimestamp.slice(-4) + randomPart).slice(-10);
+    
+    return `${prefix}-${nomPrefix}-${uniqueId}`;
   }
 }

@@ -28,20 +28,9 @@ export class ActifService {
     if (actifData.code) {
       const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
       
-      // Si le code existe déjà, générer un nouveau code unique
+      // Si le code existe déjà, renvoyer une erreur ou gérer la situation
       if (existingActif) {
-        // Générer un code unique en ajoutant un timestamp et un nombre aléatoire
-        const timestamp = new Date().getTime().toString().substr(-6);
-        const randomPart = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        
-        // Extraire le préfixe du code existant (avant le dernier tiret)
-        const parts = actifData.code.split('-');
-        if (parts.length >= 2) {
-          const prefix = parts.slice(0, -1).join('-');
-          actifData.code = `${prefix}-${timestamp}${randomPart}`;
-        } else {
-          actifData.code = `${actifData.code}-${timestamp}${randomPart}`;
-        }
+        throw new Error(`Un actif avec le code ${actifData.code} existe déjà.`);
       }
     }
     
@@ -101,7 +90,7 @@ export class ActifService {
       longitude: actif.longitude,
       statutOperationnel: actif.statutOperationnel,
       etatGeneral: actif.etatGeneral,
-      type: actif.groupeActif?.type || 'inconnu',
+      type: actif.type || 'inconnu', // Utiliser directement le type de l'actif
       groupe: actif.groupeActif?.nom,
       famille: actif.groupeActif?.familleActif?.nom,
       portefeuille: actif.groupeActif?.familleActif?.portefeuille?.nom,
@@ -135,33 +124,21 @@ export class ActifService {
     // Vérifier si le code existe déjà
     const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
     
-    // Si le code existe déjà, générer un nouveau code unique
-    let actifCode = actifData.code;
+    // Si le code existe déjà, renvoyer une erreur pour éviter les doublons
     if (existingActif) {
-      // Générer un code unique en ajoutant un timestamp et un nombre aléatoire
-      const timestamp = new Date().getTime().toString().substr(-6);
-      const randomPart = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      
-      // Extraire le préfixe du code existant (avant le dernier tiret)
-      const parts = actifData.code.split('-');
-      if (parts.length >= 2) {
-        const prefix = parts.slice(0, -1).join('-');
-        actifCode = `${prefix}-${timestamp}${randomPart}`;
-      } else {
-        actifCode = `${actifData.code}-${timestamp}${randomPart}`;
-      }
+      throw new Error(`Un actif avec le code ${actifData.code} existe déjà.`);
     }
     
     // Créer un actif avec les données minimales requises
     const newActif = this.actifRepository.create({
       nom: actifData.nom,
-      code: actifCode, // Utiliser le code potentiellement modifié
+      code: actifData.code,
       type: actifData.type,
       statutOperationnel: actifData.statutOperationnel,
       etatGeneral: actifData.etatGeneral,
-      // Inverser latitude et longitude pour corriger le problème
-      latitude: actifData.longitude,  // <-- Corriger l'inversion
-      longitude: actifData.latitude,  // <-- Corriger l'inversion
+      // Utiliser les coordonnées correctes
+      latitude: actifData.latitude,
+      longitude: actifData.longitude,
       dateMiseEnService: actifData.dateInstallation || new Date(),
       description: `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`
     });

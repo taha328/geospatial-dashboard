@@ -22,7 +22,9 @@
     "db:init": "npm run seed",
     "add-actifs": "ts-node src/scripts/add-actifs-to-map.ts",
     "create-actifs": "ts-node src/scripts/create-actifs-gps.ts",
-    "create-actifs-fixed": "ts-node src/scripts/create-actifs-fixed.ts"
+    "create-actifs-fixed": "ts-node src/scripts/create-actifs-fixed.ts",
+    "fix-orphans": "ts-node src/scripts/fix-orphan-maintenances.ts",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
