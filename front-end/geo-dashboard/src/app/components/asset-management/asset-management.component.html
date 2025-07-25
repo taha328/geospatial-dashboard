@@ -410,17 +410,17 @@
       </div>
     </div>
 
-    <!-- Assets List Section -->
+    <!-- Assets List Section - Enhanced -->
     <div class="tab-content" [class.active]="activeTab === 'assets'">
       <div class="assets-section">
         <div class="assets-header">
           <h2>📋 Liste des Actifs</h2>
           
-          <!-- Filters -->
+          <!-- Enhanced Filters -->
           <div class="assets-filters">
             <div class="filter-group">
               <label>Statut:</label>
-              <select [(ngModel)]="filtreStatut" class="filter-select">
+              <select [(ngModel)]="filtreStatut" (change)="onFilterChange()" class="filter-select">
                 <option value="tous">Tous les statuts</option>
                 <option value="operationnel">Opérationnel</option>
                 <option value="maintenance">En maintenance</option>
@@ -431,9 +431,19 @@
             
             <div class="filter-group">
               <label>Type:</label>
-              <select [(ngModel)]="filtreType" class="filter-select">
+              <select [(ngModel)]="filtreType" (change)="onFilterChange()" class="filter-select">
                 <option value="tous">Tous les types</option>
                 <option *ngFor="let type of getUniqueTypes()" [value]="type">{{ type }}</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label>Priorité:</label>
+              <select [(ngModel)]="filtrePriorite" (change)="onFilterChange()" class="filter-select">
+                <option value="tous">Toutes priorités</option>
+                <option value="critique">Critique (avec anomalies)</option>
+                <option value="maintenance">Maintenance requise</option>
+                <option value="normal">Normal</option>
               </select>
             </div>
             
@@ -441,57 +451,166 @@
               <label>Recherche:</label>
               <input type="text" 
                      [(ngModel)]="rechercheTexte" 
-                     placeholder="Nom ou code..."
+                     (input)="onFilterChange()"
+                     placeholder="Nom, code ou groupe..."
                      class="filter-input">
             </div>
           </div>
           
-          <div class="assets-count">
-            <h3>📋 Liste des Actifs ({{ getFilteredActifs().length }})</h3>
+          <div class="assets-summary">
+            <div class="summary-card">
+              <span class="summary-count">{{ getFilteredActifs().length }}</span>
+              <span class="summary-label">Actifs trouvés</span>
+            </div>
+            <div class="summary-card critical">
+              <span class="summary-count">{{ getAssetsByPriority('critique').length }}</span>
+              <span class="summary-label">Critiques</span>
+            </div>
+            <div class="summary-card warning">
+              <span class="summary-count">{{ getAssetsByPriority('maintenance').length }}</span>
+              <span class="summary-label">Maintenance requise</span>
+            </div>
           </div>
         </div>
         
-        <div class="assets-grid">
-          <div *ngFor="let actif of getFilteredActifs()" class="asset-card">
-            <div class="asset-header">
-              <span class="asset-icon">{{ getActifIcon(actif) }}</span>
-              <div class="asset-info">
-                <h4>{{ actif.nom }}</h4>
-                <span class="asset-code">{{ actif.code }}</span>
+        <!-- Enhanced Assets Grid -->
+        <div class="assets-enhanced-grid">
+          <div *ngFor="let actif of getFilteredActifs()" 
+               class="asset-enhanced-card"
+               [class.critical]="hasUrgentIssues(actif)"
+               [class.maintenance-required]="needsMaintenance(actif)"
+               (click)="selectActif(actif)">
+               
+            <!-- Asset Header -->
+            <div class="asset-header-enhanced">
+              <div class="asset-identity">
+                <span class="asset-icon-enhanced">{{ getActifIcon(actif) }}</span>
+                <div class="asset-title">
+                  <h4>{{ actif.nom }}</h4>
+                  <div class="asset-meta">
+                    <span class="asset-code">{{ actif.code }}</span>
+                    <span class="asset-group" *ngIf="actif.groupe">{{ actif.groupe }}</span>
+                  </div>
+                </div>
               </div>
-              <span class="asset-status" [style.color]="getStatutColor(actif.statutOperationnel)">
-                {{ actif.statutOperationnel }}
+              <div class="asset-status-badges">
+                <span class="status-badge" [ngClass]="getStatusClass(actif.statutOperationnel)">
+                  {{ actif.statutOperationnel }}
+                </span>
+                <span class="priority-badge" [ngClass]="getPriorityClass(actif)" *ngIf="getAssetPriority(actif) !== 'normal'">
+                  {{ getAssetPriorityLabel(actif) }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Asset Key Information -->
+            <div class="asset-key-info">
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Type:</span>
+                  <span class="info-value">{{ actif.type }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">État:</span>
+                  <span class="info-value" [style.color]="getEtatColor(actif.etatGeneral)">
+                    {{ actif.etatGeneral }}
+                  </span>
+                </div>
+                <div class="info-item" *ngIf="actif.famille">
+                  <span class="info-label">Famille:</span>
+                  <span class="info-value">{{ actif.famille }}</span>
+                </div>
+                <div class="info-item" *ngIf="actif.portefeuille">
+                  <span class="info-label">Portefeuille:</span>
+                  <span class="info-value">{{ actif.portefeuille }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Issues & Maintenance Summary -->
+            <div class="asset-issues-summary" *ngIf="hasIssuesOrMaintenance(actif)">
+              <div class="issues-header">
+                <h5>🔍 État Actuel</h5>
+              </div>
+              
+              <div class="issue-items">
+                <!-- Active Anomalies -->
+                <div class="issue-item anomaly" *ngIf="actif.anomaliesActives > 0">
+                  <div class="issue-icon">⚠️</div>
+                  <div class="issue-details">
+                    <span class="issue-count">{{ actif.anomaliesActives }}</span>
+                    <span class="issue-label">Anomalie(s) active(s)</span>
+                    <button class="issue-action-btn" 
+                            (click)="viewAnomaliesForActif(actif, $event)"
+                            title="Voir les anomalies">
+                      👁️
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Planned Maintenance -->
+                <div class="issue-item maintenance" *ngIf="actif.maintenancesPrevues > 0">
+                  <div class="issue-icon">🔧</div>
+                  <div class="issue-details">
+                    <span class="issue-count">{{ actif.maintenancesPrevues }}</span>
+                    <span class="issue-label">Maintenance(s) prévue(s)</span>
+                    <button class="issue-action-btn" 
+                            (click)="viewMaintenanceForActif(actif, $event)"
+                            title="Voir les maintenances">
+                      �️
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- No current issues -->
+                <div class="issue-item normal" *ngIf="!hasIssuesOrMaintenance(actif)">
+                  <div class="issue-icon">✅</div>
+                  <div class="issue-details">
+                    <span class="issue-label">Aucun problème signalé</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="asset-actions">
+              <button class="action-btn primary" 
+                      (click)="viewAssetDetails(actif, $event)"
+                      title="Détails complets">
+                📊 Détails
+              </button>
+              <button class="action-btn warning" 
+                      (click)="createAnomalieForActif(actif, $event)"
+                      title="Signaler une anomalie">
+                ⚠️ Signaler
+              </button>
+              <button class="action-btn success" 
+                      (click)="scheduleMaintenanceForActif(actif, $event)"
+                      title="Planifier maintenance">
+                🔧 Maintenance
+              </button>
+              <button class="action-btn info" 
+                      (click)="showActifOnMap(actif, $event)"
+                      title="Localiser sur la carte">
+                🗺️ Carte
+              </button>
+            </div>
+            
+            <!-- Location Info -->
+            <div class="asset-location" *ngIf="actif.latitude && actif.longitude">
+              <span class="location-icon">📍</span>
+              <span class="location-coords">
+                {{ formatCoordinates(actif) }}
               </span>
             </div>
-            <div class="asset-details">
-              <div class="detail-item">
-                <span class="detail-label">Type:</span>
-                <span class="detail-value">{{ actif.type }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">État:</span>
-                <span class="detail-value" [style.color]="getEtatColor(actif.etatGeneral)">
-                  {{ actif.etatGeneral }}
-                </span>
-              </div>
-              <div class="detail-item" *ngIf="actif.latitude && actif.longitude">
-                <span class="detail-label">Coordonnées:</span>
-                <span class="detail-value coordinates">
-                  {{ actif.latitude.toFixed(4) }}, {{ actif.longitude.toFixed(4) }}
-                </span>
-              </div>
-            </div>
-            <div class="asset-alerts" *ngIf="actif.anomaliesActives > 0 || actif.maintenancesPrevues > 0">
-              <div class="alert-item" *ngIf="actif.anomaliesActives > 0">
-                <span class="alert-icon">🔴</span>
-                <span class="alert-text">{{ actif.anomaliesActives }} anomalie(s)</span>
-              </div>
-              <div class="alert-item" *ngIf="actif.maintenancesPrevues > 0">
-                <span class="alert-icon">🔧</span>
-                <span class="alert-text">{{ actif.maintenancesPrevues }} maintenance(s)</span>
-              </div>
-            </div>
           </div>
+        </div>
+        
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="getFilteredActifs().length === 0">
+          <div class="empty-icon">📭</div>
+          <h3>Aucun actif trouvé</h3>
+          <p>Essayez de modifier vos filtres ou votre recherche.</p>
         </div>
       </div>
     </div>
@@ -640,3 +759,298 @@
     </div>
   </div>
 </div>
+
+<!-- Asset Details Modal -->
+<div class="modal fade" [class.show]="showAssetDetailsModal" [style.display]="showAssetDetailsModal ? 'block' : 'none'" *ngIf="showAssetDetailsModal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Détails de l'Actif</h5>
+        <button type="button" class="btn-close" (click)="closeAssetDetailsModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedAssetForAction">
+        <div class="asset-details-content">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Informations Générales</h6>
+              <dl class="row">
+                <dt class="col-sm-4">Nom:</dt>
+                <dd class="col-sm-8">{{ selectedAssetForAction.nom }}</dd>
+                <dt class="col-sm-4">Code:</dt>
+                <dd class="col-sm-8">{{ selectedAssetForAction.code }}</dd>
+                <dt class="col-sm-4">Statut:</dt>
+                <dd class="col-sm-8">
+                  <span class="badge" [class]="'status-' + selectedAssetForAction.statutOperationnel">
+                    {{ formatStatus(selectedAssetForAction.statutOperationnel) }}
+                  </span>
+                </dd>
+                <dt class="col-sm-4">Priorité:</dt>
+                <dd class="col-sm-8">
+                  <span class="badge" [class]="'priority-' + getAssetPriority(selectedAssetForAction)">
+                    {{ formatPriority(getAssetPriority(selectedAssetForAction)) }}
+                  </span>
+                </dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <h6>Hiérarchie & Localisation</h6>
+              <dl class="row">
+                <dt class="col-sm-4">Groupe:</dt>
+                <dd class="col-sm-8">{{ selectedAssetForAction.groupe || 'Non assigné' }}</dd>
+                <dt class="col-sm-4">Famille:</dt>
+                <dd class="col-sm-8">{{ selectedAssetForAction.famille || 'Non assignée' }}</dd>
+                <dt class="col-sm-4">Coordonnées:</dt>
+                <dd class="col-sm-8">{{ formatCoordinates(selectedAssetForAction) }}</dd>
+              </dl>
+            </div>
+          </div>
+          
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <h6>Anomalies Actives</h6>
+              <div class="stat-box">
+                <span class="stat-number">{{ getStatusCount(selectedAssetForAction, 'anomalies') }}</span>
+                <span class="stat-label">anomalies en cours</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6>Maintenances</h6>
+              <div class="stat-box">
+                <span class="stat-number">{{ getStatusCount(selectedAssetForAction, 'maintenance') }}</span>
+                <span class="stat-label">maintenances prévues</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="createAnomalieForActif(selectedAssetForAction!, $event)">
+          Signaler Anomalie
+        </button>
+        <button type="button" class="btn btn-success" (click)="scheduleMaintenanceForActif(selectedAssetForAction!, $event)">
+          Planifier Maintenance
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeAssetDetailsModal()">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Anomalie Modal -->
+<div class="modal fade" [class.show]="showCreateAnomalieModal" [style.display]="showCreateAnomalieModal ? 'block' : 'none'" *ngIf="showCreateAnomalieModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Signaler une Anomalie</h5>
+        <button type="button" class="btn-close" (click)="closeCreateAnomalieModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedAssetForAction">
+        <p><strong>Actif concerné:</strong> {{ selectedAssetForAction.nom }} ({{ selectedAssetForAction.code }})</p>
+        
+        <form [formGroup]="createAnomalieForm" (ngSubmit)="submitAnomalieForm()">
+          <div class="mb-3">
+            <label for="anomalieTitre" class="form-label">Titre de l'anomalie *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="anomalieTitre" 
+              formControlName="titre"
+              [class.is-invalid]="isFieldInvalid(createAnomalieForm, 'titre')"
+              placeholder="Titre descriptif de l'anomalie">
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(createAnomalieForm, 'titre')">
+              {{ getFieldError(createAnomalieForm, 'titre') }}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="anomalieType" class="form-label">Type d'anomalie *</label>
+            <select 
+              class="form-select" 
+              id="anomalieType"
+              formControlName="typeAnomalie"
+              [class.is-invalid]="isFieldInvalid(createAnomalieForm, 'typeAnomalie')">
+              <option value="">Sélectionner un type</option>
+              <option value="structural">Structurel</option>
+              <option value="mecanique">Mécanique</option>
+              <option value="electrique">Électrique</option>
+              <option value="securite">Sécurité</option>
+              <option value="autre">Autre</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(createAnomalieForm, 'typeAnomalie')">
+              {{ getFieldError(createAnomalieForm, 'typeAnomalie') }}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="anomaliePriorite" class="form-label">Priorité *</label>
+            <select 
+              class="form-select" 
+              id="anomaliePriorite"
+              formControlName="priorite"
+              [class.is-invalid]="isFieldInvalid(createAnomalieForm, 'priorite')">
+              <option value="">Sélectionner une priorité</option>
+              <option value="faible">Faible</option>
+              <option value="moyen">Moyen</option>
+              <option value="eleve">Élevé</option>
+              <option value="critique">Critique</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(createAnomalieForm, 'priorite')">
+              {{ getFieldError(createAnomalieForm, 'priorite') }}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="anomalieDescription" class="form-label">Description détaillée *</label>
+            <textarea 
+              class="form-control" 
+              id="anomalieDescription" 
+              rows="4" 
+              formControlName="description"
+              [class.is-invalid]="isFieldInvalid(createAnomalieForm, 'description')"
+              placeholder="Décrivez l'anomalie en détail..."></textarea>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(createAnomalieForm, 'description')">
+              {{ getFieldError(createAnomalieForm, 'description') }}
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="anomalieSubmitting || createAnomalieForm.invalid"
+          (click)="submitAnomalieForm()">
+          <span *ngIf="anomalieSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+          {{ anomalieSubmitting ? 'Création...' : 'Créer Anomalie' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeCreateAnomalieModal()">
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Maintenance Modal -->
+<div class="modal fade" [class.show]="showScheduleMaintenanceModal" [style.display]="showScheduleMaintenanceModal ? 'block' : 'none'" *ngIf="showScheduleMaintenanceModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Planifier une Maintenance</h5>
+        <button type="button" class="btn-close" (click)="closeScheduleMaintenanceModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedAssetForAction">
+        <p><strong>Actif concerné:</strong> {{ selectedAssetForAction.nom }} ({{ selectedAssetForAction.code }})</p>
+        
+        <form [formGroup]="scheduleMaintenanceForm" (ngSubmit)="submitMaintenanceForm()">
+          <div class="mb-3">
+            <label for="maintenanceTitre" class="form-label">Titre de la maintenance *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="maintenanceTitre" 
+              formControlName="titre"
+              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'titre')"
+              placeholder="Titre de la maintenance">
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'titre')">
+              {{ getFieldError(scheduleMaintenanceForm, 'titre') }}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="maintenanceType" class="form-label">Type de maintenance *</label>
+            <select 
+              class="form-select" 
+              id="maintenanceType"
+              formControlName="typeMaintenance"
+              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'typeMaintenance')">
+              <option value="">Sélectionner un type</option>
+              <option value="preventive">Préventive</option>
+              <option value="corrective">Corrective</option>
+              <option value="urgente">Urgente</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'typeMaintenance')">
+              {{ getFieldError(scheduleMaintenanceForm, 'typeMaintenance') }}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="maintenanceDatePrevue" class="form-label">Date prévue *</label>
+                <input 
+                  type="date" 
+                  class="form-control" 
+                  id="maintenanceDatePrevue"
+                  formControlName="datePrevue"
+                  [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'datePrevue')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'datePrevue')">
+                  {{ getFieldError(scheduleMaintenanceForm, 'datePrevue') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="maintenanceCoutEstime" class="form-label">Coût estimé (€)</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  id="maintenanceCoutEstime" 
+                  formControlName="coutEstime"
+                  [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'coutEstime')"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'coutEstime')">
+                  {{ getFieldError(scheduleMaintenanceForm, 'coutEstime') }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="maintenanceTechnicien" class="form-label">Technicien responsable</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="maintenanceTechnicien" 
+              formControlName="technicienResponsable"
+              placeholder="Nom du technicien">
+          </div>
+          
+          <div class="mb-3">
+            <label for="maintenanceDescription" class="form-label">Description des travaux *</label>
+            <textarea 
+              class="form-control" 
+              id="maintenanceDescription" 
+              rows="4" 
+              formControlName="description"
+              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'description')"
+              placeholder="Décrivez les travaux de maintenance..."></textarea>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'description')">
+              {{ getFieldError(scheduleMaintenanceForm, 'description') }}
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="maintenanceSubmitting || scheduleMaintenanceForm.invalid"
+          (click)="submitMaintenanceForm()">
+          <span *ngIf="maintenanceSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+          {{ maintenanceSubmitting ? 'Planification...' : 'Planifier Maintenance' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeScheduleMaintenanceModal()">
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal backdrop -->
+<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal"></div>

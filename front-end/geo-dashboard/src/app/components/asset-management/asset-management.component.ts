@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ActifService, HierarchyNode, StatistiquesActifs, ActifPourCarte } from '../../services/actif.service';
@@ -12,7 +12,7 @@ import { DataRefreshService } from '../../services/data-refresh.service';
 @Component({
   selector: 'app-asset-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DatePipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe],
   templateUrl: './asset-management.component.html',
   styleUrls: ['./asset-management.component.scss']
 })
@@ -41,6 +41,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   // Filters
   filtreStatut = 'tous';
   filtreType = 'tous';
+  filtrePriorite = 'tous';
   rechercheTexte = '';
 
   // Map properties
@@ -48,6 +49,20 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   showAnomaliesOnMap = false;
   selectedMapFilter = 'tous';
   mapUrl = 'http://localhost:4200/map';
+  
+  // Modal states for enhanced workflow
+  showAssetDetailsModal = false;
+  showCreateAnomalieModal = false;
+  showScheduleMaintenanceModal = false;
+  selectedAssetForAction: ActifPourCarte | null = null;
+  
+  // Reactive forms
+  createAnomalieForm: FormGroup;
+  scheduleMaintenanceForm: FormGroup;
+  
+  // Form submission states
+  anomalieSubmitting = false;
+  maintenanceSubmitting = false;
   
   // Synchronization properties
   lastSyncTime: Date | null = null;
@@ -60,12 +75,31 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   constructor(
+    private fb: FormBuilder,
     private actifService: ActifService,
     private anomalieService: AnomalieService,
     private maintenanceService: MaintenanceService,
     private carteIntegrationService: CarteIntegrationService,
     private dataRefreshService: DataRefreshService
   ) {
+    // Initialize reactive forms
+    this.createAnomalieForm = this.fb.group({
+      titre: ['', [Validators.required, Validators.minLength(3)]],
+      typeAnomalie: ['', Validators.required],
+      priorite: ['', Validators.required],
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      rapportePar: ['Utilisateur système']
+    });
+
+    this.scheduleMaintenanceForm = this.fb.group({
+      titre: ['', [Validators.required, Validators.minLength(3)]],
+      typeMaintenance: ['', Validators.required],
+      datePrevue: ['', Validators.required],
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      coutEstime: [0, [Validators.min(0)]],
+      technicienResponsable: ['']
+    });
+    
     // Update time every second for template binding
     setInterval(() => {
       this.currentTime = new Date();
@@ -485,17 +519,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return [...new Set(types)].filter(Boolean);
   }
 
-  getFilteredActifs(): ActifPourCarte[] {
-    return this.actifsPourCarte.filter(actif => {
-      const matchesStatut = this.filtreStatut === 'tous' || actif.statutOperationnel === this.filtreStatut;
-      const matchesType = this.filtreType === 'tous' || actif.type === this.filtreType;
-      const matchesSearch = !this.rechercheTexte || 
-        actif.nom.toLowerCase().includes(this.rechercheTexte.toLowerCase()) ||
-        actif.code.toLowerCase().includes(this.rechercheTexte.toLowerCase());
-      
-      return matchesStatut && matchesType && matchesSearch;
-    });
-  }
+  // Enhanced filtering with priority support (moved to enhanced section)
+  // This method is now implemented in the enhanced section below
 
   getObjectKeys(obj: any): string[] {
     return Object.keys(obj || {});
@@ -755,5 +780,365 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         coutEstime: 2500
       }
     ];
+  }
+
+  // ================================
+  // ENHANCED ASSET MANAGEMENT METHODS
+  // ================================
+
+  // Filter and priority management
+  onFilterChange() {
+    // This method can be used to trigger additional logic when filters change
+    console.log('Filters changed:', {
+      statut: this.filtreStatut,
+      type: this.filtreType,
+      priorite: this.filtrePriorite,
+      recherche: this.rechercheTexte
+    });
+  }
+
+  getAssetsByPriority(priority: string): ActifPourCarte[] {
+    return this.getFilteredActifs().filter(actif => this.getAssetPriority(actif) === priority);
+  }
+
+  getAssetPriority(actif: ActifPourCarte): string {
+    if (actif.anomaliesActives > 0) {
+      return 'critique';
+    }
+    if (actif.maintenancesPrevues > 0) {
+      return 'maintenance';
+    }
+    return 'normal';
+  }
+
+  getAssetPriorityLabel(actif: ActifPourCarte): string {
+    const priority = this.getAssetPriority(actif);
+    switch (priority) {
+      case 'critique': return 'Critique';
+      case 'maintenance': return 'Maintenance requise';
+      default: return 'Normal';
+    }
+  }
+
+  getPriorityClass(actif: ActifPourCarte): string {
+    const priority = this.getAssetPriority(actif);
+    return `priority-${priority}`;
+  }
+
+  getStatusClass(statut: string): string {
+    return `status-${statut.toLowerCase().replace(' ', '-')}`;
+  }
+
+  // Issue detection methods
+  hasUrgentIssues(actif: ActifPourCarte): boolean {
+    return actif.anomaliesActives > 0;
+  }
+
+  needsMaintenance(actif: ActifPourCarte): boolean {
+    return actif.maintenancesPrevues > 0;
+  }
+
+  hasIssuesOrMaintenance(actif: ActifPourCarte): boolean {
+    return actif.anomaliesActives > 0 || actif.maintenancesPrevues > 0;
+  }
+
+  // Enhanced filtering with priority support
+  getFilteredActifs(): ActifPourCarte[] {
+    return this.actifsPourCarte.filter(actif => {
+      // Status filter
+      if (this.filtreStatut !== 'tous' && actif.statutOperationnel !== this.filtreStatut) {
+        return false;
+      }
+
+      // Type filter
+      if (this.filtreType !== 'tous' && actif.type !== this.filtreType) {
+        return false;
+      }
+
+      // Priority filter
+      if (this.filtrePriorite !== 'tous') {
+        const priority = this.getAssetPriority(actif);
+        if (priority !== this.filtrePriorite) {
+          return false;
+        }
+      }
+
+      // Text search filter
+      if (this.rechercheTexte) {
+        const searchText = this.rechercheTexte.toLowerCase();
+        const searchableText = [
+          actif.nom,
+          actif.code,
+          actif.type,
+          actif.groupe,
+          actif.famille,
+          actif.portefeuille
+        ].join(' ').toLowerCase();
+        
+        if (!searchableText.includes(searchText)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  // Asset action methods
+  selectActif(actif: ActifPourCarte) {
+    this.selectedActif = actif;
+    console.log('Selected actif:', actif);
+  }
+
+  viewAssetDetails(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    this.selectedAssetForAction = actif;
+    this.showAssetDetailsModal = true;
+    
+    // Load detailed information for the asset using existing method
+    this.actifService.getActif(actif.id).subscribe({
+      next: (details: any) => {
+        this.selectedActifDetails = details;
+        console.log('Asset details loaded:', details);
+      },
+      error: (error: any) => {
+        console.error('Error loading asset details:', error);
+        this.selectedActifDetails = actif; // Fallback to basic info
+      }
+    });
+  }
+
+  createAnomalieForActif(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    this.selectedAssetForAction = actif;
+    this.showCreateAnomalieModal = true;
+    console.log('Opening anomalie creation for asset:', actif.nom);
+  }
+
+  scheduleMaintenanceForActif(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    this.selectedAssetForAction = actif;
+    this.showScheduleMaintenanceModal = true;
+    console.log('Opening maintenance scheduling for asset:', actif.nom);
+  }
+
+  showActifOnMap(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    if (actif.latitude && actif.longitude) {
+      try {
+        const lat = typeof actif.latitude === 'number' ? actif.latitude : parseFloat(actif.latitude);
+        const lng = typeof actif.longitude === 'number' ? actif.longitude : parseFloat(actif.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          console.log('Switching to map view for asset:', actif.nom, 'at coordinates:', lat, lng);
+          // Switch to map tab - the map component will handle highlighting this asset
+          this.setActiveTab('carte');
+          
+          // Store the selected asset so the map can focus on it
+          this.selectedActif = actif;
+        } else {
+          console.warn('Invalid coordinates for asset:', actif);
+          alert('Cet actif a des coordonnées invalides.');
+        }
+      } catch (error) {
+        console.error('Error parsing coordinates:', error);
+        alert('Erreur lors du traitement des coordonnées de l\'actif.');
+      }
+    } else {
+      console.warn('Asset has no coordinates:', actif);
+      alert('Cet actif n\'a pas de coordonnées pour être affiché sur la carte.');
+    }
+  }
+
+  viewAnomaliesForActif(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    // Switch to anomalies tab with actif filter
+    this.setActiveTab('anomalies');
+    // TODO: Implement anomalie filtering by actif
+    console.log('Viewing anomalies for:', actif.nom);
+  }
+
+  viewMaintenanceForActif(actif: ActifPourCarte, event: Event) {
+    event.stopPropagation();
+    // Switch to maintenance tab with actif filter
+    this.setActiveTab('maintenance');
+    // TODO: Implement maintenance filtering by actif
+    console.log('Viewing maintenance for:', actif.nom);
+  }
+
+  // Modal management
+  closeAssetDetailsModal() {
+    this.showAssetDetailsModal = false;
+    this.selectedAssetForAction = null;
+  }
+
+  closeCreateAnomalieModal() {
+    this.showCreateAnomalieModal = false;
+    this.selectedAssetForAction = null;
+    this.createAnomalieForm.reset();
+  }
+
+  closeScheduleMaintenanceModal() {
+    this.showScheduleMaintenanceModal = false;
+    this.selectedAssetForAction = null;
+    this.scheduleMaintenanceForm.reset();
+  }
+
+  // Form submission methods
+  async submitAnomalieForm(): Promise<void> {
+    if (this.createAnomalieForm.valid && this.selectedAssetForAction) {
+      this.anomalieSubmitting = true;
+      
+      try {
+        const formValue = this.createAnomalieForm.value;
+        const anomalieData = {
+          titre: formValue.titre,
+          description: formValue.description,
+          typeAnomalie: formValue.typeAnomalie,
+          priorite: formValue.priorite,
+          actifId: this.selectedAssetForAction.id,
+          rapportePar: formValue.rapportePar,
+          dateDetection: new Date(),
+          statut: 'nouveau' as const,
+          latitude: this.selectedAssetForAction.latitude,
+          longitude: this.selectedAssetForAction.longitude
+        };
+
+        await this.anomalieService.createAnomalie(anomalieData).toPromise();
+        
+        // Refresh data and close modal
+        this.loadAnomaliesData();
+        this.refreshKPIData();
+        this.closeCreateAnomalieModal();
+        
+        console.log('Anomalie créée avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la création de l\'anomalie:', error);
+      } finally {
+        this.anomalieSubmitting = false;
+      }
+    } else {
+      // Mark all fields as touched to show validation errors
+      this.createAnomalieForm.markAllAsTouched();
+    }
+  }
+
+  async submitMaintenanceForm(): Promise<void> {
+    if (this.scheduleMaintenanceForm.valid && this.selectedAssetForAction) {
+      this.maintenanceSubmitting = true;
+      
+      try {
+        const formValue = this.scheduleMaintenanceForm.value;
+        const maintenanceData = {
+          titre: formValue.titre,
+          description: formValue.description,
+          typeMaintenance: formValue.typeMaintenance,
+          datePrevue: new Date(formValue.datePrevue),
+          actifId: this.selectedAssetForAction.id,
+          statut: 'planifiee' as const,
+          coutEstime: formValue.coutEstime || 0,
+          technicienResponsable: formValue.technicienResponsable
+        };
+
+        await this.maintenanceService.createMaintenance(maintenanceData).toPromise();
+        
+        // Refresh data and close modal
+        this.loadMaintenanceData();
+        this.refreshKPIData();
+        this.closeScheduleMaintenanceModal();
+        
+        console.log('Maintenance planifiée avec succès');
+      } catch (error) {
+        console.error('Erreur lors de la planification de la maintenance:', error);
+      } finally {
+        this.maintenanceSubmitting = false;
+      }
+    } else {
+      // Mark all fields as touched to show validation errors
+      this.scheduleMaintenanceForm.markAllAsTouched();
+    }
+  }
+
+  // Form validation helpers
+  isFieldInvalid(form: FormGroup, fieldName: string): boolean {
+    const field = form.get(fieldName);
+    return !!(field && field.invalid && (field.dirty || field.touched));
+  }
+
+  getFieldError(form: FormGroup, fieldName: string): string {
+    const field = form.get(fieldName);
+    if (field && field.errors && (field.dirty || field.touched)) {
+      if (field.errors['required']) return `${fieldName} est requis`;
+      if (field.errors['minlength']) return `${fieldName} doit contenir au moins ${field.errors['minlength'].requiredLength} caractères`;
+      if (field.errors['min']) return `${fieldName} doit être supérieur à ${field.errors['min'].min}`;
+    }
+    return '';
+  }
+
+  // Summary calculations
+  get totalActifs(): number {
+    return this.actifsPourCarte.length;
+  }
+
+  get criticalActifs(): number {
+    return this.actifsPourCarte.filter((actif: ActifPourCarte) => this.getAssetPriority(actif) === 'critique').length;
+  }
+
+  get maintenanceRequiredActifs(): number {
+    return this.actifsPourCarte.filter((actif: ActifPourCarte) => this.getAssetPriority(actif) === 'maintenance').length;
+  }
+
+  // Status formatting
+  formatStatus(statut: string): string {
+    switch (statut) {
+      case 'operationnel': return 'Opérationnel';
+      case 'maintenance': return 'En Maintenance';
+      case 'hors-service': return 'Hors Service';
+      case 'alerte': return 'En Alerte';
+      default: return statut || 'Non défini';
+    }
+  }
+
+  formatPriority(priority: string): string {
+    switch (priority) {
+      case 'critique': return 'Critique';
+      case 'maintenance': return 'Maintenance';
+      case 'normal': return 'Normal';
+      default: return 'Normal';
+    }
+  }
+
+  // Coordinate formatting
+  formatCoordinates(actif: ActifPourCarte): string {
+    if (!actif) return 'Non localisé';
+    
+    // Handle latitude/longitude from ActifPourCarte
+    if (actif.latitude !== null && actif.latitude !== undefined && 
+        actif.longitude !== null && actif.longitude !== undefined) {
+      try {
+        const lat = typeof actif.latitude === 'number' ? actif.latitude : parseFloat(actif.latitude);
+        const lng = typeof actif.longitude === 'number' ? actif.longitude : parseFloat(actif.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+      } catch (error) {
+        console.warn('Error formatting coordinates:', error);
+      }
+    }
+    
+    return 'Coordonnées invalides';
+  }
+
+  // Asset counts by status
+  getStatusCount(actif: any, type: 'anomalies' | 'maintenance'): number {
+    // Mock data - replace with actual service calls
+    if (type === 'anomalies') {
+      // Simulate some anomalies based on asset status
+      return actif.statut === 'alerte' ? 3 : actif.statut === 'hors-service' ? 5 : 0;
+    } else {
+      // Simulate maintenance items
+      return actif.statut === 'maintenance' ? 2 : 1;
+    }
   }
 }
