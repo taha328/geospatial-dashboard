@@ -17,6 +17,7 @@ import { ActifService } from './services/actif.service';
 import { AnomalieService } from './services/anomalie.service';
 import { MaintenanceService } from './services/maintenance.service';
 import { KPIService } from './services/kpi.service';
+import { WorkflowService } from './services/workflow.service';
 
 // Controllers
 import { PortefeuilleController } from './controllers/portefeuille.controller';
@@ -26,6 +27,7 @@ import { ActifController } from './controllers/actif.controller';
 import { AnomalieController } from './controllers/anomalie.controller';
 import { MaintenanceController } from './controllers/maintenance.controller';
 import { KPIController } from './controllers/kpi.controller';
+import { WorkflowController } from './controllers/workflow.controller';
 
 @Module({
   imports: [
@@ -45,7 +47,8 @@ import { KPIController } from './controllers/kpi.controller';
     ActifController,
     AnomalieController,
     MaintenanceController,
-    KPIController
+    KPIController,
+    WorkflowController
   ],
   providers: [
     PortefeuilleService,
@@ -54,7 +57,8 @@ import { KPIController } from './controllers/kpi.controller';
     ActifService,
     AnomalieService,
     MaintenanceService,
-    KPIService
+    KPIService,
+    WorkflowService
   ],
   exports: [
     PortefeuilleService,
@@ -64,6 +68,7 @@ import { KPIController } from './controllers/kpi.controller';
     AnomalieService,
     MaintenanceService,
     KPIService,
+    WorkflowService,
     TypeOrmModule
   ]
 })

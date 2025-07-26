@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { ActifService, HierarchyNode, StatistiquesActifs, ActifPourCarte } from '../../services/actif.service';
 import { AnomalieService, StatistiquesAnomalies, Anomalie } from '../../services/anomalie.service';
 import { MaintenanceService, StatistiquesMaintenance, Maintenance } from '../../services/maintenance.service';
+import { WorkflowService, AssetWorkflowSummary } from '../../services/workflow.service';
 import { CarteIntegrationService } from '../../services/carte-integration.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 
@@ -44,6 +45,16 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   filtrePriorite = 'tous';
   rechercheTexte = '';
 
+  // Anomalie filters
+  anomalieSearchTerm = '';
+  selectedPriorityFilter = '';
+  selectedStatusFilter = '';
+
+  // Maintenance filters
+  maintenanceSearchTerm = '';
+  maintenanceStatusFilter = '';
+  maintenanceTypeFilter = '';
+
   // Map properties
   showActifsOnMap = true;
   showAnomaliesOnMap = false;
@@ -79,6 +90,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     private actifService: ActifService,
     private anomalieService: AnomalieService,
     private maintenanceService: MaintenanceService,
+    private workflowService: WorkflowService,
     private carteIntegrationService: CarteIntegrationService,
     private dataRefreshService: DataRefreshService
   ) {
@@ -357,8 +369,131 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return this.anomaliesData.filter(a => a.statut === statut);
   }
 
+  getAnomaliesWithMaintenance(): any[] {
+    return this.anomaliesData.filter(a => a.maintenanceId);
+  }
+
+  // New methods for professional anomaly management
+  getFilteredAnomalies(): any[] {
+    return this.anomaliesData.filter(anomalie => {
+      // Search term filter
+      if (this.anomalieSearchTerm) {
+        const searchLower = this.anomalieSearchTerm.toLowerCase();
+        const matchesSearch = 
+          anomalie.titre?.toLowerCase().includes(searchLower) ||
+          anomalie.description?.toLowerCase().includes(searchLower) ||
+          anomalie.actif?.nom?.toLowerCase().includes(searchLower) ||
+          anomalie.actif?.code?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Priority filter
+      if (this.selectedPriorityFilter && anomalie.priorite !== this.selectedPriorityFilter) {
+        return false;
+      }
+
+      // Status filter
+      if (this.selectedStatusFilter && anomalie.statut !== this.selectedStatusFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  getAnomalieProgress(anomalie: any): number {
+    if (anomalie.statut === 'resolu') return 100;
+    if (anomalie.maintenanceId && anomalie.maintenance?.statut === 'terminee') return 90;
+    if (anomalie.maintenanceId && anomalie.maintenance?.statut === 'en_cours') return 70;
+    if (anomalie.statut === 'en_cours') return 50;
+    if (anomalie.statut === 'nouveau') return 25;
+    return 0;
+  }
+
+  getStatusLabel(statut: string): string {
+    const statusLabels: { [key: string]: string } = {
+      'nouveau': 'Nouveau',
+      'en_cours': 'En cours',
+      'resolu': 'Résolu',
+      'ferme': 'Fermé'
+    };
+    return statusLabels[statut] || statut;
+  }
+
+  openCreateAnomalieModal(): void {
+    this.showCreateAnomalieModal = true;
+  }
+
   getMaintenancesByStatut(statut: string): any[] {
     return this.maintenanceData.filter(m => m.statut === statut);
+  }
+
+  getMaintenancesByType(type: string): any[] {
+    return this.maintenanceData.filter(m => m.typeMaintenance === type);
+  }
+
+  // New methods for professional maintenance management
+  getFilteredMaintenances(): any[] {
+    return this.maintenanceData.filter(maintenance => {
+      // Search term filter
+      if (this.maintenanceSearchTerm) {
+        const searchLower = this.maintenanceSearchTerm.toLowerCase();
+        const matchesSearch = 
+          maintenance.titre?.toLowerCase().includes(searchLower) ||
+          maintenance.description?.toLowerCase().includes(searchLower) ||
+          maintenance.actif?.nom?.toLowerCase().includes(searchLower) ||
+          maintenance.actif?.code?.toLowerCase().includes(searchLower) ||
+          maintenance.technicienResponsable?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (this.maintenanceStatusFilter && maintenance.statut !== this.maintenanceStatusFilter) {
+        return false;
+      }
+
+      // Type filter
+      if (this.maintenanceTypeFilter && maintenance.typeMaintenance !== this.maintenanceTypeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  getMaintenanceTypeIcon(type: string): string {
+    const typeIcons: { [key: string]: string } = {
+      'preventive': '🛡️',
+      'corrective': '🔧',
+      'urgente': '🚨',
+      'ameliorative': '⬆️'
+    };
+    return typeIcons[type] || '🔧';
+  }
+
+  getMaintenanceStatusLabel(statut: string): string {
+    const statusLabels: { [key: string]: string } = {
+      'planifiee': 'Planifiée',
+      'en_cours': 'En cours',
+      'terminee': 'Terminée',
+      'annulee': 'Annulée'
+    };
+    return statusLabels[statut] || statut;
+  }
+
+  resetMaintenanceFilters(): void {
+    this.maintenanceSearchTerm = '';
+    this.maintenanceStatusFilter = '';
+    this.maintenanceTypeFilter = '';
+  }
+
+  showCreateMaintenanceModal(): void {
+    this.showScheduleMaintenanceModal = true;
+  }
+
+  viewMaintenanceDetails(maintenance: any): void {
+    // Implementation for viewing maintenance details
+    console.log('Viewing maintenance details:', maintenance);
   }
 
   // Color utility methods
@@ -390,52 +525,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       'mauvais': '#dc3545'
     };
     return colors[etat] || '#6c757d';
-  }
-
-  // Action methods for anomalies and maintenance
-  resolveAnomalie(anomalie: any) {
-    if (confirm(`Êtes-vous sûr de vouloir résoudre l'anomalie "${anomalie.titre}" ?`)) {
-      anomalie.statut = 'resolu';
-      console.log('Anomalie résolue:', anomalie);
-      // Call backend service to update
-      this.anomalieService.updateAnomalie(anomalie.id, anomalie).subscribe({
-        next: () => {
-          console.log('✅ Anomalie updated in backend');
-          this.refreshKPIData();
-        },
-        error: (error) => console.error('❌ Error updating anomalie:', error)
-      });
-    }
-  }
-
-  startMaintenance(maintenance: any) {
-    if (confirm(`Démarrer la maintenance "${maintenance.titre || maintenance.description}" ?`)) {
-      maintenance.statut = 'en_cours';
-      console.log('Maintenance démarrée:', maintenance);
-      // Call backend service to update
-      this.maintenanceService.updateMaintenance(maintenance.id, maintenance).subscribe({
-        next: () => {
-          console.log('✅ Maintenance updated in backend');
-          this.refreshKPIData();
-        },
-        error: (error) => console.error('❌ Error updating maintenance:', error)
-      });
-    }
-  }
-
-  completeMaintenance(maintenance: any) {
-    if (confirm(`Terminer la maintenance "${maintenance.titre || maintenance.description}" ?`)) {
-      maintenance.statut = 'terminee';
-      console.log('Maintenance terminée:', maintenance);
-      // Call backend service to update
-      this.maintenanceService.updateMaintenance(maintenance.id, maintenance).subscribe({
-        next: () => {
-          console.log('✅ Maintenance completed in backend');
-          this.refreshKPIData();
-        },
-        error: (error) => console.error('❌ Error updating maintenance:', error)
-      });
-    }
   }
 
   // Asset management methods
@@ -1130,6 +1219,20 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return 'Coordonnées invalides';
   }
 
+  // Workflow logic helpers
+  canResolveAnomalie(anomalie: any): boolean {
+    // Can resolve if:
+    // 1. Anomaly is 'en_cours' (assigned/in progress) AND no maintenance is linked (simple fix)
+    // 2. OR anomaly has linked maintenance that is completed
+    return (
+      anomalie.statut === 'en_cours' && 
+      (
+        !anomalie.maintenanceId || 
+        (anomalie.maintenance && anomalie.maintenance.statut === 'terminee')
+      )
+    );
+  }
+
   // Asset counts by status
   getStatusCount(actif: any, type: 'anomalies' | 'maintenance'): number {
     // Mock data - replace with actual service calls
@@ -1140,5 +1243,134 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       // Simulate maintenance items
       return actif.statut === 'maintenance' ? 2 : 1;
     }
+  }
+
+  // ========================================
+  // WORKFLOW METHODS
+  // ========================================
+
+  // Anomaly workflow methods
+  async createMaintenanceFromAnomalie(anomalie: any): Promise<void> {
+    try {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      const maintenanceData = {
+        titre: `Maintenance corrective - ${anomalie.titre}`,
+        description: `Maintenance pour résoudre: ${anomalie.description}`,
+        datePrevue: nextWeek.toISOString().split('T')[0], // Format YYYY-MM-DD
+        technicienResponsable: 'Équipe maintenance',
+        coutEstime: anomalie.priorite === 'critique' ? 1000 : 500
+      };
+
+      await this.workflowService.createMaintenanceFromAnomalie(anomalie.id, maintenanceData).toPromise();
+      
+      // Refresh data
+      this.loadAnomaliesData();
+      this.loadMaintenanceData();
+      this.refreshKPIData();
+      
+      console.log('Maintenance corrective créée pour l\'anomalie:', anomalie.titre);
+    } catch (error) {
+      console.error('Erreur lors de la création de la maintenance:', error);
+    }
+  }
+
+  async takeAnomalieAction(anomalie: any): Promise<void> {
+    // Mark anomaly as in progress
+    try {
+      await this.anomalieService.updateAnomalie(anomalie.id, {
+        statut: 'en_cours',
+        assigneA: 'Équipe technique'
+      }).toPromise();
+      
+      this.loadAnomaliesData();
+      console.log('Anomalie prise en charge:', anomalie.titre);
+    } catch (error) {
+      console.error('Erreur lors de la prise en charge:', error);
+    }
+  }
+
+  async resolveAnomalie(anomalie: any): Promise<void> {
+    try {
+      const resolutionData = {
+        actionsCorrectives: 'Anomalie résolue manuellement',
+        resolvedBy: 'Utilisateur système'
+      };
+
+      await this.workflowService.resolveAnomalie(anomalie.id, resolutionData).toPromise();
+      
+      this.loadAnomaliesData();
+      this.refreshKPIData();
+      
+      console.log('Anomalie résolue:', anomalie.titre);
+    } catch (error) {
+      console.error('Erreur lors de la résolution:', error);
+    }
+  }
+
+  viewLinkedMaintenance(maintenanceId: number): void {
+    this.setActiveTab('maintenance');
+    // TODO: Scroll to and highlight the specific maintenance item
+    console.log('Navigation vers maintenance:', maintenanceId);
+  }
+
+  // Maintenance workflow methods
+  async startMaintenance(maintenance: any): Promise<void> {
+    try {
+      await this.workflowService.startMaintenance(maintenance.id).toPromise();
+      
+      this.loadMaintenanceData();
+      this.refreshKPIData();
+      
+      console.log('Maintenance démarrée:', maintenance.titre);
+    } catch (error) {
+      console.error('Erreur lors du démarrage:', error);
+    }
+  }
+
+  async completeMaintenance(maintenance: any): Promise<void> {
+    try {
+      const completionData = {
+        rapportIntervention: 'Maintenance terminée avec succès',
+        coutReel: maintenance.coutEstime,
+        resolveLinkedAnomaly: false
+      };
+
+      await this.workflowService.completeMaintenance(maintenance.id, completionData).toPromise();
+      
+      this.loadMaintenanceData();
+      this.refreshKPIData();
+      
+      console.log('Maintenance terminée:', maintenance.titre);
+    } catch (error) {
+      console.error('Erreur lors de la finalisation:', error);
+    }
+  }
+
+  async completeMaintenanceAndResolveAnomalie(maintenance: any): Promise<void> {
+    try {
+      const completionData = {
+        rapportIntervention: 'Maintenance terminée - Anomalie résolue',
+        coutReel: maintenance.coutEstime,
+        resolveLinkedAnomaly: true
+      };
+
+      await this.workflowService.completeMaintenance(maintenance.id, completionData).toPromise();
+      
+      this.loadMaintenanceData();
+      this.loadAnomaliesData();
+      this.refreshKPIData();
+      
+      console.log('Maintenance terminée et anomalie résolue:', maintenance.titre);
+    } catch (error) {
+      console.error('Erreur lors de la finalisation complète:', error);
+    }
+  }
+
+  viewLinkedAnomalie(anomalieId: number): void {
+    this.setActiveTab('anomalies');
+    // TODO: Scroll to and highlight the specific anomalie item
+    console.log('Navigation vers anomalie:', anomalieId);
   }
 }

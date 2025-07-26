@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
 import { Actif } from './actif.entity';
+import { Maintenance } from './maintenance.entity';
 
 @Entity('anomalies')
 export class Anomalie {
@@ -49,6 +50,10 @@ export class Anomalie {
   @Column({ nullable: true })
   actifId: number;
 
+  // Relationship with maintenance for corrective actions
+  @Column({ nullable: true })
+  maintenanceId: number;
+
   @CreateDateColumn()
   dateCreation: Date;
 
@@ -58,4 +63,8 @@ export class Anomalie {
   @ManyToOne(() => Actif, actif => actif.anomalies)
   @JoinColumn({ name: 'actifId' })
   actif: Actif;
+
+  @OneToOne(() => Maintenance, maintenance => maintenance.anomalie, { nullable: true })
+  @JoinColumn({ name: 'maintenanceId' })
+  maintenance: Maintenance;
 }

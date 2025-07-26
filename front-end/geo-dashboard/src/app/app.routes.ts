@@ -5,7 +5,6 @@ import { UserDetailComponent } from './components/user-detail/user-detail.compon
 import { MapComponent } from './components/map/map.component';
 import { VesselFinderComponent } from './components/vessel-finder/vessel-finder.component';
 import { AssetManagementComponent } from './components/asset-management/asset-management.component';
-import { AnomalieManagementComponent } from './components/anomalie-management/anomalie-management.component';
 
 
 export const routes: Routes = [
@@ -13,7 +12,6 @@ export const routes: Routes = [
   { path: 'dashboard', redirectTo: '/assets', pathMatch: 'full' },
   { path: 'map', component: MapComponent },
   { path: 'assets', component: AssetManagementComponent },
-  { path: 'anomalies', component: AnomalieManagementComponent },
   { path: 'users', component: UserListComponent },
   { path: 'users/create', component: UserFormComponent },
   { path: 'users/:id', component: UserDetailComponent },

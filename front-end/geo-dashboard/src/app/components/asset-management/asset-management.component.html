@@ -618,66 +618,301 @@
     <!-- Anomalies Tab -->
     <div class="tab-content" [class.active]="activeTab === 'anomalies'">
       <div class="anomalies-section">
-        <div class="section-header">
-          <h2>⚠️ Gestion des Anomalies</h2>
-          <div class="anomalies-stats">
-            <div class="stat-item">
-              <span class="stat-number">{{ anomaliesData.length }}</span>
-              <span class="stat-label">Total</span>
+        <!-- Professional Header -->
+        <div class="professional-header">
+          <div class="header-left">
+            <div class="title-group">
+              <h2 class="section-title">
+                <i class="icon-anomaly">⚠️</i>
+                Gestion des Anomalies
+              </h2>
+              <p class="section-subtitle">
+                Système de gestion intégré des anomalies avec workflow automatisé
+              </p>
             </div>
-            <div class="stat-item critical">
-              <span class="stat-number">{{ getAnomaliesByPriorite('critique').length }}</span>
-              <span class="stat-label">Critiques</span>
-            </div>
-            <div class="stat-item new">
-              <span class="stat-number">{{ getAnomaliesByStatut('nouveau').length }}</span>
-              <span class="stat-label">Nouvelles</span>
+          </div>
+          <div class="header-right">
+            <button class="btn-create-anomaly" (click)="openCreateAnomalieModal()">
+              <i class="icon-plus">+</i>
+              Nouvelle Anomalie
+            </button>
+          </div>
+        </div>
+
+        <!-- Workflow Overview -->
+        <div class="workflow-overview">
+          <div class="workflow-card">
+            <h3 class="workflow-title">Processus de Traitement</h3>
+            <div class="workflow-steps">
+              <div class="workflow-step">
+                <div class="step-icon new">1</div>
+                <div class="step-content">
+                  <span class="step-name">Signalement</span>
+                  <span class="step-desc">Détection et création</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon progress">2</div>
+                <div class="step-content">
+                  <span class="step-name">Analyse</span>
+                  <span class="step-desc">Évaluation et diagnostic</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon maintenance">3</div>
+                <div class="step-content">
+                  <span class="step-name">Intervention</span>
+                  <span class="step-desc">Maintenance corrective</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon resolved">✓</div>
+                <div class="step-content">
+                  <span class="step-name">Résolution</span>
+                  <span class="step-desc">Validation et clôture</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Liste des anomalies -->
-        <div class="anomalies-list">
-          <div *ngFor="let anomalie of anomaliesData" class="anomalie-card" 
-               [class]="'priority-' + anomalie.priorite">
-            <div class="anomalie-header">
-              <div class="anomalie-info">
-                <h4>{{ anomalie.titre }}</h4>
+        <!-- Statistics Dashboard -->
+        <div class="stats-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card total">
+              <div class="stat-icon">📊</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ anomaliesData.length }}</div>
+                <div class="stat-label">Total Anomalies</div>
+              </div>
+            </div>
+            
+            <div class="stat-card critical">
+              <div class="stat-icon">🚨</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAnomaliesByPriorite('critique').length }}</div>
+                <div class="stat-label">Critiques</div>
+              </div>
+            </div>
+            
+            <div class="stat-card new">
+              <div class="stat-icon">🆕</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAnomaliesByStatut('nouveau').length }}</div>
+                <div class="stat-label">Nouvelles</div>
+              </div>
+            </div>
+            
+            <div class="stat-card progress">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAnomaliesByStatut('en_cours').length }}</div>
+                <div class="stat-label">En Cours</div>
+              </div>
+            </div>
+            
+            <div class="stat-card maintenance">
+              <div class="stat-icon">🔧</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAnomaliesWithMaintenance().length }}</div>
+                <div class="stat-label">En Maintenance</div>
+              </div>
+            </div>
+            
+            <div class="stat-card resolved">
+              <div class="stat-icon">✅</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAnomaliesByStatut('resolu').length }}</div>
+                <div class="stat-label">Résolues</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="controls-panel">
+          <div class="search-box">
+            <i class="search-icon">🔍</i>
+            <input type="text" 
+                   placeholder="Rechercher une anomalie..." 
+                   [(ngModel)]="anomalieSearchTerm"
+                   class="search-input">
+          </div>
+          <div class="filter-controls">
+            <select class="filter-select" [(ngModel)]="selectedPriorityFilter">
+              <option value="">Toutes les priorités</option>
+              <option value="critique">Critique</option>
+              <option value="eleve">Élevée</option>
+              <option value="moyen">Moyenne</option>
+              <option value="faible">Faible</option>
+            </select>
+            <select class="filter-select" [(ngModel)]="selectedStatusFilter">
+              <option value="">Tous les statuts</option>
+              <option value="nouveau">Nouveau</option>
+              <option value="en_cours">En cours</option>
+              <option value="resolu">Résolu</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Anomalies List -->
+        <div class="anomalies-container">
+          <div class="anomalies-grid">
+            <div *ngFor="let anomalie of getFilteredAnomalies()" class="anomalie-card-modern" 
+                 [class]="'priority-' + anomalie.priorite + ' status-' + anomalie.statut">
+              
+              <!-- Card Header -->
+              <div class="card-header">
+                <div class="priority-badge" [attr.data-priority]="anomalie.priorite">
+                  <span class="priority-dot"></span>
+                  {{ anomalie.priorite?.toUpperCase() }}
+                </div>
+                <div class="card-actions">
+                  <button class="action-menu-btn" title="Options">⋯</button>
+                </div>
+              </div>
+
+              <!-- Card Content -->
+              <div class="card-content">
+                <h3 class="anomalie-title">{{ anomalie.titre }}</h3>
                 <p class="anomalie-description">{{ anomalie.description }}</p>
+                
+                <!-- Asset Info -->
+                <div class="asset-info" *ngIf="anomalie.actif">
+                  <i class="asset-icon">🏗️</i>
+                  <span class="asset-name">{{ anomalie.actif.nom }}</span>
+                  <span class="asset-code">({{ anomalie.actif.code }})</span>
+                </div>
               </div>
-              <div class="anomalie-priority" [style.color]="getPrioriteColor(anomalie.priorite)">
-                {{ anomalie.priorite?.toUpperCase() }}
+
+              <!-- Progress Indicator -->
+              <div class="progress-section">
+                <div class="progress-header">
+                  <span class="progress-label">Progression du traitement</span>
+                  <span class="progress-percentage">{{ getAnomalieProgress(anomalie) }}%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="getAnomalieProgress(anomalie)"></div>
+                </div>
+                <div class="progress-steps">
+                  <div class="step" [class.completed]="anomalie.statut !== 'nouveau'" 
+                       [class.current]="anomalie.statut === 'nouveau'">
+                    <div class="step-circle">1</div>
+                    <span class="step-text">Signalement</span>
+                  </div>
+                  <div class="step" [class.completed]="['en_cours', 'resolu'].includes(anomalie.statut)" 
+                       [class.current]="anomalie.statut === 'en_cours'">
+                    <div class="step-circle">2</div>
+                    <span class="step-text">Analyse</span>
+                  </div>
+                  <div class="step" [class.completed]="anomalie.maintenanceId && anomalie.maintenance?.statut === 'terminee'" 
+                       [class.current]="anomalie.maintenanceId && anomalie.maintenance?.statut === 'en_cours'"
+                       [class.optional]="!anomalie.maintenanceId">
+                    <div class="step-circle">3</div>
+                    <span class="step-text">Maintenance</span>
+                  </div>
+                  <div class="step" [class.completed]="anomalie.statut === 'resolu'" 
+                       [class.current]="canResolveAnomalie(anomalie)">
+                    <div class="step-circle">✓</div>
+                    <span class="step-text">Résolution</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div class="anomalie-details">
-              <div class="detail-item">
-                <strong>Type:</strong> {{ anomalie.typeAnomalie }}
+
+              <!-- Details Section -->
+              <div class="details-section">
+                <div class="detail-row">
+                  <span class="detail-label">Type:</span>
+                  <span class="detail-value">{{ anomalie.typeAnomalie }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Statut:</span>
+                  <span class="detail-value status-badge" [attr.data-status]="anomalie.statut">
+                    {{ getStatusLabel(anomalie.statut) }}
+                  </span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Détecté le:</span>
+                  <span class="detail-value">{{ anomalie.dateDetection | date:'dd/MM/yyyy à HH:mm' }}</span>
+                </div>
+                <div class="detail-row" *ngIf="anomalie.rapportePar">
+                  <span class="detail-label">Rapporté par:</span>
+                  <span class="detail-value">{{ anomalie.rapportePar }}</span>
+                </div>
               </div>
-              <div class="detail-item">
-                <strong>Statut:</strong> 
-                <span [class]="'status-' + anomalie.statut">{{ anomalie.statut }}</span>
+
+              <!-- Actions Section -->
+              <div class="actions-section" *ngIf="anomalie.statut !== 'resolu' && anomalie.statut !== 'ferme'">
+                <div class="action-buttons">
+                  <!-- Primary Action based on current state -->
+                  <button class="btn-action primary" 
+                          *ngIf="anomalie.statut === 'nouveau'"
+                          (click)="takeAnomalieAction(anomalie)"
+                          title="Prendre en charge cette anomalie">
+                    <i class="btn-icon">📋</i>
+                    Prendre en charge
+                  </button>
+                  
+                  <button class="btn-action warning" 
+                          *ngIf="anomalie.statut === 'en_cours' && !anomalie.maintenanceId"
+                          (click)="createMaintenanceFromAnomalie(anomalie)"
+                          title="Créer une intervention de maintenance">
+                    <i class="btn-icon">🔧</i>
+                    Créer Maintenance
+                  </button>
+                  
+                  <button class="btn-action info" 
+                          *ngIf="anomalie.maintenanceId"
+                          (click)="viewLinkedMaintenance(anomalie.maintenanceId)"
+                          title="Consulter la maintenance associée">
+                    <i class="btn-icon">👁️</i>
+                    Voir Maintenance
+                  </button>
+                  
+                  <button class="btn-action success" 
+                          *ngIf="canResolveAnomalie(anomalie)"
+                          (click)="resolveAnomalie(anomalie)"
+                          title="Marquer cette anomalie comme résolue">
+                    <i class="btn-icon">✅</i>
+                    Résoudre
+                  </button>
+                </div>
+
+                <!-- Status Indicator -->
+                <div class="status-indicator" *ngIf="anomalie.maintenanceId && anomalie.maintenance && anomalie.maintenance.statut !== 'terminee'">
+                  <i class="indicator-icon">🔄</i>
+                  <span class="indicator-text">Maintenance en cours d'exécution</span>
+                </div>
               </div>
-              <div class="detail-item" *ngIf="anomalie.actif">
-                <strong>Actif:</strong> {{ anomalie.actif.nom }} ({{ anomalie.actif.code }})
+
+              <!-- Resolution Summary for completed anomalies -->
+              <div class="resolution-summary" *ngIf="anomalie.statut === 'resolu'">
+                <div class="summary-header">
+                  <i class="summary-icon">✅</i>
+                  <span class="summary-title">Anomalie résolue</span>
+                </div>
+                <div class="summary-details" *ngIf="anomalie.dateResolution">
+                  <span class="summary-text">Résolue le {{ anomalie.dateResolution | date:'dd/MM/yyyy à HH:mm' }}</span>
+                </div>
               </div>
-              <div class="detail-item">
-                <strong>Détecté le:</strong> {{ anomalie.dateDetection | date:'dd/MM/yyyy HH:mm' }}
-              </div>
-              <div class="detail-item" *ngIf="anomalie.rapportePar">
-                <strong>Rapporté par:</strong> {{ anomalie.rapportePar }}
-              </div>
-            </div>
-            
-            <div class="anomalie-actions" *ngIf="anomalie.statut !== 'resolu'">
-              <button class="btn btn-success btn-sm" (click)="resolveAnomalie(anomalie)">
-                ✅ Résoudre
-              </button>
             </div>
           </div>
           
-          <div *ngIf="anomaliesData.length === 0" class="empty-state">
-            <p>Aucune anomalie trouvée</p>
+          <!-- Empty State -->
+          <div *ngIf="getFilteredAnomalies().length === 0" class="empty-state-modern">
+            <div class="empty-icon">📋</div>
+            <h3 class="empty-title">Aucune anomalie trouvée</h3>
+            <p class="empty-message">
+              <span *ngIf="anomaliesData.length === 0">Aucune anomalie n'a été signalée pour le moment.</span>
+              <span *ngIf="anomaliesData.length > 0">Aucune anomalie ne correspond aux critères de recherche.</span>
+            </p>
+            <button class="btn-empty-action" (click)="openCreateAnomalieModal()" *ngIf="anomaliesData.length === 0">
+              <i class="btn-icon">+</i>
+              Signaler une anomalie
+            </button>
           </div>
         </div>
       </div>
@@ -685,74 +920,239 @@
 
     <!-- Maintenance Tab -->
     <div class="tab-content" [class.active]="activeTab === 'maintenance'">
-      <div class="maintenance-section">
-        <div class="section-header">
-          <h2>🔧 Gestion de la Maintenance</h2>
-          <div class="maintenance-stats">
-            <div class="stat-item">
-              <span class="stat-number">{{ maintenanceData.length }}</span>
-              <span class="stat-label">Total</span>
-            </div>
-            <div class="stat-item planned">
-              <span class="stat-number">{{ getMaintenancesByStatut('planifiee').length }}</span>
-              <span class="stat-label">Planifiées</span>
-            </div>
-            <div class="stat-item active">
-              <span class="stat-number">{{ getMaintenancesByStatut('en_cours').length }}</span>
-              <span class="stat-label">En Cours</span>
-            </div>
+      <div class="maintenance-section-modern">
+        
+        <!-- Section Header -->
+        <div class="section-header-modern">
+          <div class="header-content">
+            <h2 class="section-title">
+              <i class="section-icon">🔧</i>
+              Gestion de la Maintenance
+            </h2>
+            <p class="section-subtitle">
+              Planification, suivi et exécution des maintenances préventives et correctives
+            </p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-modern btn-primary" (click)="showCreateMaintenanceModal()">
+              <i class="btn-icon">➕</i>
+              Nouvelle Maintenance
+            </button>
           </div>
         </div>
 
-        <!-- Liste des maintenances -->
-        <div class="maintenance-list">
-          <div *ngFor="let maintenance of maintenanceData" class="maintenance-card" 
-               [class]="'type-' + maintenance.typeMaintenance">
-            <div class="maintenance-header">
-              <div class="maintenance-info">
-                <h4>{{ maintenance.titre }}</h4>
+        <!-- Enhanced Stats Dashboard -->
+        <div class="stats-dashboard">
+          <div class="stat-card total">
+            <div class="stat-header">
+              <span class="stat-icon">📊</span>
+              <span class="stat-value">{{ maintenanceData.length }}</span>
+            </div>
+            <span class="stat-label">Total Maintenances</span>
+          </div>
+          
+          <div class="stat-card planned">
+            <div class="stat-header">
+              <span class="stat-icon">📅</span>
+              <span class="stat-value">{{ getMaintenancesByStatut('planifiee').length }}</span>
+            </div>
+            <span class="stat-label">Planifiées</span>
+          </div>
+          
+          <div class="stat-card in-progress">
+            <div class="stat-header">
+              <span class="stat-icon">⚙️</span>
+              <span class="stat-value">{{ getMaintenancesByStatut('en_cours').length }}</span>
+            </div>
+            <span class="stat-label">En Cours</span>
+          </div>
+          
+          <div class="stat-card completed">
+            <div class="stat-header">
+              <span class="stat-icon">✅</span>
+              <span class="stat-value">{{ getMaintenancesByStatut('terminee').length }}</span>
+            </div>
+            <span class="stat-label">Terminées</span>
+          </div>
+          
+          <div class="stat-card urgent">
+            <div class="stat-header">
+              <span class="stat-icon">🚨</span>
+              <span class="stat-value">{{ getMaintenancesByType('urgente').length }}</span>
+            </div>
+            <span class="stat-label">Urgentes</span>
+          </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filter-group">
+            <label for="maintenanceStatusFilter">Statut</label>
+            <select id="maintenanceStatusFilter" [(ngModel)]="maintenanceStatusFilter" class="filter-select">
+              <option value="">Tous les statuts</option>
+              <option value="planifiee">Planifiées</option>
+              <option value="en_cours">En cours</option>
+              <option value="terminee">Terminées</option>
+              <option value="annulee">Annulées</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="maintenanceTypeFilter">Type</label>
+            <select id="maintenanceTypeFilter" [(ngModel)]="maintenanceTypeFilter" class="filter-select">
+              <option value="">Tous les types</option>
+              <option value="preventive">Préventive</option>
+              <option value="corrective">Corrective</option>
+              <option value="urgente">Urgente</option>
+              <option value="ameliorative">Améliorative</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="maintenanceSearchTerm">Recherche</label>
+            <input type="text" id="maintenanceSearchTerm" [(ngModel)]="maintenanceSearchTerm" 
+                   placeholder="Rechercher par titre, actif..." class="filter-input">
+          </div>
+          
+          <button class="filter-reset-btn" (click)="resetMaintenanceFilters()">
+            <i class="btn-icon">🔄</i>
+            Réinitialiser
+          </button>
+        </div>
+
+        <!-- Maintenance Cards Grid -->
+        <div class="maintenance-container">
+          <div class="maintenance-grid">
+            <div *ngFor="let maintenance of getFilteredMaintenances()" 
+                 class="maintenance-card-modern" 
+                 [class]="'type-' + maintenance.typeMaintenance + ' status-' + maintenance.statut">
+              
+              <!-- Card Header -->
+              <div class="card-header">
+                <div class="type-badge" [attr.data-type]="maintenance.typeMaintenance">
+                  <span class="type-icon">{{ getMaintenanceTypeIcon(maintenance.typeMaintenance) }}</span>
+                  {{ maintenance.typeMaintenance?.toUpperCase() }}
+                </div>
+                <div class="status-indicator" [attr.data-status]="maintenance.statut">
+                  {{ getMaintenanceStatusLabel(maintenance.statut) }}
+                </div>
+              </div>
+
+              <!-- Card Content -->
+              <div class="card-content">
+                <h3 class="maintenance-title">{{ maintenance.titre }}</h3>
                 <p class="maintenance-description">{{ maintenance.description }}</p>
+                
+                <!-- Asset Info -->
+                <div class="asset-info" *ngIf="maintenance.actif">
+                  <i class="asset-icon">🏗️</i>
+                  <span class="asset-name">{{ maintenance.actif.nom }}</span>
+                  <span class="asset-code">({{ maintenance.actif.code }})</span>
+                </div>
+
+                <!-- Anomaly Link -->
+                <div class="anomaly-link" *ngIf="maintenance.anomalieId">
+                  <i class="anomaly-icon">🚨</i>
+                  <span class="anomaly-text">Liée à une anomalie</span>
+                  <button class="link-btn" (click)="viewLinkedAnomalie(maintenance.anomalieId)">
+                    Voir détails
+                  </button>
+                </div>
               </div>
-              <div class="maintenance-type">
-                {{ maintenance.typeMaintenance?.toUpperCase() }}
+
+              <!-- Timeline Section -->
+              <div class="timeline-section">
+                <div class="timeline-header">
+                  <span class="timeline-label">Calendrier</span>
+                  <span class="timeline-date">{{ maintenance.datePrevue | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="timeline-progress">
+                  <div class="timeline-step" [class.completed]="maintenance.statut !== 'planifiee'">
+                    <div class="step-circle">📅</div>
+                    <span class="step-text">Planifiée</span>
+                  </div>
+                  <div class="timeline-step" [class.completed]="['en_cours', 'terminee'].includes(maintenance.statut)" 
+                       [class.current]="maintenance.statut === 'en_cours'">
+                    <div class="step-circle">⚙️</div>
+                    <span class="step-text">En cours</span>
+                  </div>
+                  <div class="timeline-step" [class.completed]="maintenance.statut === 'terminee'">
+                    <div class="step-circle">✅</div>
+                    <span class="step-text">Terminée</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div class="maintenance-details">
-              <div class="detail-item">
-                <strong>Statut:</strong> 
-                <span [class]="'status-' + maintenance.statut">{{ maintenance.statut }}</span>
+
+              <!-- Details Grid -->
+              <div class="details-grid">
+                <div class="detail-item" *ngIf="maintenance.technicienResponsable">
+                  <span class="detail-label">Technicien</span>
+                  <span class="detail-value">{{ maintenance.technicienResponsable }}</span>
+                </div>
+                <div class="detail-item" *ngIf="maintenance.coutEstime">
+                  <span class="detail-label">Coût estimé</span>
+                  <span class="detail-value">{{ formatCurrency(maintenance.coutEstime) }}</span>
+                </div>
+                <div class="detail-item" *ngIf="maintenance.dureeEstimee">
+                  <span class="detail-label">Durée</span>
+                  <span class="detail-value">{{ maintenance.dureeEstimee }}h</span>
+                </div>
               </div>
-              <div class="detail-item" *ngIf="maintenance.actif">
-                <strong>Actif:</strong> {{ maintenance.actif.nom }} ({{ maintenance.actif.code }})
+
+              <!-- Action Buttons -->
+              <div class="card-actions">
+                <!-- Planned Maintenance Actions -->
+                <button class="action-btn primary" 
+                        *ngIf="maintenance.statut === 'planifiee'"
+                        (click)="startMaintenance(maintenance)"
+                        title="Démarrer la maintenance">
+                  <i class="btn-icon">▶️</i>
+                  Démarrer
+                </button>
+                
+                <!-- In Progress Actions -->
+                <button class="action-btn success" 
+                        *ngIf="maintenance.statut === 'en_cours' && !maintenance.anomalieId"
+                        (click)="completeMaintenance(maintenance)"
+                        title="Terminer la maintenance">
+                  <i class="btn-icon">✅</i>
+                  Terminer
+                </button>
+                
+                <!-- Complete with Anomaly Resolution -->
+                <button class="action-btn success-secondary" 
+                        *ngIf="maintenance.statut === 'en_cours' && maintenance.anomalieId"
+                        (click)="completeMaintenanceAndResolveAnomalie(maintenance)"
+                        title="Terminer et résoudre l'anomalie">
+                  <i class="btn-icon">✅</i>
+                  Terminer & Résoudre
+                </button>
+                
+                <!-- View Details -->
+                <button class="action-btn info" 
+                        (click)="viewMaintenanceDetails(maintenance)"
+                        title="Voir les détails">
+                  <i class="btn-icon">👁️</i>
+                  Détails
+                </button>
               </div>
-              <div class="detail-item">
-                <strong>Date prévue:</strong> {{ maintenance.datePrevue | date:'dd/MM/yyyy' }}
-              </div>
-              <div class="detail-item" *ngIf="maintenance.technicienResponsable">
-                <strong>Technicien:</strong> {{ maintenance.technicienResponsable }}
-              </div>
-              <div class="detail-item" *ngIf="maintenance.coutEstime">
-                <strong>Coût estimé:</strong> {{ formatCurrency(maintenance.coutEstime) }}
-              </div>
-            </div>
-            
-            <div class="maintenance-actions">
-              <button class="btn btn-primary btn-sm" 
-                      *ngIf="maintenance.statut === 'planifiee'"
-                      (click)="startMaintenance(maintenance)">
-                ▶️ Démarrer
-              </button>
-              <button class="btn btn-success btn-sm" 
-                      *ngIf="maintenance.statut === 'en_cours'"
-                      (click)="completeMaintenance(maintenance)">
-                ✅ Terminer
-              </button>
             </div>
           </div>
           
-          <div *ngIf="maintenanceData.length === 0" class="empty-state">
-            <p>Aucune maintenance trouvée</p>
+          <!-- Empty State -->
+          <div *ngIf="getFilteredMaintenances().length === 0" class="empty-state-modern">
+            <div class="empty-icon">🔧</div>
+            <h3 class="empty-title">Aucune maintenance trouvée</h3>
+            <p class="empty-message">
+              <span *ngIf="maintenanceData.length === 0">Aucune maintenance n'a encore été planifiée.</span>
+              <span *ngIf="maintenanceData.length > 0">Ajustez vos filtres pour voir plus de résultats.</span>
+            </p>
+            <button class="btn-modern btn-primary" 
+                    *ngIf="maintenanceData.length === 0"
+                    (click)="showCreateMaintenanceModal()">
+              <i class="btn-icon">➕</i>
+              Planifier une maintenance
+            </button>
           </div>
         </div>
       </div>
