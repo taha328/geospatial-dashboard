@@ -381,8 +381,8 @@
   <div *ngIf="showSignalementForm" class="signalement-overlay">
     <div class="signalement-modal">
       <app-signalement-anomalie
-        [latitude]="clickCoordinates?.[0]"
-        [longitude]="clickCoordinates?.[1]"
+        [latitude]="clickCoordinates?.[1]"
+        [longitude]="clickCoordinates?.[0]"
         (anomalieSignaled)="onAnomalieSignaled()"
         (cancelled)="onSignalementCancelled()">
       </app-signalement-anomalie>

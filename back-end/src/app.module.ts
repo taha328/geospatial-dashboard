@@ -20,6 +20,8 @@ import { CarteIntegrationModule } from './modules/carte-integration.module';
       database: 'db',
       autoLoadEntities: true,
       synchronize: true,
+      logging: true, // Enable SQL query logging
+      migrationsRun: false,
 
     }),
     PointModule,

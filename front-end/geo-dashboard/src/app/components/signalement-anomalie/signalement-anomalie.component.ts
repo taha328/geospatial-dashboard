@@ -2,6 +2,7 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CarteIntegrationService, SignalementAnomalie } from '../../services/carte-integration.service';
+import { transform } from 'ol/proj';
 
 @Component({
   selector: 'app-signalement-anomalie',
@@ -56,11 +57,11 @@ export class SignalementAnomalieComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Pré-remplir les coordonnées si disponibles
-    if (this.latitude && this.longitude) {
+    // Fix: Ensure coordinates are properly assigned
+    if (this.latitude !== undefined && this.longitude !== undefined) {
       this.signalementForm.patchValue({
-        latitude: this.latitude,
-        longitude: this.longitude
+        latitude: this.latitude,   // Should be latitude value
+        longitude: this.longitude  // Should be longitude value
       });
     }
   }
@@ -71,9 +72,10 @@ export class SignalementAnomalieComponent implements OnInit {
   }
 
   setCoordinates(lat: number, lng: number) {
+    // Fix: Ensure the parameters are correctly named and assigned
     this.signalementForm.patchValue({
-      latitude: lat,
-      longitude: lng
+      latitude: lat,   // First parameter should be latitude
+      longitude: lng   // Second parameter should be longitude
     });
   }
 
@@ -126,13 +128,34 @@ export class SignalementAnomalieComponent implements OnInit {
       this.isSubmitting = true;
       this.errorMessage = '';
 
-      // Prepare FormData for file upload
       const formData = new FormData();
       const formValue = this.signalementForm.value;
       
-      // Add form fields to FormData
+      // Fix: Explicitly ensure coordinates are correctly formatted
+      const latitude = parseFloat(formValue.latitude);
+      const longitude = parseFloat(formValue.longitude);
+      
+      // Validate coordinate ranges
+      if (latitude < -90 || latitude > 90) {
+        this.errorMessage = 'Latitude doit être entre -90 et 90 degrés';
+        this.isSubmitting = false;
+        return;
+      }
+      
+      if (longitude < -180 || longitude > 180) {
+        this.errorMessage = 'Longitude doit être entre -180 et 180 degrés';
+        this.isSubmitting = false;
+        return;
+      }
+      
+      // Add coordinates explicitly to ensure correct order
+      formData.append('latitude', latitude.toString());
+      formData.append('longitude', longitude.toString());
+      
+      // Add other form fields
       Object.keys(formValue).forEach(key => {
-        if (key !== 'image' && formValue[key] !== null && formValue[key] !== undefined) {
+        if (key !== 'image' && key !== 'latitude' && key !== 'longitude' && 
+            formValue[key] !== null && formValue[key] !== undefined) {
           formData.append(key, formValue[key]);
         }
       });
@@ -152,16 +175,13 @@ export class SignalementAnomalieComponent implements OnInit {
             this.selectedFile = null;
             this.imagePreview = null;
             
-            // Reset file input
             const fileInput = document.getElementById('imageUpload') as HTMLInputElement;
             if (fileInput) {
               fileInput.value = '';
             }
             
-            // Émettre l'événement de succès
             this.anomalieSignaled.emit();
             
-            // Cacher le message de succès après 3 secondes
             setTimeout(() => {
               this.showSuccess = false;
             }, 3000);
@@ -198,5 +218,18 @@ export class SignalementAnomalieComponent implements OnInit {
 
   onCancel() {
     this.cancelled.emit();
+  }
+
+  // In your map component where you call setCoordinates
+  onMapClick(event: any) {
+    const coordinate = event.coordinate;
+    // Transform coordinate from map projection to WGS84
+    const lonLat = transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+    
+    // Fix: Pass coordinates in correct order (latitude, longitude)
+    this.setCoordinates(
+      lonLat[1], // latitude (second element)
+      lonLat[0]  // longitude (first element)
+    );
   }
 }

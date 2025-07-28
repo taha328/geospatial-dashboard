@@ -410,7 +410,7 @@ export class ActifsSeedService {
         code: 'ACT-RS-003',
         type: 'reach_stacker',
         numeroSerie: 'RS003-KAL-2024',
-        statutOperationnel: 'en_maintenance',
+        statutOperationnel: 'maintenance',
         etatGeneral: 'bon',
         latitude: 35.8850,
         longitude: -5.4987,

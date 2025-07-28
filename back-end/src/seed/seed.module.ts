@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeedService } from './seed.service';
 import { ActifsSeedService } from './actifs-seed.service';
+import { SeedController } from './seed.controller';
 
 // Import entities
 import { Portefeuille } from '../gestion_des_actifs/entities/portefeuille.entity';
@@ -22,6 +23,7 @@ import { Maintenance } from '../gestion_des_actifs/entities/maintenance.entity';
       Maintenance
     ])
   ],
+  controllers: [SeedController],
   providers: [SeedService, ActifsSeedService],
   exports: [SeedService]
 })
