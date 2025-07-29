@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Actif } from '../entities/actif.entity';
@@ -16,11 +16,21 @@ export class ActifService {
     });
   }
 
-  async findOne(id: number): Promise<Actif | null> {
-    return this.actifRepository.findOne({
+  async findOne(id: number, includeRelations: boolean = false): Promise<Actif> {
+    const relations = includeRelations ? 
+      ['groupeActif', 'groupeActif.familleActif', 'groupeActif.familleActif.portefeuille', 
+       'anomalies', 'maintenances'] : [];
+    
+    const actif = await this.actifRepository.findOne({
       where: { id },
-      relations: ['groupeActif', 'groupeActif.familleActif', 'groupeActif.familleActif.portefeuille', 'anomalies', 'maintenances']
+      relations
     });
+    
+    if (!actif) {
+      throw new NotFoundException(`Actif with ID ${id} not found`);
+    }
+    
+    return actif;
   }
 
   async create(actifData: Partial<Actif>): Promise<Actif> {

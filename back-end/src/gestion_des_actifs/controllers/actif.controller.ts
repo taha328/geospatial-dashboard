@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { ActifService } from '../services/actif.service';
 import { Actif } from '../entities/actif.entity';
 
@@ -37,8 +37,25 @@ export class ActifController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Actif | null> {
-    return this.actifService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('relations') relations?: string
+  ) {
+    try {
+      const includeRelations = relations === 'true';
+      const actif = await this.actifService.findOne(id, includeRelations);
+      
+      if (!actif) {
+        throw new NotFoundException(`Actif with ID ${id} not found`);
+      }
+      
+      return actif;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error retrieving actif details');
+    }
   }
 
   @Post()

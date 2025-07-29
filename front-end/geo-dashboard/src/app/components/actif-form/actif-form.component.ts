@@ -172,7 +172,7 @@ import { CarteIntegrationService } from '../../services/carte-integration.servic
           </div>
           
           <div class="form-group">
-            <label for="valeurAcquisition">Valeur d'acquisition (€)</label>
+            <label for="valeurAcquisition">Valeur d'acquisition (MAD)</label>
             <input id="valeurAcquisition" type="number" formControlName="valeurAcquisition" class="form-control">
           </div>
         </div>

@@ -219,7 +219,7 @@ async function createActifsWithGPS() {
       .getRawOne();
 
     console.log(`🎉 ${totalActifs} actifs créés avec succès !`);
-    console.log(`💰 Valeur totale des actifs: ${(totalValueResult.sum || 0).toLocaleString('fr-FR')} €`);
+    console.log(`💰 Valeur totale des actifs: ${(totalValueResult.sum || 0).toLocaleString('fr-FR')} MAD`);
     console.log(`📍 Tous les actifs sont géolocalisés autour du Port de Tunis`);
     console.log(`🗺️ Accédez à la carte: http://localhost:4200/map`);
     console.log(`📊 Accédez aux actifs: http://localhost:4200/assets`);

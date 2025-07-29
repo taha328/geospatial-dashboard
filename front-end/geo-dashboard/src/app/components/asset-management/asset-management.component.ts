@@ -1250,32 +1250,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   // ========================================
 
   // Anomaly workflow methods
-  async createMaintenanceFromAnomalie(anomalie: any): Promise<void> {
-    try {
-      const today = new Date();
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      const maintenanceData = {
-        titre: `Maintenance corrective - ${anomalie.titre}`,
-        description: `Maintenance pour résoudre: ${anomalie.description}`,
-        datePrevue: nextWeek.toISOString().split('T')[0], // Format YYYY-MM-DD
-        technicienResponsable: 'Équipe maintenance',
-        coutEstime: anomalie.priorite === 'critique' ? 1000 : 500
-      };
-
-      await this.workflowService.createMaintenanceFromAnomalie(anomalie.id, maintenanceData).toPromise();
-      
-      // Refresh data
-      this.loadAnomaliesData();
-      this.loadMaintenanceData();
-      this.refreshKPIData();
-      
-      console.log('Maintenance corrective créée pour l\'anomalie:', anomalie.titre);
-    } catch (error) {
-      console.error('Erreur lors de la création de la maintenance:', error);
-    }
-  }
-
+ 
   async takeAnomalieAction(anomalie: any): Promise<void> {
     // Mark anomaly as in progress
     try {
@@ -1372,5 +1347,40 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.setActiveTab('anomalies');
     // TODO: Scroll to and highlight the specific anomalie item
     console.log('Navigation vers anomalie:', anomalieId);
+  }
+
+  async createMaintenanceFromAnomalie(anomalie: any): Promise<void> {
+    try {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      const maintenanceData = {
+        titre: `Maintenance corrective - ${anomalie.titre}`,
+        description: `Maintenance corrective pour l'anomalie: ${anomalie.description}`,
+        datePrevue: nextWeek.toISOString(), // Use ISO string for backend compatibility
+        technicienResponsable: 'À assigner',
+        coutEstime: anomalie.priorite === 'critique' ? 1000 : 500
+      };
+
+      console.log('Creating maintenance for anomalie:', anomalie.id, maintenanceData);
+
+      // Use the workflow service following geospatial dashboard patterns
+      await this.workflowService.createMaintenanceFromAnomalie(anomalie.id, maintenanceData).toPromise();
+      
+      // Refresh data using correct method names
+      this.loadAnomaliesData();
+      this.loadMaintenanceData();
+      this.refreshKPIData();
+      
+      console.log('✅ Maintenance corrective créée pour l\'anomalie:', anomalie.titre);
+      
+      // Optional: Show success notification following project UI patterns
+      // this.showSuccessMessage('Maintenance créée avec succès');
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la création de la maintenance:', error);
+      // Optional: Show error notification following project UI patterns  
+      // this.showErrorMessage('Erreur lors de la création de la maintenance');
+    }
   }
 }

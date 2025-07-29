@@ -52,7 +52,7 @@ export class Anomalie {
 
   // Relationship with maintenance for corrective actions
   @Column({ nullable: true })
-  maintenanceId: number;
+  maintenanceId?: number;
 
   @CreateDateColumn()
   dateCreation: Date;
@@ -64,7 +64,7 @@ export class Anomalie {
   @JoinColumn({ name: 'actifId' })
   actif: Actif;
 
-  @OneToOne(() => Maintenance, maintenance => maintenance.anomalie, { nullable: true })
+  @OneToOne(() => Maintenance, maintenance => maintenance.anomalie)
   @JoinColumn({ name: 'maintenanceId' })
-  maintenance: Maintenance;
+  maintenance?: Maintenance;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
 export interface Portefeuille {
   id: number;
@@ -174,5 +175,18 @@ export class ActifService {
   
   getGroupeActifsByFamilleActif(familleActifId: string): Observable<GroupeActif[]> {
     return this.http.get<GroupeActif[]>(`${this.baseUrl}/familles/${familleActifId}/groupes`);
+  }
+
+  // Update the getActifDetails method to properly fetch relationships
+  getActifDetails(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/actifs/${id}?relations=true`).pipe(
+      tap(response => {
+        console.log('Fetched actif details:', response);
+      }),
+      catchError(error => {
+        console.error('Error fetching actif details:', error);
+        return throwError(() => new Error('Erreur lors de la récupération des détails de l\'actif'));
+      })
+    );
   }
 }

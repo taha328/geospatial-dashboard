@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm'; // Add DataSource here
 import { Anomalie } from '../entities/anomalie.entity';
 import { Maintenance } from '../entities/maintenance.entity';
 import { Actif } from '../entities/actif.entity';
@@ -32,6 +32,8 @@ export interface MaintenanceWorkflow {
 
 @Injectable()
 export class WorkflowService {
+  private readonly logger = new Logger(WorkflowService.name);
+
   constructor(
     @InjectRepository(Anomalie)
     private anomalieRepository: Repository<Anomalie>,
@@ -39,6 +41,7 @@ export class WorkflowService {
     private maintenanceRepository: Repository<Maintenance>,
     @InjectRepository(Actif)
     private actifRepository: Repository<Actif>,
+      private dataSource: DataSource,
   ) {}
 
   /**
@@ -130,42 +133,55 @@ export class WorkflowService {
     technicienResponsable?: string;
     coutEstime?: number;
   }): Promise<Maintenance> {
-    const anomalie = await this.anomalieRepository.findOne({
-      where: { id: anomalieId },
-      relations: ['actif']
+    this.logger.log(`Creating maintenance from anomalie ${anomalieId}`);
+    
+    return this.dataSource.transaction(async manager => {
+      // Find the anomalie
+      const anomalie = await manager.findOne(Anomalie, {
+        where: { id: anomalieId },
+        relations: ['actif']
+      });
+
+      if (!anomalie) {
+        throw new Error(`Anomalie with ID ${anomalieId} not found`);
+      }
+
+      if (anomalie.maintenanceId) {
+        throw new Error('Cette anomalie a déjà une maintenance associée');
+      }
+
+      // CRITICAL: Check if anomaly is linked to an asset
+      if (!anomalie.actifId) {
+        throw new Error(`Anomalie ${anomalieId} n'est pas liée à un actif. Impossible de créer une maintenance.`);
+      }
+
+      // Create maintenance with all required fields
+      const maintenance = manager.create(Maintenance, {
+        titre: maintenanceData.titre || `Maintenance corrective - ${anomalie.titre}`,
+        description: maintenanceData.description || `Maintenance corrective pour l'anomalie: ${anomalie.description}`,
+        typeMaintenance: 'corrective',
+        statut: 'planifiee',
+        datePrevue: maintenanceData.datePrevue,
+        actifId: anomalie.actifId,
+        anomalieId: anomalie.id,
+        technicienResponsable: maintenanceData.technicienResponsable || 'À assigner',
+        coutEstime: maintenanceData.coutEstime || 0,
+        dateCreation: new Date(),
+        dateMiseAJour: new Date()
+      });
+
+      const savedMaintenance = await manager.save(maintenance);
+
+      // Update anomaly status
+      await manager.update(Anomalie, anomalieId, {
+        statut: 'en_cours',
+        maintenanceId: savedMaintenance.id,
+        dateMiseAJour: new Date()
+      });
+
+      this.logger.log(`Maintenance ${savedMaintenance.id} created successfully`);
+      return savedMaintenance;
     });
-
-    if (!anomalie) {
-      throw new Error('Anomalie not found');
-    }
-
-    if (anomalie.maintenance) {
-      throw new Error('Cette anomalie a déjà une maintenance associée');
-    }
-
-    // Create corrective maintenance
-    const maintenance = this.maintenanceRepository.create({
-      titre: maintenanceData.titre || `Maintenance corrective - ${anomalie.titre}`,
-      description: maintenanceData.description || 
-                  `Maintenance corrective pour résoudre l'anomalie: ${anomalie.description}`,
-      typeMaintenance: 'corrective',
-      statut: 'planifiee',
-      datePrevue: maintenanceData.datePrevue,
-      actifId: anomalie.actifId,
-      anomalieId: anomalie.id,
-      technicienResponsable: maintenanceData.technicienResponsable,
-      coutEstime: maintenanceData.coutEstime || 0
-    });
-
-    const savedMaintenance = await this.maintenanceRepository.save(maintenance);
-
-    // Update anomaly status and link to maintenance
-    await this.anomalieRepository.update(anomalieId, {
-      statut: 'en_cours',
-      maintenanceId: savedMaintenance.id
-    });
-
-    return savedMaintenance;
   }
 
   /**

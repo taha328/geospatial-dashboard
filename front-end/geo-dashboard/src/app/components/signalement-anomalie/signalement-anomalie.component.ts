@@ -2,6 +2,7 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CarteIntegrationService, SignalementAnomalie } from '../../services/carte-integration.service';
+import { ActifService } from '../../services/actif.service';
 import { transform } from 'ol/proj';
 
 @Component({
@@ -23,6 +24,10 @@ export class SignalementAnomalieComponent implements OnInit {
   errorMessage = '';
   selectedFile: File | null = null;
   imagePreview: string | null = null;
+  
+  // Asset selection data following geospatial dashboard patterns
+  allActifs: any[] = [];
+  isLoadingActifs = false;
 
   typesAnomalies = [
     { value: 'structural', label: 'Structurel' },
@@ -41,7 +46,8 @@ export class SignalementAnomalieComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private carteIntegrationService: CarteIntegrationService
+    private carteIntegrationService: CarteIntegrationService,
+    private actifService: ActifService
   ) {
     this.signalementForm = this.fb.group({
       titre: ['', [Validators.required, Validators.minLength(3)]],
@@ -51,31 +57,47 @@ export class SignalementAnomalieComponent implements OnInit {
       latitude: [null, [Validators.required, Validators.min(-90), Validators.max(90)]],
       longitude: [null, [Validators.required, Validators.min(-180), Validators.max(180)]],
       rapportePar: [''],
-      actifId: [null],
+      actifId: [null, Validators.required], // Make actifId required to prevent null values
       image: [null]
     });
   }
 
   ngOnInit() {
-    // Fix: Ensure coordinates are properly assigned
+    // Initialize coordinates
     if (this.latitude !== undefined && this.longitude !== undefined) {
       this.signalementForm.patchValue({
-        latitude: this.latitude,   // Should be latitude value
-        longitude: this.longitude  // Should be longitude value
+        latitude: this.latitude,
+        longitude: this.longitude
       });
+    }
+    
+    // Load all assets following geospatial dashboard patterns
+    this.loadAllActifs();
+  }
+
+  /**
+   * Load all assets following project service patterns
+   */
+  async loadAllActifs() {
+    try {
+      this.isLoadingActifs = true;
+      // Fix: Use getActifs() instead of getAllActifs() following geospatial dashboard patterns
+      const allAssets = await this.actifService.getActifs().toPromise();
+      this.allActifs = allAssets || [];
+      
+      console.log(`Loaded ${this.allActifs.length} actifs for anomaly reporting`);
+    } catch (error) {
+      console.error('Error loading all actifs:', error);
+      this.errorMessage = 'Erreur lors du chargement des actifs disponibles.';
+    } finally {
+      this.isLoadingActifs = false;
     }
   }
 
-  getCoordinatesFromMap() {
-    // Cette méthode sera appelée depuis le composant carte
-    // pour pré-remplir les coordonnées du clic
-  }
-
   setCoordinates(lat: number, lng: number) {
-    // Fix: Ensure the parameters are correctly named and assigned
     this.signalementForm.patchValue({
-      latitude: lat,   // First parameter should be latitude
-      longitude: lng   // Second parameter should be longitude
+      latitude: lat,
+      longitude: lng
     });
   }
 
@@ -131,11 +153,10 @@ export class SignalementAnomalieComponent implements OnInit {
       const formData = new FormData();
       const formValue = this.signalementForm.value;
       
-      // Fix: Explicitly ensure coordinates are correctly formatted
+      // Validate coordinates following geospatial dashboard patterns
       const latitude = parseFloat(formValue.latitude);
       const longitude = parseFloat(formValue.longitude);
       
-      // Validate coordinate ranges
       if (latitude < -90 || latitude > 90) {
         this.errorMessage = 'Latitude doit être entre -90 et 90 degrés';
         this.isSubmitting = false;
@@ -147,8 +168,15 @@ export class SignalementAnomalieComponent implements OnInit {
         this.isSubmitting = false;
         return;
       }
+
+      // Ensure asset is selected to prevent null actifId
+      if (!formValue.actifId) {
+        this.errorMessage = 'Veuillez sélectionner un actif associé à cette anomalie';
+        this.isSubmitting = false;
+        return;
+      }
       
-      // Add coordinates explicitly to ensure correct order
+      // Add coordinates explicitly to ensure correct order for PostGIS
       formData.append('latitude', latitude.toString());
       formData.append('longitude', longitude.toString());
       
@@ -165,6 +193,7 @@ export class SignalementAnomalieComponent implements OnInit {
         formData.append('image', this.selectedFile, this.selectedFile.name);
       }
 
+      // Submit following geospatial dashboard service patterns
       this.carteIntegrationService.signalerAnomalieDepuisCarte(formData)
         .subscribe({
           next: (response) => {
@@ -204,6 +233,9 @@ export class SignalementAnomalieComponent implements OnInit {
     const field = this.signalementForm.get(fieldName);
     if (field && field.errors) {
       if (field.errors['required']) {
+        if (fieldName === 'actifId') {
+          return 'Veuillez sélectionner un actif associé';
+        }
         return 'Ce champ est requis';
       }
       if (field.errors['minlength']) {
@@ -220,16 +252,27 @@ export class SignalementAnomalieComponent implements OnInit {
     this.cancelled.emit();
   }
 
-  // In your map component where you call setCoordinates
   onMapClick(event: any) {
     const coordinate = event.coordinate;
     // Transform coordinate from map projection to WGS84
     const lonLat = transform(coordinate, 'EPSG:3857', 'EPSG:4326');
     
-    // Fix: Pass coordinates in correct order (latitude, longitude)
+    // Pass coordinates in correct order for PostGIS (latitude, longitude)
     this.setCoordinates(
       lonLat[1], // latitude (second element)
       lonLat[0]  // longitude (first element)
     );
+  }
+
+  /**
+   * Get display text for selected asset following UI patterns
+   */
+  getSelectedActifDisplay(): string {
+    const selectedId = this.signalementForm.get('actifId')?.value;
+    if (!selectedId) return '';
+    
+    const selectedActif = this.allActifs.find(actif => actif.id === parseInt(selectedId));
+    
+    return selectedActif ? `${selectedActif.nom} (${selectedActif.code})` : '';
   }
 }
