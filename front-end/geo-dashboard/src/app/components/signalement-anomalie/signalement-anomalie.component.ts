@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CarteIntegrationService, SignalementAnomalie } from '../../services/carte-integration.service';
 import { ActifService } from '../../services/actif.service';
+import { NotificationService } from '../../services/notification.service';
 import { transform } from 'ol/proj';
 
 @Component({
@@ -47,7 +48,8 @@ export class SignalementAnomalieComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private carteIntegrationService: CarteIntegrationService,
-    private actifService: ActifService
+    private actifService: ActifService,
+    private notificationService: NotificationService // <-- add this
   ) {
     this.signalementForm = this.fb.group({
       titre: ['', [Validators.required, Validators.minLength(3)]],
@@ -210,7 +212,7 @@ export class SignalementAnomalieComponent implements OnInit {
             }
             
             this.anomalieSignaled.emit();
-            
+            this.notificationService.triggerRefresh(); // <-- add this line
             setTimeout(() => {
               this.showSuccess = false;
             }, 3000);
