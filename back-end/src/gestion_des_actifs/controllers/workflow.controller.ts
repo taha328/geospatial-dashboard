@@ -13,6 +13,7 @@ export class WorkflowController {
     @Body() maintenanceData: {
       titre?: string;
       description?: string;
+      typeMaintenance: string; // Added this line
       datePrevue: string;
       technicienResponsable?: string;
       coutEstime?: number;
@@ -34,7 +35,8 @@ export class WorkflowController {
 
       const result = await this.workflowService.createMaintenanceFromAnomalie(anomalieId, {
         ...maintenanceData,
-        datePrevue
+        datePrevue,
+        typeMaintenance: maintenanceData.typeMaintenance || 'corrective' // Ensure it's passed
       });
 
       return {
@@ -48,8 +50,7 @@ export class WorkflowController {
       throw new HttpException({
         success: false,
         message: error.message || 'Erreur lors de la création de la maintenance',
-        error: 'Internal Server Error'
-      }, HttpStatus.INTERNAL_SERVER_ERROR);
+      }, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -73,15 +74,20 @@ export class WorkflowController {
 
   @Put('maintenance/:id/start')
   async startMaintenance(@Param('id', ParseIntPipe) maintenanceId: number) {
+    this.logger.log(`Starting maintenance ${maintenanceId}`);
     try {
       const result = await this.workflowService.startMaintenance(maintenanceId);
       return {
         success: true,
         message: 'Maintenance démarrée avec succès',
-        maintenance: result
+        data: result
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      this.logger.error(`Error starting maintenance: ${error.message}`, error.stack);
+      throw new HttpException({
+        success: false,
+        message: error.message || 'Erreur lors du démarrage de la maintenance',
+      }, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -95,15 +101,20 @@ export class WorkflowController {
       resolveLinkedAnomaly?: boolean;
     }
   ) {
+    this.logger.log(`Completing maintenance ${maintenanceId}`);
     try {
       const result = await this.workflowService.completeMaintenance(maintenanceId, completionData);
       return {
         success: true,
         message: 'Maintenance terminée avec succès',
-        ...result
+        data: result
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      this.logger.error(`Error completing maintenance: ${error.message}`, error.stack);
+      throw new HttpException({
+        success: false,
+        message: error.message || 'Erreur lors de la finalisation de la maintenance',
+      }, HttpStatus.BAD_REQUEST);
     }
   }
 

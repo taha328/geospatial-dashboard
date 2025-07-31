@@ -129,6 +129,7 @@ export class WorkflowService {
   async createMaintenanceFromAnomalie(anomalieId: number, maintenanceData: {
     titre?: string;
     description?: string;
+    typeMaintenance: string;
     datePrevue: Date;
     technicienResponsable?: string;
     coutEstime?: number;
@@ -182,6 +183,37 @@ export class WorkflowService {
       this.logger.log(`Maintenance ${savedMaintenance.id} created successfully`);
       return savedMaintenance;
     });
+  }
+
+  /**
+   * Take charge of an anomaly, setting its status to 'en_cours'
+   */
+  async takeChargeOfAnomaly(anomalieId: number, userId?: string): Promise<Anomalie> {
+    this.logger.log(`Taking charge of anomalie ${anomalieId}`);
+    
+    const anomalie = await this.anomalieRepository.findOne({ where: { id: anomalieId } });
+
+    if (!anomalie) {
+      throw new Error(`Anomalie with ID ${anomalieId} not found`);
+    }
+
+    if (anomalie.statut !== 'nouveau') {
+      throw new Error('Cette anomalie a déjà été prise en charge ou est résolue.');
+    }
+
+    await this.anomalieRepository.update(anomalieId, {
+      statut: 'en_cours',
+      assigneA: userId || 'Equipe maintenance', // Default assignee
+      dateMiseAJour: new Date(),
+    });
+
+    const updatedAnomalie = await this.anomalieRepository.findOne({ where: { id: anomalieId } });
+    if (!updatedAnomalie) {
+      throw new Error('Anomalie not found after update');
+    }
+    
+    this.logger.log(`Anomalie ${updatedAnomalie.id} status updated to 'en_cours'`);
+    return updatedAnomalie;
   }
 
   /**

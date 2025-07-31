@@ -9,11 +9,12 @@ import { MaintenanceService, StatistiquesMaintenance, Maintenance } from '../../
 import { WorkflowService, AssetWorkflowSummary } from '../../services/workflow.service';
 import { CarteIntegrationService } from '../../services/carte-integration.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
+import { CreateMaintenanceModalComponent } from '../create-maintenance-modal/create-maintenance-modal.component';
 
 @Component({
   selector: 'app-asset-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, CreateMaintenanceModalComponent],
   templateUrl: './asset-management.component.html',
   styleUrls: ['./asset-management.component.scss']
 })
@@ -66,7 +67,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   showCreateAnomalieModal = false;
   showScheduleMaintenanceModal = false;
   selectedAssetForAction: ActifPourCarte | null = null;
-  
+  showCreateMaintenanceFromAnomalieModal = false;
+  selectedAnomalieForMaintenance: any = null;
+  showMaintenanceDetailsModal = false;
+  selectedMaintenanceForDetails: any = null;
+
   // Reactive forms
   createAnomalieForm: FormGroup;
   scheduleMaintenanceForm: FormGroup;
@@ -123,7 +128,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     if (!value && value !== 0) return '';
     return new Intl.NumberFormat('fr-FR', { 
       style: 'currency', 
-      currency: 'EUR' 
+      currency: 'MAD' 
     }).format(value);
   }
 
@@ -276,7 +281,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Load maintenance statistics  
+    // Load maintenance statistics
     this.maintenanceService.getStatistiques().subscribe({
       next: (statsMaintenance) => {
         console.log('✅ KPI Maintenance stats loaded:', statsMaintenance);
@@ -492,7 +497,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   viewMaintenanceDetails(maintenance: any): void {
-    // Implementation for viewing maintenance details
+    this.selectedMaintenanceForDetails = maintenance;
+    this.showMaintenanceDetailsModal = true;
     console.log('Viewing maintenance details:', maintenance);
   }
 
@@ -1073,6 +1079,31 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.scheduleMaintenanceForm.reset();
   }
 
+  closeMaintenanceDetailsModal() {
+    this.showMaintenanceDetailsModal = false;
+    this.selectedMaintenanceForDetails = null;
+  }
+
+  // Open the modal to create maintenance from an anomaly
+  openCreateMaintenanceFromAnomalieModal(anomalie: any) {
+    this.selectedAnomalieForMaintenance = anomalie;
+    this.showCreateMaintenanceFromAnomalieModal = true;
+  }
+
+  // Close the modal
+  closeCreateMaintenanceFromAnomalieModal() {
+    this.selectedAnomalieForMaintenance = null;
+    this.showCreateMaintenanceFromAnomalieModal = false;
+  }
+
+  // Handle successful maintenance creation
+  handleMaintenanceCreated() {
+    this.closeCreateMaintenanceFromAnomalieModal();
+    this.loadMaintenanceData();
+    this.loadAnomaliesData(); // Refresh anomaly to show it's linked
+    this.refreshKPIData();
+  }
+
   // Form submission methods
   async submitAnomalieForm(): Promise<void> {
     if (this.createAnomalieForm.valid && this.selectedAssetForAction) {
@@ -1113,37 +1144,48 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   async submitMaintenanceForm(): Promise<void> {
-    if (this.scheduleMaintenanceForm.valid && this.selectedAssetForAction) {
+    if (this.scheduleMaintenanceForm.valid) {
       this.maintenanceSubmitting = true;
-      
       try {
         const formValue = this.scheduleMaintenanceForm.value;
-        const maintenanceData = {
+        let maintenanceData: any = {
           titre: formValue.titre,
           description: formValue.description,
           typeMaintenance: formValue.typeMaintenance,
           datePrevue: new Date(formValue.datePrevue),
-          actifId: this.selectedAssetForAction.id,
           statut: 'planifiee' as const,
           coutEstime: formValue.coutEstime || 0,
           technicienResponsable: formValue.technicienResponsable
         };
 
+        if (this.showCreateMaintenanceFromAnomalieModal && this.selectedAnomalieForMaintenance) {
+          maintenanceData.actifId = this.selectedAnomalieForMaintenance.actifId;
+          maintenanceData.anomalieId = this.selectedAnomalieForMaintenance.id;
+        } else if (this.selectedAssetForAction) {
+          maintenanceData.actifId = this.selectedAssetForAction.id;
+        } else {
+          throw new Error('Aucun actif ou anomalie sélectionné');
+        }
+
         await this.maintenanceService.createMaintenance(maintenanceData).toPromise();
-        
+
         // Refresh data and close modal
         this.loadMaintenanceData();
         this.refreshKPIData();
-        this.closeScheduleMaintenanceModal();
-        
-        console.log('Maintenance planifiée avec succès');
+        if (this.showCreateMaintenanceFromAnomalieModal) {
+          this.closeCreateMaintenanceFromAnomalieModal();
+          this.loadAnomaliesData();
+        } else {
+          this.closeScheduleMaintenanceModal();
+        }
+
+        console.log('Maintenance créée avec succès');
       } catch (error) {
-        console.error('Erreur lors de la planification de la maintenance:', error);
+        console.error('Erreur lors de la création de la maintenance:', error);
       } finally {
         this.maintenanceSubmitting = false;
       }
     } else {
-      // Mark all fields as touched to show validation errors
       this.scheduleMaintenanceForm.markAllAsTouched();
     }
   }
@@ -1221,15 +1263,12 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   // Workflow logic helpers
   canResolveAnomalie(anomalie: any): boolean {
-    // Can resolve if:
-    // 1. Anomaly is 'en_cours' (assigned/in progress) AND no maintenance is linked (simple fix)
-    // 2. OR anomaly has linked maintenance that is completed
+    // Can resolve if anomaly has linked maintenance that is completed
     return (
-      anomalie.statut === 'en_cours' && 
-      (
-        !anomalie.maintenanceId || 
-        (anomalie.maintenance && anomalie.maintenance.statut === 'terminee')
-      )
+      anomalie.statut === 'en_cours' &&
+      anomalie.maintenanceId &&
+      anomalie.maintenance &&
+      anomalie.maintenance.statut === 'terminee'
     );
   }
 
@@ -1246,141 +1285,111 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   // ========================================
-  // WORKFLOW METHODS
+  // WORKFLOW METHODS (stubs for template compatibility)
   // ========================================
+  // The following methods are stubs to resolve template errors after legacy workflow removal.
+  // You can implement, refactor, or remove them as needed for your new modal-based workflow.
 
-  // Anomaly workflow methods
- 
-  async takeAnomalieAction(anomalie: any): Promise<void> {
-    // Mark anomaly as in progress
-    try {
-      await this.anomalieService.updateAnomalie(anomalie.id, {
-        statut: 'en_cours',
-        assigneA: 'Équipe technique'
-      }).toPromise();
-      
-      this.loadAnomaliesData();
-      console.log('Anomalie prise en charge:', anomalie.titre);
-    } catch (error) {
-      console.error('Erreur lors de la prise en charge:', error);
-    }
-  }
-
-  async resolveAnomalie(anomalie: any): Promise<void> {
-    try {
-      const resolutionData = {
-        actionsCorrectives: 'Anomalie résolue manuellement',
-        resolvedBy: 'Utilisateur système'
-      };
-
-      await this.workflowService.resolveAnomalie(anomalie.id, resolutionData).toPromise();
-      
-      this.loadAnomaliesData();
-      this.refreshKPIData();
-      
-      console.log('Anomalie résolue:', anomalie.titre);
-    } catch (error) {
-      console.error('Erreur lors de la résolution:', error);
+  takeAnomalieAction(anomalie: any): void {
+    console.log(`Taking action on anomalie: ${anomalie.id}`);
+    if (anomalie.statut === 'nouveau') {
+      this.anomalieService.takeChargeOfAnomaly(anomalie.id).subscribe({
+        next: (updatedAnomalie) => {
+          console.log('Anomalie taken in charge successfully', updatedAnomalie);
+          // Refresh local data
+          const index = this.anomaliesData.findIndex(a => a.id === anomalie.id);
+          if (index !== -1) {
+            this.anomaliesData[index] = updatedAnomalie;
+          }
+          this.refreshKPIData();
+        },
+        error: (error) => {
+          console.error('Error taking charge of anomalie', error);
+          // Optionally show an error message to the user
+        }
+      });
+    } else {
+      console.warn(`No action defined for anomalie with status: ${anomalie.statut}`);
     }
   }
 
   viewLinkedMaintenance(maintenanceId: number): void {
-    this.setActiveTab('maintenance');
-    // TODO: Scroll to and highlight the specific maintenance item
-    console.log('Navigation vers maintenance:', maintenanceId);
+    console.warn('viewLinkedMaintenance(maintenanceId) called. This method is a stub.');
+    // Implement navigation or modal logic here if needed
   }
 
-  // Maintenance workflow methods
-  async startMaintenance(maintenance: any): Promise<void> {
-    try {
-      await this.workflowService.startMaintenance(maintenance.id).toPromise();
-      
-      this.loadMaintenanceData();
-      this.refreshKPIData();
-      
-      console.log('Maintenance démarrée:', maintenance.titre);
-    } catch (error) {
-      console.error('Erreur lors du démarrage:', error);
-    }
-  }
-
-  async completeMaintenance(maintenance: any): Promise<void> {
-    try {
-      const completionData = {
-        rapportIntervention: 'Maintenance terminée avec succès',
-        coutReel: maintenance.coutEstime,
-        resolveLinkedAnomaly: false
-      };
-
-      await this.workflowService.completeMaintenance(maintenance.id, completionData).toPromise();
-      
-      this.loadMaintenanceData();
-      this.refreshKPIData();
-      
-      console.log('Maintenance terminée:', maintenance.titre);
-    } catch (error) {
-      console.error('Erreur lors de la finalisation:', error);
-    }
-  }
-
-  async completeMaintenanceAndResolveAnomalie(maintenance: any): Promise<void> {
-    try {
-      const completionData = {
-        rapportIntervention: 'Maintenance terminée - Anomalie résolue',
-        coutReel: maintenance.coutEstime,
-        resolveLinkedAnomaly: true
-      };
-
-      await this.workflowService.completeMaintenance(maintenance.id, completionData).toPromise();
-      
-      this.loadMaintenanceData();
-      this.loadAnomaliesData();
-      this.refreshKPIData();
-      
-      console.log('Maintenance terminée et anomalie résolue:', maintenance.titre);
-    } catch (error) {
-      console.error('Erreur lors de la finalisation complète:', error);
-    }
+  resolveAnomalie(anomalie: any): void {
+    console.warn('resolveAnomalie(anomalie) called. This method is a stub.');
+    // Implement modal-based or new workflow logic here if needed
   }
 
   viewLinkedAnomalie(anomalieId: number): void {
-    this.setActiveTab('anomalies');
-    // TODO: Scroll to and highlight the specific anomalie item
-    console.log('Navigation vers anomalie:', anomalieId);
+    console.warn('viewLinkedAnomalie(anomalieId) called. This method is a stub.');
+    // Implement navigation or modal logic here if needed
   }
 
-  async createMaintenanceFromAnomalie(anomalie: any): Promise<void> {
-    try {
-      const today = new Date();
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      const maintenanceData = {
-        titre: `Maintenance corrective - ${anomalie.titre}`,
-        description: `Maintenance corrective pour l'anomalie: ${anomalie.description}`,
-        datePrevue: nextWeek.toISOString(), // Use ISO string for backend compatibility
-        technicienResponsable: 'À assigner',
-        coutEstime: anomalie.priorite === 'critique' ? 1000 : 500
-      };
-
-      console.log('Creating maintenance for anomalie:', anomalie.id, maintenanceData);
-
-      // Use the workflow service following geospatial dashboard patterns
-      await this.workflowService.createMaintenanceFromAnomalie(anomalie.id, maintenanceData).toPromise();
-      
-      // Refresh data using correct method names
-      this.loadAnomaliesData();
-      this.loadMaintenanceData();
-      this.refreshKPIData();
-      
-      console.log('✅ Maintenance corrective créée pour l\'anomalie:', anomalie.titre);
-      
-      // Optional: Show success notification following project UI patterns
-      // this.showSuccessMessage('Maintenance créée avec succès');
-      
-    } catch (error) {
-      console.error('❌ Erreur lors de la création de la maintenance:', error);
-      // Optional: Show error notification following project UI patterns  
-      // this.showErrorMessage('Erreur lors de la création de la maintenance');
-    }
+  startMaintenance(maintenance: any): void {
+    console.log(`Starting maintenance: ${maintenance.id}`);
+    this.maintenanceService.startMaintenance(maintenance.id).subscribe({
+      next: (updatedMaintenance: any) => {
+        console.log('Maintenance started successfully', updatedMaintenance);
+        // Refresh local data
+        const index = this.maintenanceData.findIndex(m => m.id === maintenance.id);
+        if (index !== -1) {
+          this.maintenanceData[index] = updatedMaintenance.data;
+        }
+        this.refreshKPIData();
+      },
+      error: (error) => {
+        console.error('Error starting maintenance', error);
+        // Optionally show an error message to the user
+      }
+    });
   }
+
+  completeMaintenance(maintenance: any): void {
+    console.log(`Completing maintenance: ${maintenance.id}`);
+    this.maintenanceService.completeMaintenance(maintenance.id, { resolveLinkedAnomaly: false }).subscribe({
+      next: (result) => {
+        console.log('Maintenance completed successfully', result);
+        // Refresh local data
+        const index = this.maintenanceData.findIndex(m => m.id === maintenance.id);
+        if (index !== -1) {
+          this.maintenanceData[index] = result.data.maintenance;
+        }
+        this.refreshKPIData();
+      },
+      error: (error) => {
+        console.error('Error completing maintenance', error);
+        // Optionally show an error message to the user
+      }
+    });
+  }
+
+  completeMaintenanceAndResolveAnomalie(maintenance: any): void {
+    console.log(`Completing maintenance and resolving anomaly: ${maintenance.id}`);
+    this.maintenanceService.completeMaintenance(maintenance.id, { resolveLinkedAnomaly: true }).subscribe({
+      next: (result) => {
+        console.log('Maintenance completed and anomaly resolved successfully', result);
+        // Refresh local data
+        const maintenanceIndex = this.maintenanceData.findIndex(m => m.id === maintenance.id);
+        if (maintenanceIndex !== -1) {
+          this.maintenanceData[maintenanceIndex] = result.data.maintenance;
+        }
+        if (result.data.anomalie) {
+          const anomalieIndex = this.anomaliesData.findIndex(a => a.id === result.data.anomalie.id);
+          if (anomalieIndex !== -1) {
+            this.anomaliesData[anomalieIndex] = result.data.anomalie;
+          }
+        }
+        this.refreshKPIData();
+      },
+      error: (error) => {
+        console.error('Error completing maintenance and resolving anomaly', error);
+        // Optionally show an error message to the user
+      }
+    });
+  }
+
+
 }

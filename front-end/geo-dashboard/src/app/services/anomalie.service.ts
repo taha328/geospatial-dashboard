@@ -118,6 +118,10 @@ export class AnomalieService {
     });
   }
 
+  takeChargeOfAnomaly(id: number, userId?: string): Observable<Anomalie> {
+    return this.http.put<Anomalie>(`${this.baseUrl}/${id}/prendre-en-charge`, { userId });
+  }
+
   deleteAnomalie(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

@@ -98,7 +98,7 @@ export class MaintenanceService {
     return this.http.get<MaintenanceParType[]>(`${this.baseUrl}/par-type`);
   }
 
-  getCoutsMaintenanceParMois(): Observable<CoutMaintenanceParMois[]> {
+  getCoutsParMois(): Observable<CoutMaintenanceParMois[]> {
     return this.http.get<CoutMaintenanceParMois[]>(`${this.baseUrl}/couts-par-mois`);
   }
 
@@ -110,64 +110,15 @@ export class MaintenanceService {
     return this.http.put<Maintenance>(`${this.baseUrl}/${id}`, maintenance);
   }
 
-  demarrerMaintenance(id: number, technicienResponsable: string): Observable<Maintenance> {
-    return this.http.put<Maintenance>(`${this.baseUrl}/${id}/demarrer`, { technicienResponsable });
+  startMaintenance(id: number): Observable<Maintenance> {
+    return this.http.put<Maintenance>(`http://localhost:3000/workflow/maintenance/${id}/start`, {});
   }
 
-  terminerMaintenance(id: number, completionData: {
-    rapportIntervention: string;
-    coutReel?: number;
-    piecesRemplacees?: any;
-  }): Observable<Maintenance> {
-    return this.http.put<Maintenance>(`${this.baseUrl}/${id}/terminer`, completionData);
+  completeMaintenance(id: number, completionData: { rapportIntervention?: string; coutReel?: number; resolveLinkedAnomaly?: boolean }): Observable<any> {
+    return this.http.put(`http://localhost:3000/workflow/maintenance/${id}/complete`, completionData);
   }
 
   deleteMaintenance(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
-  }
-
-  getTypeColor(type: string): string {
-    switch (type) {
-      case 'preventive': return '#28a745';
-      case 'corrective': return '#ffc107';
-      case 'urgente': return '#dc3545';
-      default: return '#6c757d';
-    }
-  }
-
-  getStatutColor(statut: string): string {
-    switch (statut) {
-      case 'planifiee': return '#17a2b8';
-      case 'en_cours': return '#ffc107';
-      case 'terminee': return '#28a745';
-      case 'annulee': return '#6c757d';
-      default: return '#6c757d';
-    }
-  }
-
-  getTypeIcon(type: string): string {
-    switch (type) {
-      case 'preventive': return '🔧';
-      case 'corrective': return '⚠️';
-      case 'urgente': return '🚨';
-      default: return '🛠️';
-    }
-  }
-
-  getStatutIcon(statut: string): string {
-    switch (statut) {
-      case 'planifiee': return '📅';
-      case 'en_cours': return '🔄';
-      case 'terminee': return '✅';
-      case 'annulee': return '❌';
-      default: return '📝';
-    }
-  }
-
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'MAD'
-    }).format(amount);
   }
 }

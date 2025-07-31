@@ -1,10 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
 import { AnomalieService } from '../services/anomalie.service';
 import { Anomalie } from '../entities/anomalie.entity';
+import { WorkflowService } from '../services/workflow.service';
 
 @Controller('api/anomalies')
 export class AnomalieController {
-  constructor(private readonly anomalieService: AnomalieService) {}
+  constructor(
+    private readonly anomalieService: AnomalieService,
+    private readonly workflowService: WorkflowService,
+  ) {}
 
   @Get()
   async findAll(): Promise<Anomalie[]> {
@@ -97,6 +101,14 @@ export class AnomalieController {
       resolutionData.actionsCorrectives,
       resolutionData.resolvedBy
     );
+  }
+
+  @Put(':id/prendre-en-charge')
+  async takeChargeOfAnomaly(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('userId') userId?: string
+  ): Promise<Anomalie> {
+    return this.workflowService.takeChargeOfAnomaly(id, userId);
   }
 
   @Delete(':id')

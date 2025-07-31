@@ -858,7 +858,7 @@
                   
                   <button class="btn-action warning" 
                           *ngIf="anomalie.statut === 'en_cours' && !anomalie.maintenanceId"
-                          (click)="createMaintenanceFromAnomalie(anomalie)"
+                          (click)="openCreateMaintenanceFromAnomalieModal(anomalie)"
                           title="Créer une intervention de maintenance">
                     <i class="btn-icon">🔧</i>
                     Créer Maintenance
@@ -1346,111 +1346,145 @@
         
         <form [formGroup]="scheduleMaintenanceForm" (ngSubmit)="submitMaintenanceForm()">
           <div class="mb-3">
-            <label for="maintenanceTitre" class="form-label">Titre de la maintenance *</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="maintenanceTitre" 
-              formControlName="titre"
-              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'titre')"
-              placeholder="Titre de la maintenance">
-            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'titre')">
-              {{ getFieldError(scheduleMaintenanceForm, 'titre') }}
-            </div>
+            <label for="maintenanceTitre" class="form-label">Titre *</label>
+            <input id="maintenanceTitre" type="text" class="form-control" formControlName="titre" placeholder="Titre de la maintenance">
           </div>
-          
           <div class="mb-3">
-            <label for="maintenanceType" class="form-label">Type de maintenance *</label>
-            <select 
-              class="form-select" 
-              id="maintenanceType"
-              formControlName="typeMaintenance"
-              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'typeMaintenance')">
-              <option value="">Sélectionner un type</option>
+            <label for="maintenanceType" class="form-label">Type *</label>
+            <select id="maintenanceType" class="form-control" formControlName="typeMaintenance">
+              <option value="">Sélectionner le type</option>
               <option value="preventive">Préventive</option>
               <option value="corrective">Corrective</option>
               <option value="urgente">Urgente</option>
+              <option value="ameliorative">Améliorative</option>
             </select>
-            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'typeMaintenance')">
-              {{ getFieldError(scheduleMaintenanceForm, 'typeMaintenance') }}
-            </div>
           </div>
-          
-          <div class="row">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="maintenanceDatePrevue" class="form-label">Date prévue *</label>
-                <input 
-                  type="date" 
-                  class="form-control" 
-                  id="maintenanceDatePrevue"
-                  formControlName="datePrevue"
-                  [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'datePrevue')">
-                <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'datePrevue')">
-                  {{ getFieldError(scheduleMaintenanceForm, 'datePrevue') }}
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="maintenanceCoutEstime" class="form-label">Coût estimé (MAD)</label>
-                <input 
-                  type="number" 
-                  class="form-control" 
-                  id="maintenanceCoutEstime" 
-                  formControlName="coutEstime"
-                  [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'coutEstime')"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0">
-                <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'coutEstime')">
-                  {{ getFieldError(scheduleMaintenanceForm, 'coutEstime') }}
-                </div>
-              </div>
-            </div>
+          <div class="mb-3">
+            <label for="maintenanceDate" class="form-label">Date prévue *</label>
+            <input id="maintenanceDate" type="date" class="form-control" formControlName="datePrevue">
           </div>
-          
+          <div class="mb-3">
+            <label for="maintenanceDescription" class="form-label">Description *</label>
+            <textarea id="maintenanceDescription" class="form-control" formControlName="description" placeholder="Description détaillée"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceCout" class="form-label">Coût estimé</label>
+            <input id="maintenanceCout" type="number" class="form-control" formControlName="coutEstime" min="0">
+          </div>
           <div class="mb-3">
             <label for="maintenanceTechnicien" class="form-label">Technicien responsable</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="maintenanceTechnicien" 
-              formControlName="technicienResponsable"
-              placeholder="Nom du technicien">
+            <input id="maintenanceTechnicien" type="text" class="form-control" formControlName="technicienResponsable" placeholder="Nom du technicien">
           </div>
-          
-          <div class="mb-3">
-            <label for="maintenanceDescription" class="form-label">Description des travaux *</label>
-            <textarea 
-              class="form-control" 
-              id="maintenanceDescription" 
-              rows="4" 
-              formControlName="description"
-              [class.is-invalid]="isFieldInvalid(scheduleMaintenanceForm, 'description')"
-              placeholder="Décrivez les travaux de maintenance..."></textarea>
-            <div class="invalid-feedback" *ngIf="isFieldInvalid(scheduleMaintenanceForm, 'description')">
-              {{ getFieldError(scheduleMaintenanceForm, 'description') }}
-            </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success" [disabled]="maintenanceSubmitting || scheduleMaintenanceForm.invalid">
+              {{ maintenanceSubmitting ? 'Enregistrement...' : 'Planifier' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="closeScheduleMaintenanceModal()">Annuler</button>
           </div>
         </form>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Maintenance From Anomalie Modal -->
+<div class="modal fade" [class.show]="showCreateMaintenanceFromAnomalieModal" [style.display]="showCreateMaintenanceFromAnomalieModal ? 'block' : 'none'" *ngIf="showCreateMaintenanceFromAnomalieModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Créer une Maintenance pour l'Anomalie</h5>
+        <button type="button" class="btn-close" (click)="closeCreateMaintenanceFromAnomalieModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedAnomalieForMaintenance">
+        <p><strong>Anomalie concernée:</strong> {{ selectedAnomalieForMaintenance.titre }} ({{ selectedAnomalieForMaintenance.actif?.nom }})</p>
+        <form [formGroup]="scheduleMaintenanceForm" (ngSubmit)="submitMaintenanceForm()">
+          <!-- Form fields (see below) -->
+          <div class="mb-3">
+            <label for="maintenanceTitreAnomalie" class="form-label">Titre *</label>
+            <input id="maintenanceTitreAnomalie" type="text" class="form-control" formControlName="titre" placeholder="Titre de la maintenance">
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceTypeAnomalie" class="form-label">Type *</label>
+            <select id="maintenanceTypeAnomalie" class="form-control" formControlName="typeMaintenance">
+              <option value="">Sélectionner le type</option>
+              <option value="preventive">Préventive</option>
+              <option value="corrective">Corrective</option>
+              <option value="urgente">Urgente</option>
+              <option value="ameliorative">Améliorative</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceDateAnomalie" class="form-label">Date prévue *</label>
+            <input id="maintenanceDateAnomalie" type="date" class="form-control" formControlName="datePrevue">
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceDescriptionAnomalie" class="form-label">Description *</label>
+            <textarea id="maintenanceDescriptionAnomalie" class="form-control" formControlName="description" placeholder="Description détaillée"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceCoutAnomalie" class="form-label">Coût estimé</label>
+            <input id="maintenanceCoutAnomalie" type="number" class="form-control" formControlName="coutEstime" min="0">
+          </div>
+          <div class="mb-3">
+            <label for="maintenanceTechnicienAnomalie" class="form-label">Technicien responsable</label>
+            <input id="maintenanceTechnicienAnomalie" type="text" class="form-control" formControlName="technicienResponsable" placeholder="Nom du technicien">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success" [disabled]="maintenanceSubmitting || scheduleMaintenanceForm.invalid">
+              {{ maintenanceSubmitting ? 'Enregistrement...' : 'Créer' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="closeCreateMaintenanceFromAnomalieModal()">Annuler</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Maintenance Details Modal -->
+<div class="modal fade" [class.show]="showMaintenanceDetailsModal" [style.display]="showMaintenanceDetailsModal ? 'block' : 'none'" *ngIf="showMaintenanceDetailsModal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Détails de la Maintenance</h5>
+        <button type="button" class="btn-close" (click)="closeMaintenanceDetailsModal()"></button>
+      </div>
+      <div class="modal-body" *ngIf="selectedMaintenanceForDetails">
+        <div class="maintenance-details-content">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Informations Générales</h6>
+              <dl class="row">
+                <dt class="col-sm-4">Titre</dt>
+                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.titre }}</dd>
+                <dt class="col-sm-4">Description</dt>
+                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.description }}</dd>
+                <dt class="col-sm-4">Type</dt>
+                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.typeMaintenance }}</dd>
+                <dt class="col-sm-4">Statut</dt>
+                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.statut }}</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <h6>Planification et Coûts</h6>
+              <dl class="row">
+                <dt class="col-sm-5">Date Prévue</dt>
+                <dd class="col-sm-7">{{ selectedMaintenanceForDetails.datePrevue | date:'dd/MM/yyyy' }}</dd>
+                <dt class="col-sm-5">Technicien</dt>
+                <dd class="col-sm-7">{{ selectedMaintenanceForDetails.technicienResponsable }}</dd>
+                <dt class="col-sm-5">Coût Estimé</dt>
+                <dd class="col-sm-7">{{ formatCurrency(selectedMaintenanceForDetails.coutEstime) }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="modal-footer">
-        <button 
-          type="submit" 
-          class="btn btn-primary"
-          [disabled]="maintenanceSubmitting || scheduleMaintenanceForm.invalid"
-          (click)="submitMaintenanceForm()">
-          <span *ngIf="maintenanceSubmitting" class="spinner-border spinner-border-sm me-2"></span>
-          {{ maintenanceSubmitting ? 'Planification...' : 'Planifier Maintenance' }}
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="closeScheduleMaintenanceModal()">
-          Annuler
-        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeMaintenanceDetailsModal()">Fermer</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Modal backdrop -->
-<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal"></div>
+<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal || showMaintenanceDetailsModal"></div>
