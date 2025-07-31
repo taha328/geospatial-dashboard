@@ -23,6 +23,7 @@ import { SelectEvent } from 'ol/interaction/Select';
 import { ol_layer_AnimatedCluster } from './ol-animated-cluster-ext.layer';
 import { SignalementAnomalieComponent } from '../signalement-anomalie/signalement-anomalie.component';
 import { ActifFormComponent } from '../actif-form/actif-form.component';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-map',
@@ -85,7 +86,8 @@ export class MapComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private carteIntegrationService: CarteIntegrationService,
     private actifService: ActifService,
-    private dataRefreshService: DataRefreshService
+    private dataRefreshService: DataRefreshService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
@@ -93,6 +95,11 @@ export class MapComponent implements OnInit, OnDestroy {
     this.loadMapData();
     this.loadActifsData();
     this.loadAnomaliesData();
+    this.route.queryParams.subscribe(params => {
+      if (params['action'] === 'signalAnomalie') {
+        this.toggleSignalementMode();
+      }
+    });
   }
 
   ngOnDestroy() {

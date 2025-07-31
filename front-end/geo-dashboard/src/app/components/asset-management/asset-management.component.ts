@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ActifService, HierarchyNode, StatistiquesActifs, ActifPourCarte } from '../../services/actif.service';
 import { AnomalieService, StatistiquesAnomalies, Anomalie } from '../../services/anomalie.service';
@@ -92,6 +92,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   constructor(
     private fb: FormBuilder,
+    private router: Router,
     private actifService: ActifService,
     private anomalieService: AnomalieService,
     private maintenanceService: MaintenanceService,
@@ -426,7 +427,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   openCreateAnomalieModal(): void {
-    this.showCreateAnomalieModal = true;
+    this.router.navigate(['/map'], { queryParams: { action: 'signalAnomalie' } });
   }
 
   getMaintenancesByStatut(statut: string): any[] {
