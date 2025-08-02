@@ -248,9 +248,13 @@ export class WorkflowService {
    * Complete maintenance and optionally resolve linked anomaly
    */
   async completeMaintenance(maintenanceId: number, completionData: {
+    dateDebut?: string;
+    dateFin?: string;
     rapportIntervention?: string;
     coutReel?: number;
-    piecesRemplacees?: any;
+    entrepriseExterne?: string;
+    piecesRemplacees?: string;
+    documentAnnexe?: string;
     resolveLinkedAnomaly?: boolean;
   }): Promise<{ maintenance: Maintenance; anomalie?: Anomalie }> {
     const maintenance = await this.maintenanceRepository.findOne({
@@ -266,13 +270,50 @@ export class WorkflowService {
       throw new Error('Cette maintenance ne peut pas être terminée');
     }
 
-    // Update maintenance
+    // Parse dates from string format (datetime-local)
+    const dateDebut = completionData.dateDebut ? new Date(completionData.dateDebut) : new Date();
+    const dateFin = completionData.dateFin ? new Date(completionData.dateFin) : new Date();
+
+    // Validate dates
+    if (dateFin < dateDebut) {
+      throw new Error('La date de fin ne peut pas être antérieure à la date de début');
+    }
+
+    // Parse and prepare pieces remplacees data
+    let piecesRemplacees: any = null;
+    if (completionData.piecesRemplacees) {
+      try {
+        // Try to parse as JSON if it looks like JSON
+        piecesRemplacees = JSON.parse(completionData.piecesRemplacees);
+      } catch {
+        // If not JSON, split by newlines and store as array
+        piecesRemplacees = completionData.piecesRemplacees
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+      }
+    }
+
+    // Parse and prepare documents annexes data
+    let documentsAnnexes: any = null;
+    if (completionData.documentAnnexe) {
+      documentsAnnexes = completionData.documentAnnexe
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    }
+
+    // Update maintenance with all completion details
     await this.maintenanceRepository.update(maintenanceId, {
       statut: 'terminee',
-      dateFin: new Date(),
+      dateDebut: dateDebut,
+      dateFin: dateFin,
       rapportIntervention: completionData.rapportIntervention,
       coutReel: completionData.coutReel,
-      piecesRemplacees: completionData.piecesRemplacees
+      entrepriseExterne: completionData.entrepriseExterne,
+      piecesRemplacees: piecesRemplacees,
+      documentsAnnexes: documentsAnnexes,
+      dateMiseAJour: new Date()
     });
 
     const updatedMaintenance = await this.maintenanceRepository.findOne({
@@ -300,6 +341,91 @@ export class WorkflowService {
       maintenance: updatedMaintenance!,
       anomalie: updatedAnomalie
     };
+  }
+
+  /**
+   * Update completed maintenance details (for export purposes)
+   */
+  async updateCompletedMaintenance(maintenanceId: number, updateData: {
+    dateDebut?: string;
+    dateFin?: string;
+    rapportIntervention?: string;
+    coutReel?: number;
+    entrepriseExterne?: string;
+    piecesRemplacees?: string;
+    documentAnnexe?: string;
+  }): Promise<Maintenance> {
+    const maintenance = await this.maintenanceRepository.findOne({
+      where: { id: maintenanceId },
+      relations: ['anomalie']
+    });
+
+    if (!maintenance) {
+      throw new Error('Maintenance not found');
+    }
+
+    if (maintenance.statut !== 'terminee') {
+      throw new Error('Cette méthode ne peut être utilisée que pour les maintenances terminées');
+    }
+
+    // Parse dates from string format (datetime-local)
+    let dateDebut = maintenance.dateDebut;
+    let dateFin = maintenance.dateFin;
+    
+    if (updateData.dateDebut) {
+      dateDebut = new Date(updateData.dateDebut);
+    }
+    if (updateData.dateFin) {
+      dateFin = new Date(updateData.dateFin);
+    }
+
+    // Validate dates if both are provided
+    if (dateDebut && dateFin && dateFin < dateDebut) {
+      throw new Error('La date de fin ne peut pas être antérieure à la date de début');
+    }
+
+    // Parse and prepare pieces remplacees data
+    let piecesRemplacees: any = maintenance.piecesRemplacees;
+    if (updateData.piecesRemplacees) {
+      try {
+        // Try to parse as JSON if it looks like JSON
+        piecesRemplacees = JSON.parse(updateData.piecesRemplacees);
+      } catch {
+        // If not JSON, split by newlines and store as array
+        piecesRemplacees = updateData.piecesRemplacees
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+      }
+    }
+
+    // Parse and prepare documents annexes data
+    let documentsAnnexes: any = maintenance.documentsAnnexes;
+    if (updateData.documentAnnexe) {
+      documentsAnnexes = updateData.documentAnnexe
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    }
+
+    // Update maintenance with new details (keeping status as 'terminee')
+    await this.maintenanceRepository.update(maintenanceId, {
+      dateDebut: dateDebut,
+      dateFin: dateFin,
+      rapportIntervention: updateData.rapportIntervention || maintenance.rapportIntervention,
+      coutReel: updateData.coutReel !== undefined ? updateData.coutReel : maintenance.coutReel,
+      entrepriseExterne: updateData.entrepriseExterne !== undefined ? updateData.entrepriseExterne : maintenance.entrepriseExterne,
+      piecesRemplacees: piecesRemplacees,
+      documentsAnnexes: documentsAnnexes,
+      dateMiseAJour: new Date()
+    });
+
+    const updatedMaintenance = await this.maintenanceRepository.findOne({
+      where: { id: maintenanceId },
+      relations: ['anomalie']
+    });
+
+    return updatedMaintenance!;
   }
 
   /**

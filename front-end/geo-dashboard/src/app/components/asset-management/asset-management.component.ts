@@ -10,11 +10,12 @@ import { WorkflowService, AssetWorkflowSummary } from '../../services/workflow.s
 import { CarteIntegrationService } from '../../services/carte-integration.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { CreateMaintenanceModalComponent } from '../create-maintenance-modal/create-maintenance-modal.component';
+import { CompleteMaintenanceModalComponent } from '../complete-maintenance-modal/complete-maintenance-modal.component';
 
 @Component({
   selector: 'app-asset-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, CreateMaintenanceModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, CreateMaintenanceModalComponent, CompleteMaintenanceModalComponent],
   templateUrl: './asset-management.component.html',
   styleUrls: ['./asset-management.component.scss']
 })
@@ -71,6 +72,10 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   selectedAnomalieForMaintenance: any = null;
   showMaintenanceDetailsModal = false;
   selectedMaintenanceForDetails: any = null;
+  
+  // Modal state for completing maintenance
+  showCompleteMaintenanceModal = false;
+  selectedMaintenanceForCompletion: any = null;
 
   // Reactive forms
   createAnomalieForm: FormGroup;
@@ -1097,6 +1102,56 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.showCreateMaintenanceFromAnomalieModal = false;
   }
 
+  // Completion modal handlers
+  onMaintenanceCompleted(completionData: any): void {
+    console.log('Maintenance completion data received:', completionData);
+    if (this.selectedMaintenanceForCompletion) {
+      // Merge completion data with maintenance id
+      const fullCompletionData = {
+        ...completionData,
+        resolveLinkedAnomaly: true // Always resolve linked anomaly if present
+      };
+      
+      this.maintenanceService.completeMaintenance(this.selectedMaintenanceForCompletion.id, fullCompletionData).subscribe({
+        next: (result) => {
+          console.log('Maintenance completed successfully', result);
+          // Refresh local data
+          const maintenanceIndex = this.maintenanceData.findIndex(m => m.id === this.selectedMaintenanceForCompletion!.id);
+          if (maintenanceIndex !== -1) {
+            this.maintenanceData[maintenanceIndex] = result.data.maintenance;
+          }
+          if (result.data.anomalie) {
+            const anomalieIndex = this.anomaliesData.findIndex(a => a.id === result.data.anomalie.id);
+            if (anomalieIndex !== -1) {
+              this.anomaliesData[anomalieIndex] = result.data.anomalie;
+            }
+          }
+          this.refreshKPIData();
+          this.closeCompleteMaintenanceModal();
+          
+          // Ask if user wants to generate professional report now
+          if (confirm('Maintenance terminée avec succès! Voulez-vous générer le rapport professionnel maintenant?')) {
+            this.generateProfessionalReport(result.data.maintenance);
+          }
+        },
+        error: (error) => {
+          console.error('Error completing maintenance', error);
+          // Optionally show an error message to the user
+        }
+      });
+    }
+  }
+
+  onCompletionCancelled(): void {
+    console.log('Maintenance completion cancelled');
+    this.closeCompleteMaintenanceModal();
+  }
+
+  closeCompleteMaintenanceModal(): void {
+    this.selectedMaintenanceForCompletion = null;
+    this.showCompleteMaintenanceModal = false;
+  }
+
   // Handle successful maintenance creation
   handleMaintenanceCreated() {
     this.closeCreateMaintenanceFromAnomalieModal();
@@ -1291,6 +1346,31 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   // The following methods are stubs to resolve template errors after legacy workflow removal.
   // You can implement, refactor, or remove them as needed for your new modal-based workflow.
 
+  exportMaintenanceReport(maintenance: any): void {
+    console.log('Export report requested for maintenance:', maintenance);
+    
+    // Check if maintenance is finished - if so, open completion modal to review/add details before export
+    if (maintenance.statut === 'terminee') {
+      console.log('Opening completion modal to review/add export details for finished maintenance');
+      
+      // Set the maintenance for completion modal (for review/additional info)
+      this.selectedMaintenanceForCompletion = maintenance;
+      this.showCompleteMaintenanceModal = true;
+    } else {
+      // For ongoing or planned maintenance, generate basic report
+      const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}`;
+      console.log('Opening basic maintenance report:', reportUrl);
+      window.open(reportUrl, '_blank');
+    }
+  }
+
+  generateProfessionalReport(maintenance: any): void {
+    // Generate professional PDF report with actual vs planned comparison
+    const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}/professional`;
+    console.log('Opening professional report:', reportUrl);
+    window.open(reportUrl, '_blank');
+  }
+
   takeAnomalieAction(anomalie: any): void {
     console.log(`Taking action on anomalie: ${anomalie.id}`);
     if (anomalie.statut === 'nouveau') {
@@ -1349,48 +1429,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   completeMaintenance(maintenance: any): void {
-    console.log(`Completing maintenance: ${maintenance.id}`);
-    this.maintenanceService.completeMaintenance(maintenance.id, { resolveLinkedAnomaly: false }).subscribe({
-      next: (result) => {
-        console.log('Maintenance completed successfully', result);
-        // Refresh local data
-        const index = this.maintenanceData.findIndex(m => m.id === maintenance.id);
-        if (index !== -1) {
-          this.maintenanceData[index] = result.data.maintenance;
-        }
-        this.refreshKPIData();
-      },
-      error: (error) => {
-        console.error('Error completing maintenance', error);
-        // Optionally show an error message to the user
-      }
-    });
+    console.log('Opening completion modal for maintenance:', maintenance);
+    this.selectedMaintenanceForCompletion = maintenance;
+    this.showCompleteMaintenanceModal = true;
   }
 
   completeMaintenanceAndResolveAnomalie(maintenance: any): void {
-    console.log(`Completing maintenance and resolving anomaly: ${maintenance.id}`);
-    this.maintenanceService.completeMaintenance(maintenance.id, { resolveLinkedAnomaly: true }).subscribe({
-      next: (result) => {
-        console.log('Maintenance completed and anomaly resolved successfully', result);
-        // Refresh local data
-        const maintenanceIndex = this.maintenanceData.findIndex(m => m.id === maintenance.id);
-        if (maintenanceIndex !== -1) {
-          this.maintenanceData[maintenanceIndex] = result.data.maintenance;
-        }
-        if (result.data.anomalie) {
-          const anomalieIndex = this.anomaliesData.findIndex(a => a.id === result.data.anomalie.id);
-          if (anomalieIndex !== -1) {
-            this.anomaliesData[anomalieIndex] = result.data.anomalie;
-          }
-        }
-        this.refreshKPIData();
-      },
-      error: (error) => {
-        console.error('Error completing maintenance and resolving anomaly', error);
-        // Optionally show an error message to the user
-      }
-    });
+    console.log('Opening completion modal for maintenance with anomaly resolution:', maintenance);
+    this.selectedMaintenanceForCompletion = maintenance;
+    this.showCompleteMaintenanceModal = true;
   }
-
 
 }

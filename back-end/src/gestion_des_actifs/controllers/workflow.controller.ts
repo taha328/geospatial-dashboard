@@ -95,9 +95,13 @@ export class WorkflowController {
   async completeMaintenance(
     @Param('id', ParseIntPipe) maintenanceId: number,
     @Body() completionData: {
+      dateDebut?: string;
+      dateFin?: string;
       rapportIntervention?: string;
       coutReel?: number;
-      piecesRemplacees?: any;
+      entrepriseExterne?: string;
+      piecesRemplacees?: string;
+      documentAnnexe?: string;
       resolveLinkedAnomaly?: boolean;
     }
   ) {
@@ -114,6 +118,36 @@ export class WorkflowController {
       throw new HttpException({
         success: false,
         message: error.message || 'Erreur lors de la finalisation de la maintenance',
+      }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Put('maintenance/:id/update-completed')
+  async updateCompletedMaintenance(
+    @Param('id', ParseIntPipe) maintenanceId: number,
+    @Body() updateData: {
+      dateDebut?: string;
+      dateFin?: string;
+      rapportIntervention?: string;
+      coutReel?: number;
+      entrepriseExterne?: string;
+      piecesRemplacees?: string;
+      documentAnnexe?: string;
+    }
+  ) {
+    this.logger.log(`Updating completed maintenance ${maintenanceId}`);
+    try {
+      const result = await this.workflowService.updateCompletedMaintenance(maintenanceId, updateData);
+      return {
+        success: true,
+        message: 'Détails de maintenance mis à jour avec succès',
+        data: result
+      };
+    } catch (error) {
+      this.logger.error(`Error updating completed maintenance: ${error.message}`, error.stack);
+      throw new HttpException({
+        success: false,
+        message: error.message || 'Erreur lors de la mise à jour de la maintenance',
       }, HttpStatus.BAD_REQUEST);
     }
   }

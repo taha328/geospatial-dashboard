@@ -19,6 +19,7 @@ export interface Maintenance {
   piecesRemplacees?: any;
   documentsAnnexes?: any;
   actifId?: number;
+  anomalieId?: number;
   dateCreation: Date;
   dateMiseAJour: Date;
   actif?: {
@@ -114,8 +115,29 @@ export class MaintenanceService {
     return this.http.put<Maintenance>(`http://localhost:3000/workflow/maintenance/${id}/start`, {});
   }
 
-  completeMaintenance(id: number, completionData: { rapportIntervention?: string; coutReel?: number; resolveLinkedAnomaly?: boolean }): Observable<any> {
+  completeMaintenance(id: number, completionData: { 
+    dateDebut?: string;
+    dateFin?: string;
+    rapportIntervention?: string; 
+    coutReel?: number; 
+    entrepriseExterne?: string;
+    piecesRemplacees?: string;
+    documentAnnexe?: string;
+    resolveLinkedAnomaly?: boolean 
+  }): Observable<any> {
     return this.http.put(`http://localhost:3000/workflow/maintenance/${id}/complete`, completionData);
+  }
+
+  updateCompletedMaintenance(id: number, updateData: { 
+    dateDebut?: string;
+    dateFin?: string;
+    rapportIntervention?: string; 
+    coutReel?: number; 
+    entrepriseExterne?: string;
+    piecesRemplacees?: string;
+    documentAnnexe?: string;
+  }): Observable<any> {
+    return this.http.put(`http://localhost:3000/workflow/maintenance/${id}/update-completed`, updateData);
   }
 
   deleteMaintenance(id: number): Observable<void> {

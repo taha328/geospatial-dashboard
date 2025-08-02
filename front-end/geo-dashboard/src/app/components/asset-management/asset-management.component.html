@@ -1129,6 +1129,15 @@
                   <i class="btn-icon">👁️</i>
                   Détails
                 </button>
+
+                <!-- Export Report for completed maintenance -->
+                <button class="action-btn export"
+                        *ngIf="maintenance.statut === 'terminee'"
+                        (click)="exportMaintenanceReport(maintenance)"
+                        title="Exporter le rapport">
+                  <i class="btn-icon">📄</i>
+                  Exporter
+                </button>
               </div>
             </div>
           </div>
@@ -1480,5 +1489,13 @@
   </div>
 </div>
 
+<!-- Complete Maintenance Modal -->
+<app-complete-maintenance-modal
+  *ngIf="showCompleteMaintenanceModal"
+  [maintenance]="selectedMaintenanceForCompletion"
+  (completed)="onMaintenanceCompleted($event)"
+  (close)="onCompletionCancelled()">
+</app-complete-maintenance-modal>
+
 <!-- Modal backdrop -->
-<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal || showMaintenanceDetailsModal"></div>
+<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal || showMaintenanceDetailsModal || showCompleteMaintenanceModal"></div>
