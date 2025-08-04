@@ -19,10 +19,14 @@ import { CarteIntegrationModule } from './modules/carte-integration.module';
       password: 'qawsed?',
       database: 'db',
       autoLoadEntities: true,
-      synchronize: true,
-      logging: true, // Enable SQL query logging
-      migrationsRun: false,
+      
 
+      synchronize: true, 
+      migrationsRun: true,
+
+
+      migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+      logging: true,
     }),
     PointModule,
     ZonesModule,

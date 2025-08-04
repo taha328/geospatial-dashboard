@@ -1,5 +1,5 @@
 .dashboard-container {
-  padding: 1.5rem;
+  padding: 1rem;
   background-color: #f8f9fa;
   min-height: 100vh;
 }
@@ -8,7 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   
   h1 {
     margin: 0;
@@ -19,35 +19,35 @@
 .header-content h1 {
   margin: 0;
   color: #2c3e50;
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   
   i {
-    margin-right: 10px;
+    margin-right: 8px;
     color: #007bff;
   }
 }
 
 .header-content p {
-  margin: 5px 0 0 0;
+  margin: 3px 0 0 0;
   color: #6c757d;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 500;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.3s ease;
   cursor: pointer;
   

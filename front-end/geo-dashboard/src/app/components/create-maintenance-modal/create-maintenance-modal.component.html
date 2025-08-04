@@ -1,0 +1,150 @@
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          🔧 Créer une Maintenance pour l'Anomalie #{{ anomalieId }}
+        </h5>
+        <button type="button" class="btn-close" (click)="close.emit()"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="maintenanceForm" (ngSubmit)="onSubmit()">
+          
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">📋</span>
+              Informations de Base
+            </div>
+            
+            <div class="form-group required">
+              <label for="titre" class="form-label">
+                <span class="label-icon">🏷️</span>
+                Titre de la Maintenance
+              </label>
+              <input 
+                type="text" 
+                id="titre" 
+                formControlName="titre" 
+                class="form-control"
+                placeholder="Ex: Réparation défense quai C1">
+              <div class="form-text">
+                <i class="fas fa-lightbulb icon"></i>
+                Titre descriptif de l'intervention à effectuer
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="description" class="form-label">
+                <span class="label-icon">📝</span>
+                Description Détaillée
+              </label>
+              <textarea 
+                id="description" 
+                formControlName="description" 
+                class="form-control" 
+                rows="4"
+                placeholder="Décrivez les travaux à effectuer, les procédures à suivre, et les objectifs..."></textarea>
+              <div class="form-text">
+                <i class="fas fa-info-circle icon"></i>
+                Description complète de la maintenance à réaliser
+              </div>
+            </div>
+          </div>
+
+          <!-- Planning Section -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">⏰</span>
+              Planification et Ressources
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group required">
+                  <label for="typeMaintenance" class="form-label">
+                    <span class="label-icon">⚙️</span>
+                    Type de Maintenance
+                  </label>
+                  <select id="typeMaintenance" formControlName="typeMaintenance" class="form-select" required>
+                    <option value="corrective">🔧 Corrective</option>
+                    <option value="preventive">🛡️ Préventive</option>
+                    <option value="urgente">🚨 Urgente</option>
+                    <option value="ameliorative">⚡ Améliorative</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="form-group required">
+                  <label for="datePrevue" class="form-label">
+                    <span class="label-icon">📅</span>
+                    Date Prévue
+                  </label>
+                  <input 
+                    type="date" 
+                    id="datePrevue" 
+                    formControlName="datePrevue" 
+                    class="form-control" 
+                    required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="technicienResponsable" class="form-label">
+                    <span class="label-icon">👨‍🔧</span>
+                    Technicien Responsable
+                  </label>
+                  <input 
+                    type="text" 
+                    id="technicienResponsable" 
+                    formControlName="technicienResponsable" 
+                    class="form-control"
+                    placeholder="Nom du technicien assigné">
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="coutEstime" class="form-label">
+                    <span class="label-icon">💰</span>
+                    Coût Estimé (MAD)
+                  </label>
+                  <input 
+                    type="number" 
+                    id="coutEstime" 
+                    formControlName="coutEstime" 
+                    class="form-control"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Erreur:</strong> {{ errorMessage }}
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="close.emit()">
+          <i class="fas fa-times me-2"></i>
+          Annuler
+        </button>
+        <button type="submit" class="btn btn-primary" (click)="onSubmit()" [disabled]="maintenanceForm.invalid || isSubmitting">
+          <i class="fas fa-plus me-2"></i>
+          {{ isSubmitting ? '⏳ Création...' : '🔧 Créer la Maintenance' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

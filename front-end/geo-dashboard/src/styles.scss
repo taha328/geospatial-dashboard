@@ -1,2 +1,42 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'ol/ol.css';
+
+/* Bootstrap Icons for better form icons */
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css');
+
+/* Font Awesome for enhanced icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* Form styles available globally */
+@import './app/shared/styles/form-styles.scss';
+
+/* Global responsive styles to prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.container, .container-fluid {
+  max-width: 100vw;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  .container, .container-fluid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container, .container-fluid {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}

@@ -1,6 +1,6 @@
 .vessel-finder-page {
-  padding: 20px;
-  max-width: 1400px;
+  padding: 12px;
+  max-width: min(1000px, 95vw);
   margin: 0 auto;
   background: #f8fafc;
   min-height: 100vh;
@@ -10,25 +10,25 @@
 .page-header {
   background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
   color: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 }
 
 .header-content {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 
   h1 {
-    margin: 0 0 8px 0;
-    font-size: 28px;
-    font-weight: 700;
+    margin: 0 0 4px 0;
+    font-size: 22px;
+    font-weight: 600;
   }
 
   p {
     margin: 0;
     opacity: 0.9;
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 
@@ -37,7 +37,7 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
 
 .view-selector {

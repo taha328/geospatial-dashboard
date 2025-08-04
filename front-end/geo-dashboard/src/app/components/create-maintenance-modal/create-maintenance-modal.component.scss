@@ -1,0 +1,33 @@
+@import '../../shared/styles/form-styles.scss';
+
+/* Create Maintenance Modal specific styles */
+.modal-backdrop {
+  opacity: 0.5;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Custom section colors for create maintenance */
+.form-section:first-child {
+  border-left-color: #3498db;
+}
+
+.form-section:last-child {
+  border-left-color: #e74c3c;
+}
+
+/* Specific styling for maintenance type select */
+.form-select option {
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
+/* Form validation enhancement */
+.form-control.ng-invalid.ng-touched {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.15);
+}
+
+.form-control.ng-valid.ng-touched {
+  border-color: #27ae60;
+  box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.15);
+}

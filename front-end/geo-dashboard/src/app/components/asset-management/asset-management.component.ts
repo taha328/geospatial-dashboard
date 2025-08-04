@@ -384,7 +384,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return this.anomaliesData.filter(a => a.maintenanceId);
   }
 
-  // New methods for professional anomaly management
+  // Anomaly management methods
   getFilteredAnomalies(): any[] {
     return this.anomaliesData.filter(anomalie => {
       // Search term filter
@@ -409,6 +409,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Sort by creation date in descending order (most recent first)
+      const dateA = new Date(a.dateSignalement || a.createdAt || 0).getTime();
+      const dateB = new Date(b.dateSignalement || b.createdAt || 0).getTime();
+      return dateB - dateA;
     });
   }
 
@@ -443,7 +448,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return this.maintenanceData.filter(m => m.typeMaintenance === type);
   }
 
-  // New methods for professional maintenance management
+  // Maintenance management methods
   getFilteredMaintenances(): any[] {
     return this.maintenanceData.filter(maintenance => {
       // Search term filter
@@ -469,6 +474,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Sort by creation date in descending order (most recent first)
+      const dateA = new Date(a.datePrevue || a.dateCreation || a.createdAt || 0).getTime();
+      const dateB = new Date(b.datePrevue || b.dateCreation || b.createdAt || 0).getTime();
+      return dateB - dateA;
     });
   }
 
@@ -531,7 +541,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   getEtatColor(etat: string): string {
     const colors: { [key: string]: string } = {
-      'excellent': '#28a745',
+      'bon': '#28a745',
       'bon': '#28a745',
       'moyen': '#ffc107',
       'mauvais': '#dc3545'
@@ -865,7 +875,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         actif: { nom: 'Grue portique A', code: 'GRU-001' },
         actifId: 1,
         datePrevue: new Date(Date.now() + 604800000),
-        technicienResponsable: 'Jean Dupont',
+        technicienResponsable: 'X',
         coutEstime: 1500
       },
       {
@@ -1129,9 +1139,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
           this.refreshKPIData();
           this.closeCompleteMaintenanceModal();
           
-          // Ask if user wants to generate professional report now
-          if (confirm('Maintenance terminée avec succès! Voulez-vous générer le rapport professionnel maintenant?')) {
-            this.generateProfessionalReport(result.data.maintenance);
+          // Ask if user wants to generate detailed report now
+          if (confirm('Maintenance terminée avec succès! Voulez-vous générer le rapport détaillé maintenant?')) {
+            this.generateDetailedReport(result.data.maintenance);
           }
         },
         error: (error) => {
@@ -1364,10 +1374,10 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  generateProfessionalReport(maintenance: any): void {
-    // Generate professional PDF report with actual vs planned comparison
-    const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}/professional`;
-    console.log('Opening professional report:', reportUrl);
+  generateDetailedReport(maintenance: any): void {
+    // Generate detailed PDF report with actual vs planned comparison
+    const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}/detailed`;
+    console.log('Opening detailed report:', reportUrl);
     window.open(reportUrl, '_blank');
   }
 
@@ -1435,9 +1445,46 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   completeMaintenanceAndResolveAnomalie(maintenance: any): void {
-    console.log('Opening completion modal for maintenance with anomaly resolution:', maintenance);
-    this.selectedMaintenanceForCompletion = maintenance;
-    this.showCompleteMaintenanceModal = true;
+    console.log('Completing maintenance and resolving anomaly directly:', maintenance);
+    
+    // Create basic completion data with current timestamp
+    const now = new Date();
+    const dateTimeString = now.toISOString();
+    
+    const completionData = {
+      dateDebut: maintenance.dateDebut || dateTimeString,
+      dateFin: dateTimeString,
+      rapportIntervention: `Maintenance terminée automatiquement avec résolution d'anomalie le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`,
+      coutReel: maintenance.coutEstime || 0,
+      resolveLinkedAnomaly: true // This will resolve the associated anomaly
+    };
+
+    // Complete the maintenance directly without opening modal
+    this.maintenanceService.completeMaintenance(maintenance.id, completionData).subscribe({
+      next: (result) => {
+        console.log('Maintenance completed and anomaly resolved successfully:', result);
+        
+        // Refresh local data following existing pattern
+        const maintenanceIndex = this.maintenanceData.findIndex(m => m.id === maintenance.id);
+        if (maintenanceIndex !== -1) {
+          this.maintenanceData[maintenanceIndex] = result.data.maintenance;
+        }
+        if (result.data.anomalie) {
+          const anomalieIndex = this.anomaliesData.findIndex(a => a.id === result.data.anomalie.id);
+          if (anomalieIndex !== -1) {
+            this.anomaliesData[anomalieIndex] = result.data.anomalie;
+          }
+        }
+        
+        // Show success feedback
+        console.log('✅ Maintenance terminée et anomalie résolue avec succès!');
+        alert('✅ Maintenance terminée et anomalie résolue avec succès!');
+      },
+      error: (err) => {
+        console.error('Error completing maintenance and resolving anomaly:', err);
+        alert(`❌ Erreur: ${err.error?.message || err.message || 'Erreur inconnue'}`);
+      }
+    });
   }
 
 }

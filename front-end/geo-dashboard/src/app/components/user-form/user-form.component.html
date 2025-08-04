@@ -1,65 +1,140 @@
-<div class="user-form-container">
-  <div class="header">
-    <h2>{{ isEditMode ? 'Edit User' : 'Add New User' }}</h2>
+<div class="form-container">
+  <!-- Header Section -->
+  <div class="form-header">
+    <h2 class="form-title">
+      <span class="section-icon">{{ isEditMode ? '✏️' : '👤' }}</span>
+      {{ isEditMode ? 'Modifier l\'Utilisateur' : 'Créer un Nouvel Utilisateur' }}
+    </h2>
+    <p class="form-subtitle">
+      {{ isEditMode ? 'Mettre à jour les informations utilisateur' : 'Ajouter un nouveau membre à l\'équipe' }}
+    </p>
   </div>
 
-  <div *ngIf="loading" class="loading">
-    <p>{{ isEditMode ? 'Loading user...' : 'Saving user...' }}</p>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-overlay">
+    <div class="d-flex flex-column align-items-center">
+      <div class="spinner-border text-primary mb-3"></div>
+      <p class="text-muted">{{ isEditMode ? 'Chargement des données utilisateur...' : 'Enregistrement en cours...' }}</p>
+    </div>
   </div>
 
-  <div *ngIf="error" class="error">
-    <p>{{ error }}</p>
+  <!-- Error Alert -->
+  <div *ngIf="error" class="alert alert-danger">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    <strong>Erreur:</strong> {{ error }}
   </div>
 
-  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="user-form">
-    <div class="form-group">
-      <label for="name">Name *</label>
-      <input
-        type="text"
-        id="name"
-        name="name"
-        [(ngModel)]="user.name"
-        required
-        class="form-control"
-        placeholder="Enter user name"
-      />
+  <!-- User Form -->
+  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="user-form" novalidate>
+    
+    <!-- Personal Information Section -->
+    <div class="form-section">
+      <div class="section-title">
+        <span class="section-icon">👤</span>
+        Informations Personnelles
+      </div>
+      <div class="section-description">
+        Saisissez les informations de base de l'utilisateur
+      </div>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group required">
+            <label for="name" class="form-label">
+              <span class="label-icon">🏷️</span>
+              Nom Complet
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              [(ngModel)]="user.name"
+              required
+              class="form-control"
+
+              autocomplete="name"
+            />
+            <div class="form-text">
+              <i class="fas fa-info-circle icon"></i>
+              Le nom complet tel qu'il apparaîtra dans le système
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="form-group required">
+            <label for="email" class="form-label">
+              <span class="label-icon">📧</span>
+              Adresse Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              [(ngModel)]="user.email"
+              required
+              class="form-control"
+              placeholder="exemple@societe.com"
+              autocomplete="email"
+            />
+            <div class="form-text">
+              <i class="fas fa-shield-alt icon"></i>
+              Utilisée pour la connexion et les notifications
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="email">Email *</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        [(ngModel)]="user.email"
-        required
-        class="form-control"
-        placeholder="Enter email address"
-      />
+    <!-- Role and Permissions Section -->
+    <div class="form-section">
+      <div class="section-title">
+        <span class="section-icon">🔐</span>
+        Rôle et Permissions
+      </div>
+      <div class="section-description">
+        Définissez le niveau d'accès et les responsabilités de l'utilisateur
+      </div>
+      
+      <div class="form-group required">
+        <label for="role" class="form-label">
+          <span class="label-icon">⚡</span>
+          Rôle dans le Système
+        </label>
+        <select
+          id="role"
+          name="role"
+          [(ngModel)]="user.role"
+          required
+          class="form-select"
+        >
+          <option value="" disabled>Sélectionner un rôle</option>
+          <option *ngFor="let role of roles" [value]="role">
+            {{ getRoleDisplayName(role) }}
+          </option>
+        </select>
+        <div class="form-text">
+          <i class="fas fa-users-cog icon"></i>
+          Le rôle détermine les fonctionnalités accessibles à l'utilisateur
+        </div>
+      </div>
+
+      <!-- Role Description -->
+      <div *ngIf="user.role" class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>{{ getRoleDisplayName(user.role) }}:</strong> {{ getRoleDescription(user.role) }}
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="role">Role *</label>
-      <select
-        id="role"
-        name="role"
-        [(ngModel)]="user.role"
-        required
-        class="form-control"
-      >
-        <option value="">Select a role</option>
-        <option *ngFor="let role of roles" [value]="role">
-          {{ role | titlecase }}
-        </option>
-      </select>
-    </div>
-
+    <!-- Form Actions -->
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" [disabled]="loading">
-        {{ isEditMode ? 'Update User' : 'Create User' }}
+        <i class="fas fa-save me-2"></i>
+        {{ isEditMode ? '💾 Mettre à Jour' : '🆕 Créer l\'Utilisateur' }}
       </button>
       <button type="button" class="btn btn-secondary" (click)="onCancel()">
-        Cancel
+        <i class="fas fa-times me-2"></i>
+        Annuler
       </button>
     </div>
   </form>

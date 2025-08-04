@@ -1,0 +1,56 @@
+<div class="actif-popup" *ngIf="actif">
+  <div class="popup-header">
+    <div class="actif-icon">{{ getActifIcon(actif.typeActif) }}</div>
+    <div class="actif-info">
+      <h4>{{ actif.nom }}</h4>
+      <p class="actif-code">{{ actif.code }}</p>
+    </div>
+    <div class="statut-badge" [style.background-color]="getStatutColor(actif.statutOperationnel)">
+      {{ getStatutLabel(actif.statutOperationnel) }}
+    </div>
+  </div>
+  
+  <div class="popup-content">
+    <div class="info-section">
+      <h5>📍 Localisation</h5>
+      <p>{{ actif.latitude.toFixed(6) }}, {{ actif.longitude.toFixed(6) }}</p>
+    </div>
+    
+    <div class="info-section">
+      <h5>🏢 Hiérarchie</h5>
+      <div class="hierarchy-path">
+        <span class="hierarchy-item">{{ actif.portefeuilleNom }}</span>
+        <span class="separator">›</span>
+        <span class="hierarchy-item">{{ actif.familleNom }}</span>
+        <span class="separator">›</span>
+        <span class="hierarchy-item">{{ actif.groupeNom }}</span>
+      </div>
+    </div>
+    
+    <div class="info-section">
+      <h5>📊 État</h5>
+      <div class="etat-info">
+        <span class="etat-label">État général:</span>
+        <span class="etat-value" [style.color]="getEtatColor(actif.etatGeneral)">
+          {{ getEtatLabel(actif.etatGeneral) }}
+        </span>
+      </div>
+    </div>
+    
+    <div class="info-section" *ngIf="actif.numeroSerie">
+      <h5>🔢 Numéro de série</h5>
+      <p>{{ actif.numeroSerie }}</p>
+    </div>
+  </div>
+  
+  <div class="popup-actions">
+    <button class="btn btn-primary" (click)="voirDetails()">
+      <i class="fas fa-eye"></i>
+      Voir Détails
+    </button>
+    <button class="btn btn-warning" (click)="signalerAnomalie()">
+      <i class="fas fa-exclamation-triangle"></i>
+      Signaler Anomalie
+    </button>
+  </div>
+</div>

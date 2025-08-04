@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Portefeuille } from '../gestion_des_actifs/entities/portefeuille.entity';
 import { FamilleActif } from '../gestion_des_actifs/entities/famille-actif.entity';
@@ -26,10 +26,8 @@ export class ActifsSeedService {
     this.logger.log('🌱 Starting actifs seeding process...');
 
     try {
-      // Check for data consistency issues first
       await this.checkAndFixDataConsistency();
 
-      // Always check current state of all tables
       const [portefeuilleCount, familleCount, groupeCount, actifCount] = await Promise.all([
         this.portefeuilleRepository.count(),
         this.familleActifRepository.count(),
@@ -39,9 +37,8 @@ export class ActifsSeedService {
 
       this.logger.log(`📊 Current data state: Portefeuilles=${portefeuilleCount}, Familles=${familleCount}, Groupes=${groupeCount}, Actifs=${actifCount}`);
 
-      // Check if complete seeding is needed
-      if (portefeuilleCount > 0 && familleCount > 0 && groupeCount > 0) {
-        this.logger.log('✅ All data already exists. Skipping complete seed.');
+      if (portefeuilleCount > 0) {
+        this.logger.log('✅ Data already exists. Skipping seed.');
         return { 
           status: 'skipped', 
           reason: 'Data already exists',
@@ -49,15 +46,8 @@ export class ActifsSeedService {
         };
       }
 
-      // If we have portefeuilles and familles but no groupes, create only groupes
-      if (portefeuilleCount > 0 && familleCount > 0 && groupeCount === 0) {
-        this.logger.log('🔧 Creating missing groupes actifs...');
-        return await this.createGroupesOnly();
-      }
-
-      // Full seeding process
-      this.logger.log('🚀 Starting full seeding process...');
-      return await this.performFullSeeding();
+      this.logger.log('🚀 Starting complete logical seeding process...');
+      return await this.performCompleteSeeding();
 
     } catch (error) {
       this.logger.error('❌ Error during actifs seeding:', error.stack);
@@ -65,398 +55,775 @@ export class ActifsSeedService {
     }
   }
 
-  private async createGroupesOnly() {
-    this.logger.log('📦 Creating groupes actifs only...');
+  private async performCompleteSeeding() {
+    // First, discover valid enum values to prevent mismatches
+    const familleEnums = await this.discoverEnumValues('familles_actifs_type_enum');
+    const groupeEnums = await this.discoverEnumValues('groupes_actifs_type_enum');
 
-    // Get existing familles
-    const familles = await this.familleActifRepository.find({
-      relations: ['portefeuille']
-    });
-
-    if (familles.length === 0) {
-      throw new Error('No familles found to create groupes for');
+    if (familleEnums.length === 0 || groupeEnums.length === 0) {
+      this.logger.error('❌ Cannot proceed without valid enum values');
+      throw new Error('Failed to discover required enum types');
     }
 
-    this.logger.log(`Found ${familles.length} familles for groupe creation`);
-
-    // Fix: Create each groupe individually to prevent transaction rollback
-    const groupesData = this.getGroupesData(familles);
-    const created: GroupeActif[] = [];
-
-    for (const groupeData of groupesData) {
-      try {
-        // Use individual transaction for each groupe to prevent complete rollback
-        const groupe = await this.dataSource.transaction(async (manager) => {
-          return await manager.save(GroupeActif, groupeData);
-        });
-        created.push(groupe);
-        this.logger.log(`✅ Created groupe: ${groupe.code} - ${groupe.nom}`);
-      } catch (error) {
-        this.logger.error(`❌ Error creating groupe ${groupeData.code}:`, error.message);
-        // Continue with next groupe instead of aborting entire process
+    // Enhanced complete logical structure for port assets
+    const portfolioStructure = [
+      {
+        portfolio: {
+          nom: 'Terminal Conteneurs Nord - TC1',
+          description: 'Terminal à conteneurs principal avec équipements de manutention haute capacité',
+          code: 'PORT-TC1-001',
+          statut: 'actif',
+          latitude: 35.8845,
+          longitude: -5.5026
+        },
+        families: [
+          {
+            family: {
+              nom: 'Équipements de Quai TC1',
+              description: 'Grues et équipements fixes du quai pour conteneurs',
+              code: 'FAM-TC1-QUAI',
+              type: this.selectValidEnum(familleEnums, ['equipements_specifiques', 'infrastructures_portuaires']),
+              statut: 'actif',
+              latitude: 35.8840,
+              longitude: -5.5030
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Grues Ship-to-Shore STS',
+                  description: 'Grues portiques pour déchargement navires',
+                  code: 'GRP-TC1-STS',
+                  type: this.selectValidEnum(groupeEnums, ['equipement', 'grue', 'manutention']),
+                  statut: 'actif',
+                  latitude: 35.8841,
+                  longitude: -5.5031
+                },
+                assets: [
+                  {
+                    nom: 'Grue STS-01 Poste 1',
+                    description: 'Grue Ship-to-Shore 65T portée 22 conteneurs ZPMC',
+                    code: 'ACT-STS-01',
+                    type: 'grue_portique',
+                    numeroSerie: 'STS01-ZPMC-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8841,
+                    longitude: -5.5032,
+                    dateMiseEnService: new Date('2023-01-15'),
+                    dureeVieEstimee: 25,
+                    valeurAchat: 8500000
+                  },
+                  {
+                    nom: 'Grue STS-02 Poste 2',
+                    description: 'Grue Ship-to-Shore 65T portée 22 conteneurs ZPMC',
+                    code: 'ACT-STS-02',
+                    type: 'grue_portique',
+                    numeroSerie: 'STS02-ZPMC-2023',
+                    statutOperationnel: 'maintenance',
+                    etatGeneral: 'bon',
+                    latitude: 35.8839,
+                    longitude: -5.5030,
+                    dateMiseEnService: new Date('2023-02-20'),
+                    dureeVieEstimee: 25,
+                    valeurAchat: 8500000
+                  },
+                  {
+                    nom: 'Grue STS-03 Poste 3',
+                    description: 'Grue Ship-to-Shore 70T portée 24 conteneurs Liebherr',
+                    code: 'ACT-STS-03',
+                    type: 'grue_portique',
+                    numeroSerie: 'STS03-LHR-2024',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8837,
+                    longitude: -5.5028,
+                    dateMiseEnService: new Date('2024-01-10'),
+                    dureeVieEstimee: 25,
+                    valeurAchat: 9200000
+                  }
+                ]
+              },
+              {
+                group: {
+                  nom: 'Bollards d\'Amarrage TC1',
+                  description: 'Points d\'amarrage pour navires porte-conteneurs',
+                  code: 'GRP-TC1-BOLLARDS',
+                  type: this.selectValidEnum(groupeEnums, ['infrastructure', 'amarrage', 'fixe']),
+                  statut: 'actif',
+                  latitude: 35.8842,
+                  longitude: -5.5028
+                },
+                assets: [
+                  {
+                    nom: 'Bollard TC1-B01',
+                    description: 'Bollard d\'amarrage 200T - Poste 1 Avant',
+                    code: 'ACT-BOL-TC1-01',
+                    type: 'bollard',
+                    numeroSerie: 'BOL-TC1-01-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8843,
+                    longitude: -5.5029,
+                    dateMiseEnService: new Date('2023-01-10'),
+                    dureeVieEstimee: 30,
+                    valeurAchat: 25000
+                  },
+                  {
+                    nom: 'Bollard TC1-B02',
+                    description: 'Bollard d\'amarrage 200T - Poste 1 Arrière',
+                    code: 'ACT-BOL-TC1-02',
+                    type: 'bollard',
+                    numeroSerie: 'BOL-TC1-02-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8841,
+                    longitude: -5.5027,
+                    dateMiseEnService: new Date('2023-01-10'),
+                    dureeVieEstimee: 30,
+                    valeurAchat: 25000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            family: {
+              nom: 'Équipements de Parc TC1',
+              description: 'Équipements mobiles de manutention dans le parc à conteneurs',
+              code: 'FAM-TC1-YARD',
+              type: this.selectValidEnum(familleEnums, ['equipements_transport', 'equipements_specifiques']),
+              statut: 'actif',
+              latitude: 35.8850,
+              longitude: -5.5020
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Cavaliers Gerbeurs TC1',
+                  description: 'Straddle carriers pour manutention conteneurs',
+                  code: 'GRP-TC1-SC',
+                  type: this.selectValidEnum(groupeEnums, ['transport', 'mobile', 'manutention']),
+                  statut: 'actif',
+                  latitude: 35.8851,
+                  longitude: -5.5019
+                },
+                assets: [
+                  {
+                    nom: 'Cavalier SC-10',
+                    description: 'Straddle Carrier Kalmar 40T DRG450',
+                    code: 'ACT-SC-10',
+                    type: 'cavalier_gerbeur',
+                    numeroSerie: 'SC10-KAL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8852,
+                    longitude: -5.5018,
+                    dateMiseEnService: new Date('2023-03-10'),
+                    dureeVieEstimee: 15,
+                    valeurAchat: 1200000
+                  },
+                  {
+                    nom: 'Cavalier SC-11',
+                    description: 'Straddle Carrier Kalmar 40T DRG450',
+                    code: 'ACT-SC-11',
+                    type: 'cavalier_gerbeur',
+                    numeroSerie: 'SC11-KAL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8854,
+                    longitude: -5.5016,
+                    dateMiseEnService: new Date('2023-03-15'),
+                    dureeVieEstimee: 15,
+                    valeurAchat: 1200000
+                  }
+                ]
+              },
+              {
+                group: {
+                  nom: 'Reach Stackers TC1',
+                  description: 'Chariots gerbeurs à portée variable',
+                  code: 'GRP-TC1-RS',
+                  type: this.selectValidEnum(groupeEnums, ['transport', 'mobile', 'manutention']),
+                  statut: 'actif',
+                  latitude: 35.8856,
+                  longitude: -5.5014
+                },
+                assets: [
+                  {
+                    nom: 'Reach Stacker RS-05',
+                    description: 'Reach Stacker Liebherr LRS645 45T',
+                    code: 'ACT-RS-05',
+                    type: 'reach_stacker',
+                    numeroSerie: 'RS05-LHR-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8857,
+                    longitude: -5.5013,
+                    dateMiseEnService: new Date('2023-04-01'),
+                    dureeVieEstimee: 12,
+                    valeurAchat: 850000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        portfolio: {
+          nom: 'Terminal Conteneurs Sud - TC2',
+          description: 'Terminal à conteneurs secondaire pour trafic régional',
+          code: 'PORT-TC2-002',
+          statut: 'actif',
+          latitude: 35.8800,
+          longitude: -5.5100
+        },
+        families: [
+          {
+            family: {
+              nom: 'Équipements de Quai TC2',
+              description: 'Grues mobiles et équipements flexibles',
+              code: 'FAM-TC2-QUAI',
+              type: this.selectValidEnum(familleEnums, ['equipements_specifiques', 'infrastructures_portuaires']),
+              statut: 'actif',
+              latitude: 35.8795,
+              longitude: -5.5105
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Grues Mobiles Portuaires TC2',
+                  description: 'Grues mobiles pour navires moyens',
+                  code: 'GRP-TC2-MHC',
+                  type: this.selectValidEnum(groupeEnums, ['equipement', 'grue', 'mobile']),
+                  statut: 'actif',
+                  latitude: 35.8796,
+                  longitude: -5.5106
+                },
+                assets: [
+                  {
+                    nom: 'Grue Mobile MHC-20',
+                    description: 'Grue Mobile Portuaire Liebherr LHM420',
+                    code: 'ACT-MHC-20',
+                    type: 'grue_mobile',
+                    numeroSerie: 'MHC20-LHR-2022',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8797,
+                    longitude: -5.5107,
+                    dateMiseEnService: new Date('2022-11-15'),
+                    dureeVieEstimee: 20,
+                    valeurAchat: 3500000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        portfolio: {
+          nom: 'Zone Logistique ZL-Sud',
+          description: 'Zone de stockage, entreposage et logistique avec entrepôts spécialisés',
+          code: 'PORT-ZL-003',
+          statut: 'actif',
+          latitude: 35.8900,
+          longitude: -5.4950
+        },
+        families: [
+          {
+            family: {
+              nom: 'Bâtiments de Stockage ZL',
+              description: 'Entrepôts et bâtiments de stockage multi-températures',
+              code: 'FAM-ZL-BAT',
+              type: this.selectValidEnum(familleEnums, ['batiments', 'zones_stockage']),
+              statut: 'actif',
+              latitude: 35.8905,
+              longitude: -5.4945
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Entrepôts Réfrigérés ZL',
+                  description: 'Entrepôts climatisés pour marchandises sensibles',
+                  code: 'GRP-ZL-FROID',
+                  type: this.selectValidEnum(groupeEnums, ['batiment', 'stockage', 'infrastructure']),
+                  statut: 'actif',
+                  latitude: 35.8906,
+                  longitude: -5.4944
+                },
+                assets: [
+                  {
+                    nom: 'Entrepôt Réfrigéré ER-01',
+                    description: 'Entrepôt réfrigéré 5000m² temp -18°C à +4°C',
+                    code: 'ACT-ER-01',
+                    type: 'entrepot',
+                    numeroSerie: 'ER01-ZL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8907,
+                    longitude: -5.4943,
+                    dateMiseEnService: new Date('2023-05-15'),
+                    dureeVieEstimee: 40,
+                    valeurAchat: 3500000
+                  },
+                  {
+                    nom: 'Entrepôt Réfrigéré ER-02',
+                    description: 'Entrepôt congélation 3000m² temp -25°C',
+                    code: 'ACT-ER-02',
+                    type: 'entrepot',
+                    numeroSerie: 'ER02-ZL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8909,
+                    longitude: -5.4941,
+                    dateMiseEnService: new Date('2023-06-20'),
+                    dureeVieEstimee: 40,
+                    valeurAchat: 4200000
+                  }
+                ]
+              },
+              {
+                group: {
+                  nom: 'Entrepôts Secs ZL',
+                  description: 'Entrepôts pour marchandises sèches et générales',
+                  code: 'GRP-ZL-SEC',
+                  type: this.selectValidEnum(groupeEnums, ['batiment', 'stockage', 'infrastructure']),
+                  statut: 'actif',
+                  latitude: 35.8912,
+                  longitude: -5.4938
+                },
+                assets: [
+                  {
+                    nom: 'Entrepôt Sec ES-01',
+                    description: 'Entrepôt sec 8000m² marchandises générales',
+                    code: 'ACT-ES-01',
+                    type: 'entrepot',
+                    numeroSerie: 'ES01-ZL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8913,
+                    longitude: -5.4937,
+                    dateMiseEnService: new Date('2023-04-10'),
+                    dureeVieEstimee: 50,
+                    valeurAchat: 2800000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            family: {
+              nom: 'Équipements de Manutention ZL',
+              description: 'Chariots élévateurs et équipements de manutention logistique',
+              code: 'FAM-ZL-MANUT',
+              type: this.selectValidEnum(familleEnums, ['equipements_transport', 'equipements_specifiques']),
+              statut: 'actif',
+              latitude: 35.8910,
+              longitude: -5.4940
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Chariots Élévateurs ZL',
+                  description: 'Flotte de chariots élévateurs multi-capacités',
+                  code: 'GRP-ZL-CHARIOTS',
+                  type: this.selectValidEnum(groupeEnums, ['transport', 'mobile', 'manutention']),
+                  statut: 'actif',
+                  latitude: 35.8911,
+                  longitude: -5.4939
+                },
+                assets: [
+                  {
+                    nom: 'Chariot Élévateur CE-15',
+                    description: 'Chariot élévateur Toyota 8FBE15 5T électrique',
+                    code: 'ACT-CE-15',
+                    type: 'chariot_elevateur',
+                    numeroSerie: 'CE15-TOY-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8912,
+                    longitude: -5.4938,
+                    dateMiseEnService: new Date('2023-04-20'),
+                    dureeVieEstimee: 12,
+                    valeurAchat: 85000
+                  },
+                  {
+                    nom: 'Chariot Élévateur CE-16',
+                    description: 'Chariot élévateur Toyota 8FD25 2.5T diesel',
+                    code: 'ACT-CE-16',
+                    type: 'chariot_elevateur',
+                    numeroSerie: 'CE16-TOY-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8914,
+                    longitude: -5.4936,
+                    dateMiseEnService: new Date('2023-04-25'),
+                    dureeVieEstimee: 12,
+                    valeurAchat: 65000
+                  }
+                ]
+              },
+              {
+                group: {
+                  nom: 'Transpalettes ZL',
+                  description: 'Transpalettes électriques et manuels',
+                  code: 'GRP-ZL-TRANSPAL',
+                  type: this.selectValidEnum(groupeEnums, ['transport', 'mobile', 'manutention']),
+                  statut: 'actif',
+                  latitude: 35.8916,
+                  longitude: -5.4934
+                },
+                assets: [
+                  {
+                    nom: 'Transpalette Électrique TE-08',
+                    description: 'Transpalette électrique Still EXU20 2T',
+                    code: 'ACT-TE-08',
+                    type: 'transpalette',
+                    numeroSerie: 'TE08-STL-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8917,
+                    longitude: -5.4933,
+                    dateMiseEnService: new Date('2023-05-05'),
+                    dureeVieEstimee: 8,
+                    valeurAchat: 18000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        portfolio: {
+          nom: 'Infrastructure Réseau & Utilités',
+          description: 'Réseaux électriques, télécommunications et services portuaires',
+          code: 'PORT-IR-004',
+          statut: 'actif',
+          latitude: 35.8875,
+          longitude: -5.4980
+        },
+        families: [
+          {
+            family: {
+              nom: 'Réseaux Électriques',
+              description: 'Infrastructure électrique haute et basse tension',
+              code: 'FAM-IR-ELEC',
+              type: this.selectValidEnum(familleEnums, ['reseaux_utilitaires', 'infrastructures_portuaires']),
+              statut: 'actif',
+              latitude: 35.8870,
+              longitude: -5.4985
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Éclairage Public IR',
+                  description: 'Système d\'éclairage LED du port',
+                  code: 'GRP-IR-ECL',
+                  type: this.selectValidEnum(groupeEnums, ['infrastructure', 'reseau', 'eclairage']),
+                  statut: 'actif',
+                  latitude: 35.8871,
+                  longitude: -5.4984
+                },
+                assets: [
+                  {
+                    nom: 'Mât Éclairage ME-025',
+                    description: 'Mât d\'éclairage LED 400W haute efficacité zone TC1',
+                    code: 'ACT-ME-025',
+                    type: 'mat_eclairage',
+                    numeroSerie: 'ME025-LED-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8872,
+                    longitude: -5.4983,
+                    dateMiseEnService: new Date('2023-06-10'),
+                    dureeVieEstimee: 20,
+                    valeurAchat: 18000
+                  },
+                  {
+                    nom: 'Mât Éclairage ME-026',
+                    description: 'Mât d\'éclairage LED 600W zone logistique',
+                    code: 'ACT-ME-026',
+                    type: 'mat_eclairage',
+                    numeroSerie: 'ME026-LED-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8874,
+                    longitude: -5.4981,
+                    dateMiseEnService: new Date('2023-06-15'),
+                    dureeVieEstimee: 20,
+                    valeurAchat: 22000
+                  }
+                ]
+              },
+              {
+                group: {
+                  nom: 'Postes de Transformation',
+                  description: 'Transformateurs électriques haute tension',
+                  code: 'GRP-IR-TRANSFO',
+                  type: this.selectValidEnum(groupeEnums, ['infrastructure', 'electrique', 'reseau']),
+                  statut: 'actif',
+                  latitude: 35.8868,
+                  longitude: -5.4987
+                },
+                assets: [
+                  {
+                    nom: 'Transformateur TR-001',
+                    description: 'Transformateur 20kV/400V 2000kVA zone TC1',
+                    code: 'ACT-TR-001',
+                    type: 'transformateur',
+                    numeroSerie: 'TR001-ABB-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8869,
+                    longitude: -5.4988,
+                    dateMiseEnService: new Date('2023-02-15'),
+                    dureeVieEstimee: 30,
+                    valeurAchat: 450000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            family: {
+              nom: 'Systèmes de Communication',
+              description: 'Équipements de télécommunication et contrôle',
+              code: 'FAM-IR-TELECOM',
+              type: this.selectValidEnum(familleEnums, ['reseaux_utilitaires', 'equipements_specifiques']),
+              statut: 'actif',
+              latitude: 35.8876,
+              longitude: -5.4978
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Antennes et Relais',
+                  description: 'Infrastructure de communication sans fil',
+                  code: 'GRP-IR-ANTENNES',
+                  type: this.selectValidEnum(groupeEnums, ['infrastructure', 'communication', 'reseau']),
+                  statut: 'actif',
+                  latitude: 35.8877,
+                  longitude: -5.4977
+                },
+                assets: [
+                  {
+                    nom: 'Antenne Radio AR-12',
+                    description: 'Antenne radio VHF/UHF contrôle trafic portuaire',
+                    code: 'ACT-AR-12',
+                    type: 'antenne_radio',
+                    numeroSerie: 'AR12-MOT-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8878,
+                    longitude: -5.4976,
+                    dateMiseEnService: new Date('2023-03-20'),
+                    dureeVieEstimee: 15,
+                    valeurAchat: 35000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        portfolio: {
+          nom: 'Terminal Ro-Ro & Passagers',
+          description: 'Terminal pour navires rouliers et transport de passagers',
+          code: 'PORT-RR-005',
+          statut: 'actif',
+          latitude: 35.8820,
+          longitude: -5.5150
+        },
+        families: [
+          {
+            family: {
+              nom: 'Équipements Ro-Ro',
+              description: 'Équipements spécialisés pour trafic roulier',
+              code: 'FAM-RR-EQUIP',
+              type: this.selectValidEnum(familleEnums, ['equipements_specifiques', 'infrastructures_portuaires']),
+              statut: 'actif',
+              latitude: 35.8815,
+              longitude: -5.5155
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Rampes d\'Accès Ro-Ro',
+                  description: 'Rampes hydrauliques pour navires rouliers',
+                  code: 'GRP-RR-RAMPES',
+                  type: this.selectValidEnum(groupeEnums, ['infrastructure', 'hydraulique', 'acces']),
+                  statut: 'actif',
+                  latitude: 35.8816,
+                  longitude: -5.5156
+                },
+                assets: [
+                  {
+                    nom: 'Rampe Ro-Ro RR-01',
+                    description: 'Rampe hydraulique articulée 120T poste RR1',
+                    code: 'ACT-RR-01',
+                    type: 'rampe_roro',
+                    numeroSerie: 'RR01-TTS-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8817,
+                    longitude: -5.5157,
+                    dateMiseEnService: new Date('2023-07-01'),
+                    dureeVieEstimee: 25,
+                    valeurAchat: 1800000
+                  },
+                  {
+                    nom: 'Rampe Ro-Ro RR-02',
+                    description: 'Rampe hydraulique articulée 120T poste RR2',
+                    code: 'ACT-RR-02',
+                    type: 'rampe_roro',
+                    numeroSerie: 'RR02-TTS-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8819,
+                    longitude: -5.5159,
+                    dateMiseEnService: new Date('2023-07-15'),
+                    dureeVieEstimee: 25,
+                    valeurAchat: 1800000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            family: {
+              nom: 'Bâtiments Passagers',
+              description: 'Infrastructure d\'accueil et services passagers',
+              code: 'FAM-RR-PASSAGERS',
+              type: this.selectValidEnum(familleEnums, ['batiments', 'zones_stockage']),
+              statut: 'actif',
+              latitude: 35.8825,
+              longitude: -5.5145
+            },
+            groups: [
+              {
+                group: {
+                  nom: 'Gare Maritime',
+                  description: 'Bâtiment principal d\'accueil passagers',
+                  code: 'GRP-RR-GARE',
+                  type: this.selectValidEnum(groupeEnums, ['batiment', 'accueil', 'infrastructure']),
+                  statut: 'actif',
+                  latitude: 35.8826,
+                  longitude: -5.5144
+                },
+                assets: [
+                  {
+                    nom: 'Gare Maritime GM-01',
+                    description: 'Gare maritime 4500m² capacité 2000 passagers',
+                    code: 'ACT-GM-01',
+                    type: 'gare_maritime',
+                    numeroSerie: 'GM01-BAT-2023',
+                    statutOperationnel: 'operationnel',
+                    etatGeneral: 'bon',
+                    latitude: 35.8827,
+                    longitude: -5.5143,
+                    dateMiseEnService: new Date('2023-08-01'),
+                    dureeVieEstimee: 50,
+                    valeurAchat: 12000000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
+    ];
+
+    let totalCounts = { portefeuilles: 0, familles: 0, groupes: 0, actifs: 0 };
+
+    // Process each portfolio structure
+    for (const structure of portfolioStructure) {
+      await this.dataSource.transaction(async (manager) => {
+        try {
+          // Create Portfolio
+          const portfolio = await manager.save(Portefeuille, structure.portfolio);
+          this.logger.log(`✅ Created Portfolio: ${portfolio.nom}`);
+          totalCounts.portefeuilles++;
+
+          // Create Families for this Portfolio
+          for (const famData of structure.families) {
+            const familyToCreate = {
+              ...famData.family,
+              portefeuilleId: portfolio.id
+            };
+
+            const family = await manager.save(FamilleActif, familyToCreate);
+            this.logger.log(`  ✅ Created Family: ${family.nom} for ${portfolio.nom}`);
+            totalCounts.familles++;
+
+            // Create Groups for this Family
+            for (const grpData of famData.groups) {
+              const groupToCreate = {
+                ...grpData.group,
+                familleActifId: family.id
+              };
+
+              const group = await manager.save(GroupeActif, groupToCreate);
+              this.logger.log(`    ✅ Created Group: ${group.nom} for ${family.nom}`);
+              totalCounts.groupes++;
+
+              // Create Assets for this Group
+              for (const assetData of grpData.assets) {
+                const assetToCreate = {
+                  ...assetData,
+                  groupeActifId: group.id
+                };
+
+                await manager.save(Actif, assetToCreate);
+                this.logger.log(`      ✅ Created Asset: ${assetData.nom} for ${group.nom}`);
+                totalCounts.actifs++;
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.error(`❌ Failed to create portfolio structure for ${structure.portfolio.nom}: ${error.message}`);
+          throw error; // This will rollback the transaction
+        }
+      });
     }
 
-    this.logger.log(`🎉 Created ${created.length}/${groupesData.length} groupes actifs`);
-    return { 
-      status: 'success', 
-      type: 'groupes_only',
-      count: created.length,
-      items: created
+    this.logger.log('🎉 Complete logical seeding finished successfully!');
+    return {
+      status: 'success',
+      type: 'complete_logical_seeding',
+      counts: totalCounts
     };
   }
 
-  private async performFullSeeding() {
-    return await this.dataSource.transaction(async (manager) => {
-      this.logger.log('📁 Creating portefeuilles...');
-      
-      // Create portefeuilles
-      const portefeuilleTangerMed = await manager.save(Portefeuille, {
-        nom: 'Port de Tanger Med - Infrastructure Principale',
-        description: 'Portefeuille principal des actifs du port de Tanger Med',
-        code: 'TM-INFRA-001',
-        statut: 'actif',
-        latitude: 35.8845,
-        longitude: -5.5026
-      });
-
-      const portefeuilleLogistique = await manager.save(Portefeuille, {
-        nom: 'Zone Logistique Tanger Med',
-        description: 'Actifs de la zone logistique et de manutention',
-        code: 'TM-LOG-001',
-        statut: 'actif',
-        latitude: 35.8900,
-        longitude: -5.4950
-      });
-
-      this.logger.log('✅ Portefeuilles created successfully');
-
-      // Create familles
-      this.logger.log('📂 Creating familles d\'actifs...');
-      
-      const familleAmarrage = await manager.save(FamilleActif, {
-        nom: 'Ouvrages d\'Amarrage et d\'Accostage',
-        description: 'Tous les équipements liés à l\'amarrage des navires',
-        code: 'FAM-AMAR-001',
-        type: 'ouvrages_amarrage',
-        statut: 'actif',
-        latitude: 35.8840,
-        longitude: -5.5020,
-        portefeuille: portefeuilleTangerMed
-      });
-
-      const familleManutention = await manager.save(FamilleActif, {
-        nom: 'Équipements de Manutention',
-        description: 'Grues, portiques et équipements de levage',
-        code: 'FAM-MAN-001',
-        type: 'equipements_manutention',
-        statut: 'actif',
-        latitude: 35.8850,
-        longitude: -5.5000,
-        portefeuille: portefeuilleLogistique
-      });
-
-      const familleSupport = await manager.save(FamilleActif, {
-        nom: 'Infrastructures de Support',
-        description: 'Éclairage, signalisation et systèmes de sécurité',
-        code: 'FAM-SUP-001',
-        type: 'infrastructures_support',
-        statut: 'actif',
-        latitude: 35.8860,
-        longitude: -5.4980,
-        portefeuille: portefeuilleTangerMed
-      });
-
-      const familleTransport = await manager.save(FamilleActif, {
-        nom: 'Équipements de Transport',
-        description: 'Véhicules et équipements de transport portuaire',
-        code: 'FAM-TRANS-001',
-        type: 'equipements_transport',
-        statut: 'actif',
-        latitude: 35.8870,
-        longitude: -5.4960,
-        portefeuille: portefeuilleLogistique
-      });
-
-      this.logger.log('✅ Familles d\'actifs created successfully');
-
-      // Create groupes with proper error handling
-      this.logger.log('📦 Creating groupes d\'actifs...');
-      
-      const familles = [familleAmarrage, familleManutention, familleSupport, familleTransport];
-      const groupesData = this.getGroupesData(familles);
-      const createdGroupes: GroupeActif[] = [];
-
-      for (let i = 0; i < groupesData.length; i++) {
-        const groupeData = groupesData[i];
-        try {
-          this.logger.log(`Creating groupe ${i + 1}/${groupesData.length}: ${groupeData.code}`);
-          const groupe = await manager.save(GroupeActif, groupeData);
-          createdGroupes.push(groupe);
-          this.logger.log(`✅ Successfully created: ${groupe.code} - ${groupe.nom}`);
-        } catch (error) {
-          this.logger.error(`❌ Failed to create groupe ${groupeData.code}:`, error.message);
-          this.logger.error('Full error:', error.stack);
-          // Continue with next groupe instead of failing completely
-        }
-      }
-
-      this.logger.log(`📊 Created ${createdGroupes.length}/${groupesData.length} groupe actifs`);
-
-      // Create sample actifs with proper error handling
-      if (createdGroupes.length > 0) {
-        this.logger.log('📍 Creating sample individual actifs...');
-        const sampleActifs = await this.createSampleActifs(manager, createdGroupes);
-        this.logger.log(`✅ Created ${sampleActifs} sample actifs`);
-      }
-
-      return {
-        status: 'success',
-        type: 'full_seeding',
-        portefeuilles: 2,
-        familles: familles.length,
-        groupes: createdGroupes.length,
-        actifs: createdGroupes.length > 0 ? 4 : 0
-      };
-    });
+  private async discoverEnumValues(enumTypeName: string): Promise<string[]> {
+    try {
+      const result = await this.dataSource.query(
+        `SELECT unnest(enum_range(NULL::${enumTypeName})) as enum_value`
+      );
+      const values = result.map((row: any) => row.enum_value);
+      this.logger.log(`📋 Discovered ${enumTypeName}: ${values.join(', ')}`);
+      return values;
+    } catch (error) {
+      this.logger.error(`❌ Failed to discover enum values for ${enumTypeName}: ${error.message}`);
+      return [];
+    }
   }
 
-  private getGroupesData(familles: FamilleActif[]) {
-    const findFamille = (type: string) => familles.find(f => f.type === type) || familles[0];
-
-    // Fix: Use only enum values that match the GroupeActif entity exactly
-    return [
-      // Amarrage groups - using valid enum values from entity
-      {
-        nom: 'Bollards d\'Amarrage Quai Nord',
-        description: 'Ensemble des bollards pour l\'amarrage des navires cargo',
-        code: 'GRP-BOL-001',
-        type: 'bollards', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8838,
-        longitude: -5.5018,
-        familleActif: findFamille('ouvrages_amarrage')
-      },
-      {
-        nom: 'Défenses Pneumatiques Quai Sud',
-        description: 'Système de défenses pour protection des navires',
-        code: 'GRP-DEF-001',
-        type: 'defenses', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8832,
-        longitude: -5.5012,
-        familleActif: findFamille('ouvrages_amarrage')
-      },
-      // Manutention groups - using valid enum values
-      {
-        nom: 'Grues Portiques Terminal 1',
-        description: 'Grues portiques pour manutention conteneurs',
-        code: 'GRP-GP-001',
-        type: 'grues_portiques', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8853,
-        longitude: -5.4995,
-        familleActif: findFamille('equipements_manutention')
-      },
-      {
-        nom: 'Grues Mobiles Zone Logistique',
-        description: 'Grues mobiles pour charges lourdes',
-        code: 'GRP-GM-001',
-        type: 'grues_mobiles', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8855,
-        longitude: -5.4985,
-        familleActif: findFamille('equipements_manutention')
-      },
-      {
-        nom: 'Chariots Élévateurs Terminal 2',
-        description: 'Chariots élévateurs pour marchandises diverses',
-        code: 'GRP-CE-001',
-        type: 'chariots_elevateurs', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8848,
-        longitude: -5.4992,
-        familleActif: findFamille('equipements_manutention')
-      },
-      {
-        nom: 'Reach Stackers Parc Conteneurs',
-        description: 'Reach stackers pour empilage conteneurs',
-        code: 'GRP-RS-001',
-        type: 'reach_stackers', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8851,
-        longitude: -5.4988,
-        familleActif: findFamille('equipements_manutention')
-      },
-      // Support groups - using valid enum values
-      {
-        nom: 'Éclairage Quais Principaux',
-        description: 'Système d\'éclairage des zones opérationnelles',
-        code: 'GRP-ECL-001',
-        type: 'eclairage', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8845,
-        longitude: -5.5005,
-        familleActif: findFamille('infrastructures_support')
-      },
-      {
-        nom: 'Signalisation Maritime',
-        description: 'Feux de navigation et signalisation portuaire',
-        code: 'GRP-SIG-001',
-        type: 'signalisation', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8847,
-        longitude: -5.5008,
-        familleActif: findFamille('infrastructures_support')
-      },
-      {
-        nom: 'Systèmes de Sécurité Périmètre',
-        description: 'Caméras, barrières et contrôles d\'accès',
-        code: 'GRP-SEC-001',
-        type: 'systemes_securite', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8862,
-        longitude: -5.4975,
-        familleActif: findFamille('infrastructures_support')
-      },
-      {
-        nom: 'Alimentations Électriques Navires',
-        description: 'Bornes d\'alimentation électrique pour navires',
-        code: 'GRP-ALIM-001',
-        type: 'alimentations_electriques', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8843,
-        longitude: -5.5015,
-        familleActif: findFamille('infrastructures_support')
-      },
-      // Transport groups - using valid enum values
-      {
-        nom: 'Véhicules de Service Portuaire',
-        description: 'Camions, remorques et véhicules utilitaires',
-        code: 'GRP-VEH-001',
-        type: 'vehicules_service', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8865,
-        longitude: -5.4965,
-        familleActif: findFamille('equipements_transport')
-      },
-      {
-        nom: 'Remorques Portuaires Spécialisées',
-        description: 'Remorques pour transport de conteneurs et charges lourdes',
-        code: 'GRP-REM-001',
-        type: 'remorques_specialisees', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8867,
-        longitude: -5.4962,
-        familleActif: findFamille('equipements_transport')
-      },
-      {
-        nom: 'Navettes Personnel et Passagers',
-        description: 'Véhicules pour transport de personnel et visiteurs',
-        code: 'GRP-NAV-001',
-        type: 'navettes', // ✅ Valid enum value
-        statut: 'actif',
-        latitude: 35.8869,
-        longitude: -5.4958,
-        familleActif: findFamille('equipements_transport')
-      }
-    ];
-  }
-
-  private async createSampleActifs(manager: any, createdGroupes: GroupeActif[]): Promise<number> {
-    let count = 0;
-    
-    // Find specific groups for sample actifs
-    const bollardGroup = createdGroupes.find(g => g.code === 'GRP-BOL-001');
-    const grueGroup = createdGroupes.find(g => g.code === 'GRP-GP-001');
-    const reachStackerGroup = createdGroupes.find(g => g.code === 'GRP-RS-001');
-    const eclairageGroup = createdGroupes.find(g => g.code === 'GRP-ECL-001');
-
-    // Define sample actifs with proper type checking following geospatial dashboard patterns
-    const sampleActifsRaw = [
-      bollardGroup ? {
-        nom: 'Bollard BA-001 Quai Nord',
-        description: 'Bollard d\'amarrage capacité 150T',
-        code: 'ACT-BA-001',
-        type: 'bollard',
-        numeroSerie: 'BA001-TM-2023',
-        statutOperationnel: 'operationnel',
-        etatGeneral: 'bon',
-        latitude: 35.8837,
-        longitude: -5.5017,
-        dateMiseEnService: new Date('2023-03-15'),
-        dureeVieEstimee: 25,
-        valeurAchat: 45000,
-        groupeActif: bollardGroup
-      } : null,
-      grueGroup ? {
-        nom: 'Grue Portique GP-001',
-        description: 'Grue portique sur rail 65T',
-        code: 'ACT-GP-001',
-        type: 'grue_portique',
-        numeroSerie: 'GP001-TM-2023',
-        statutOperationnel: 'operationnel',
-        etatGeneral: 'excellent',
-        latitude: 35.8852,
-        longitude: -5.4994,
-        dateMiseEnService: new Date('2023-01-10'),
-        dureeVieEstimee: 20,
-        valeurAchat: 2500000,
-        groupeActif: grueGroup
-      } : null,
-      reachStackerGroup ? {
-        nom: 'Reach Stacker RS-003',
-        description: 'Reach stacker Kalmar 45T',
-        code: 'ACT-RS-003',
-        type: 'reach_stacker',
-        numeroSerie: 'RS003-KAL-2024',
-        statutOperationnel: 'maintenance',
-        etatGeneral: 'bon',
-        latitude: 35.8850,
-        longitude: -5.4987,
-        dateMiseEnService: new Date('2024-02-20'),
-        dureeVieEstimee: 15,
-        valeurAchat: 850000,
-        groupeActif: reachStackerGroup
-      } : null,
-      eclairageGroup ? {
-        nom: 'Mât d\'Éclairage ME-012',
-        description: 'Mât d\'éclairage LED 400W',
-        code: 'ACT-ME-012',
-        type: 'mat_eclairage',
-        numeroSerie: 'ME012-LED-2023',
-        statutOperationnel: 'operationnel',
-        etatGeneral: 'bon',
-        latitude: 35.8844,
-        longitude: -5.5004,
-        dateMiseEnService: new Date('2023-06-05'),
-        dureeVieEstimee: 12,
-        valeurAchat: 15000,
-        groupeActif: eclairageGroup
-      } : null
-    ];
-
-    // Filter out null values and ensure type safety following project patterns
-    const sampleActifs = sampleActifsRaw.filter((actif): actif is NonNullable<typeof actif> => actif !== null);
-
-    for (const actifData of sampleActifs) {
-      try {
-        await manager.save(Actif, actifData);
-        count++;
-        this.logger.log(`✅ Created actif: ${actifData.code}`);
-      } catch (error) {
-        this.logger.error(`❌ Error creating actif ${actifData.code}:`, error.message);
+  private selectValidEnum(availableEnums: string[], preferredEnums: string[]): string {
+    for (const preferred of preferredEnums) {
+      if (availableEnums.includes(preferred)) {
+        return preferred;
       }
     }
-
-    return count;
+    return availableEnums[0] || 'unknown';
   }
 
   private async checkAndFixDataConsistency() {
     this.logger.log('🔍 Checking data consistency...');
     
     try {
-      // Fix: Use correct column name from entity - familleActifId instead of portefeuille_id
       const orphanedCount = await this.familleActifRepository.query(`
         SELECT COUNT(*) as count 
         FROM familles_actifs f
@@ -472,7 +839,6 @@ export class ActifsSeedService {
       }
     } catch (error) {
       this.logger.error('❌ Error during consistency check:', error.message);
-      // Don't throw - continue with seeding
     }
   }
 
@@ -481,8 +847,7 @@ export class ActifsSeedService {
     
     try {
       await this.dataSource.transaction(async (manager) => {
-        // Fix: Use correct column names matching TypeORM entities
-        const actifResult = await manager.query(`
+        await manager.query(`
           DELETE FROM actifs 
           WHERE "groupeActifId" IN (
             SELECT g.id FROM groupes_actifs g
@@ -491,7 +856,7 @@ export class ActifsSeedService {
           )
         `);
 
-        const groupeResult = await manager.query(`
+        await manager.query(`
           DELETE FROM groupes_actifs 
           WHERE "familleActifId" IN (
             SELECT f.id FROM familles_actifs f
@@ -500,20 +865,47 @@ export class ActifsSeedService {
           )
         `);
 
-        const familleResult = await manager.query(`
+        await manager.query(`
           DELETE FROM familles_actifs 
           WHERE "portefeuilleId" NOT IN (
             SELECT id FROM portefeuilles WHERE id IS NOT NULL
           )
         `);
 
-        this.logger.log(`🗑️ Cleaned up: ${actifResult.length} actifs, ${groupeResult.length} groupes, ${familleResult.length} familles`);
+        this.logger.log('✅ Orphaned data cleanup completed');
       });
-
-      this.logger.log('✅ Orphaned data cleanup completed');
     } catch (error) {
       this.logger.error('❌ Error during cleanup:', error.message);
-      // Don't throw - continue with seeding
     }
+  }
+
+  // Legacy methods kept for backward compatibility but not used in new flow
+  private async createGroupesOnly() {
+    this.logger.warn('⚠️ createGroupesOnly is deprecated. Use performCompleteSeeding instead.');
+    return { status: 'deprecated', reason: 'Method replaced by complete seeding' };
+  }
+
+  private async performFullSeeding() {
+    return await this.performCompleteSeeding();
+  }
+
+  private async getGroupesData(familles: FamilleActif[]): Promise<any[]> {
+    this.logger.log('getGroupesData is deprecated in new seeding flow.');
+    return [];
+  }
+
+  private async createSampleActifs(manager: any, createdGroupes: GroupeActif[]): Promise<number> {
+    this.logger.log('createSampleActifs is deprecated in new seeding flow.');
+    return 0;
+  }
+
+  private async createFamilles(manager: EntityManager, portefeuilles: Portefeuille[]): Promise<FamilleActif[]> {
+    this.logger.log('createFamilles is deprecated in new seeding flow.');
+    return [];
+  }
+
+  private async createGroupes(manager: EntityManager, familles: FamilleActif[]): Promise<GroupeActif[]> {
+    this.logger.log('createGroupes is deprecated in new seeding flow.');
+    return [];
   }
 }

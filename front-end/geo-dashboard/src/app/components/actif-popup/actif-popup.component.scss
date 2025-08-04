@@ -1,0 +1,156 @@
+@import '../../shared/styles/form-styles.scss';
+
+.actif-popup {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 16px;
+  max-width: 300px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.actif-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.actif-info {
+  flex: 1;
+}
+
+.actif-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.actif-code {
+  margin: 0;
+  font-size: 12px;
+  color: #6c757d;
+  font-family: monospace;
+}
+
+.statut-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.popup-content {
+  margin-bottom: 16px;
+}
+
+.info-section {
+  margin-bottom: 12px;
+}
+
+.info-section h5 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.info-section p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.hierarchy-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hierarchy-item {
+  font-size: 12px;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.separator {
+  color: #adb5bd;
+  font-size: 12px;
+}
+
+.etat-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.etat-label {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.etat-value {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn i {
+  font-size: 10px;
+}

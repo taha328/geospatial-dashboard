@@ -188,7 +188,7 @@ export class ReportService {
 
       // Performance indicators
       const costEfficiency = estimatedCost > 0 ? 
-        (variance <= 0 ? 'Excellent' : variance < estimatedCost * 0.1 ? 'Bon' : 'À améliorer') : 'N/A';
+        (variance <= 0 ? 'bon' : variance < estimatedCost * 0.1 ? 'Bon' : 'À améliorer') : 'N/A';
       
       this.addSection(doc, 'Efficacité Budgétaire', costEfficiency);
       this.addSection(doc, 'Statut de Completion', maintenance.statut === 'terminee' ? 'Terminé avec succès' : 'En cours');

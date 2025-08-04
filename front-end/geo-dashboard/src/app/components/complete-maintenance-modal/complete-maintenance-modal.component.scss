@@ -1,0 +1,259 @@
+.modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1055 !important;
+  backdrop-filter: blur(4px);
+}
+
+.modal-dialog {
+  position: relative !important;
+  width: auto !important;
+  margin: 0.5rem !important;
+  max-width: 900px !important;
+}
+
+.modal-content {
+  position: relative !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1) !important;
+  overflow: hidden !important;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
+  color: white !important;
+  padding: 24px 32px !important;
+  border-bottom: none !important;
+  position: relative !important;
+}
+
+.modal-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6);
+}
+
+.modal-title {
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.btn-close {
+  background: rgba(255,255,255,0.2) !important;
+  border-radius: 50% !important;
+  opacity: 0.9 !important;
+  transition: all 0.3s ease !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.btn-close:hover {
+  background: rgba(255,255,255,0.3) !important;
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+}
+
+.modal-body {
+  padding: 32px !important;
+  background: #ffffff !important;
+}
+
+.form-section {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border-left: 4px solid #3498db;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  font-size: 1.2rem;
+}
+
+.form-label {
+  font-weight: 600 !important;
+  color: #2c3e50 !important;
+  margin-bottom: 8px !important;
+  font-size: 0.95rem !important;
+}
+
+.form-control {
+  border: 2px solid #e9ecef !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.3s ease !important;
+  background: #ffffff !important;
+}
+
+.form-control:focus {
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.form-control:hover {
+  border-color: #bdc3c7 !important;
+}
+
+.form-control[readonly] {
+  background: linear-gradient(135deg, #ecf0f1 0%, #f4f6f7 100%) !important;
+  color: #7f8c8d !important;
+  border-color: #d5dbdb !important;
+}
+
+textarea.form-control {
+  resize: vertical !important;
+  min-height: 100px !important;
+  line-height: 1.5 !important;
+}
+
+.text-danger {
+  color: #e74c3c !important;
+  font-weight: 600 !important;
+}
+
+.row {
+  margin-left: -12px !important;
+  margin-right: -12px !important;
+}
+
+.row > * {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+.form-check {
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%) !important;
+  padding: 16px 20px !important;
+  border-radius: 10px !important;
+  border-left: 4px solid #27ae60 !important;
+  margin-top: 8px !important;
+}
+
+.form-check-input {
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: 0 !important;
+  margin-right: 12px !important;
+  border: 2px solid #27ae60 !important;
+  border-radius: 4px !important;
+}
+
+.form-check-input:checked {
+  background-color: #27ae60 !important;
+  border-color: #27ae60 !important;
+}
+
+.form-check-label {
+  font-weight: 500 !important;
+  color: #27ae60 !important;
+  cursor: pointer !important;
+  line-height: 1.4 !important;
+}
+
+.modal-footer {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  padding: 24px 32px !important;
+  border-top: 1px solid #dee2e6 !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.btn {
+  padding: 12px 24px !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%) !important;
+  color: white !important;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(127, 140, 141, 0.3) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+  color: white !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9 0%, #3498db 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4) !important;
+}
+
+.btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.cost-comparison {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffebee 100%);
+  border-left: 4px solid #e74c3c;
+}
+
+.dates-section {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  border-left: 4px solid #2196f3;
+}
+
+.details-section {
+  background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%);
+  border-left: 4px solid #9c27b0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content {
+  animation: slideIn 0.4s ease-out !important;
+}
+
+.form-section {
+  animation: slideIn 0.5s ease-out !important;
+}
+
+.form-section:nth-child(2) { animation-delay: 0.1s; }
+.form-section:nth-child(3) { animation-delay: 0.2s; }
+.form-section:nth-child(4) { animation-delay: 0.3s; }

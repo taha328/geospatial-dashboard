@@ -16,7 +16,20 @@ export class FamilleActif {
   @Column({ length: 100 })
   code: string;
 
-  @Column({ type: 'enum', enum: ['ouvrages_amarrage', 'ouvrages_accostage', 'equipements_manutention', 'infrastructures_support'], default: 'ouvrages_amarrage' })
+  @Column({
+    type: 'enum',
+    enum: [
+      'batiments',
+      'infrastructures_portuaires',
+      'reseaux_utilitaires',
+      'equipements_specifiques',
+      'zones_stockage',
+      'equipements_transport',
+      'ouvrages_amarrage', // <-- Add this new value
+    ],
+    name: 'type',
+    nullable: true,
+  })
   type: string;
 
   @Column({ type: 'enum', enum: ['actif', 'inactif', 'maintenance'], default: 'actif' })

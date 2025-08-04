@@ -277,4 +277,23 @@ export class SignalementAnomalieComponent implements OnInit {
     
     return selectedActif ? `${selectedActif.nom} (${selectedActif.code})` : '';
   }
+
+  /**
+   * Reset form to initial state
+   */
+  onReset(): void {
+    this.signalementForm.reset();
+    this.showSuccess = false;
+    this.errorMessage = '';
+    this.selectedFile = null;
+    this.imagePreview = null;
+    
+    // Set default coordinates if provided
+    if (this.latitude && this.longitude) {
+      this.signalementForm.patchValue({
+        latitude: this.latitude,
+        longitude: this.longitude
+      });
+    }
+  }
 }

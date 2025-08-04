@@ -86,4 +86,22 @@ export class UserFormComponent implements OnInit {
   onCancel() {
     this.router.navigate(['/users']);
   }
+
+  getRoleDisplayName(role: string): string {
+    const roleNames: { [key: string]: string } = {
+      'admin': '👑 Administrateur',
+      'moderator': '⚖️ Modérateur',
+      'user': '👤 Utilisateur Standard'
+    };
+    return roleNames[role] || role;
+  }
+
+  getRoleDescription(role: string): string {
+    const descriptions: { [key: string]: string } = {
+      'admin': 'Accès complet au système, gestion des utilisateurs et configuration',
+      'moderator': 'Gestion du contenu, supervision des activités et support utilisateur',
+      'user': 'Accès aux fonctionnalités standard, consultation et saisie de données'
+    };
+    return descriptions[role] || 'Rôle personnalisé';
+  }
 }
