@@ -1305,25 +1305,66 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   // Coordinate formatting
-  formatCoordinates(actif: ActifPourCarte): string {
-    if (!actif) return 'Non localisé';
-    
-    // Handle latitude/longitude from ActifPourCarte
-    if (actif.latitude !== null && actif.latitude !== undefined && 
-        actif.longitude !== null && actif.longitude !== undefined) {
-      try {
-        const lat = typeof actif.latitude === 'number' ? actif.latitude : parseFloat(actif.latitude);
-        const lng = typeof actif.longitude === 'number' ? actif.longitude : parseFloat(actif.longitude);
-        
-        if (!isNaN(lat) && !isNaN(lng)) {
-          return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        }
-      } catch (error) {
-        console.warn('Error formatting coordinates:', error);
-      }
+  formatCoordinates(node: any): string {
+    if (!node) {
+      return 'Coordonnées non disponibles';
+    }
+
+    // Handle both selectedNode and actif objects
+    const lat = node.latitude;
+    const lng = node.longitude;
+
+    if (!lat && !lng) {
+      return 'Coordonnées non disponibles';
+    }
+
+    const parsedLat = this.parseCoordinate(lat);
+    const parsedLng = this.parseCoordinate(lng);
+
+    if (parsedLat === null || parsedLng === null) {
+      return 'Coordonnées invalides';
+    }
+
+    return `${parsedLat.toFixed(6)}, ${parsedLng.toFixed(6)}`;
+  }
+
+  /**
+   * Parse and validate a coordinate value following geospatial data standards
+   * Returns null if the coordinate is invalid, otherwise returns the numeric value
+   */
+  private parseCoordinate(coordinate: any): number | null {
+    if (coordinate === null || coordinate === undefined) {
+      return null;
     }
     
-    return 'Coordonnées invalides';
+    // Handle string coordinates (common from database queries)
+    if (typeof coordinate === 'string') {
+      const parsed = parseFloat(coordinate);
+      return isNaN(parsed) ? null : parsed;
+    }
+    
+    // Handle number coordinates
+    if (typeof coordinate === 'number') {
+      return isNaN(coordinate) ? null : coordinate;
+    }
+    
+    // Handle GeoJSON coordinate objects (following project's geospatial standards)
+    if (typeof coordinate === 'object' && coordinate.coordinates) {
+      const coords = Array.isArray(coordinate.coordinates) ? coordinate.coordinates : [];
+      const parsed = parseFloat(coords[0] || coords[1] || 0);
+      return isNaN(parsed) ? null : parsed;
+    }
+    
+    // Handle PostGIS geometry objects (common in backend responses)
+    if (typeof coordinate === 'object' && coordinate.x !== undefined) {
+      return parseFloat(coordinate.x) || null;
+    }
+    if (typeof coordinate === 'object' && coordinate.y !== undefined) {
+      return parseFloat(coordinate.y) || null;
+    }
+    
+    // Fallback for any other data type
+    return null;
   }
 
   // Workflow logic helpers

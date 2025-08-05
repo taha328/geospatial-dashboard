@@ -301,7 +301,7 @@
               <div class="detail-row" *ngIf="selectedNode.latitude && selectedNode.longitude">
                 <span class="detail-label">Coordonnées:</span>
                 <span class="detail-value coordinates">
-                  {{ selectedNode.latitude.toFixed(6) }}, {{ selectedNode.longitude.toFixed(6) }}
+                  {{ (selectedNode.latitude | number:'1.6-6') || 'N/A' }}, {{ (selectedNode.longitude | number:'1.6-6') || 'N/A' }}
                 </span>
               </div>
             </div>
