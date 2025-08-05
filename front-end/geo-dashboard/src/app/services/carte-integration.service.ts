@@ -54,6 +54,7 @@ export interface SignalementAnomalie {
 })
 export class CarteIntegrationService {
   private apiUrl = 'http://localhost:3000/api/carte';
+  private anomaliesApiUrl = 'http://localhost:3000/api/anomalies'; // Add this
 
   constructor(private http: HttpClient) {}
 
@@ -74,7 +75,8 @@ export class CarteIntegrationService {
 
   // Signaler une anomalie depuis la carte
   signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie | FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/signaler-anomalie`, anomalie);
+    // Use the correct endpoint that matches the backend controller
+    return this.http.post(`${this.anomaliesApiUrl}/carte/signaler`, anomalie);
   }
 
   // Méthodes utilitaires pour l'affichage

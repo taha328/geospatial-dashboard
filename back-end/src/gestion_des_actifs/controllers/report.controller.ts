@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Res } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Res, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { ReportService } from '../services/report.service';
 import { MaintenanceService } from '../services/maintenance.service';
@@ -29,6 +29,42 @@ export class ReportController {
     });
 
     res.end(pdfBuffer);
+  }
+
+  @Get('maintenance/:id/detailed')
+  async generateDetailedMaintenanceReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const maintenance = await this.maintenanceService.findOne(id);
+      if (!maintenance) {
+        return res.status(404).json({
+          message: `Maintenance with ID ${id} not found`,
+          error: 'Not Found',
+          statusCode: 404
+        });
+      }
+
+      // Use the professional report method for detailed reports following project patterns
+      const pdfBuffer = await this.reportService.generateProfessionalMaintenanceReport(maintenance);
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=detailed-maintenance-report-${id}-${Date.now()}.pdf`,
+        'Content-Length': pdfBuffer.length,
+      });
+
+      res.end(pdfBuffer);
+
+    } catch (error) {
+      console.error('Error generating detailed maintenance report:', error);
+      return res.status(500).json({
+        message: 'Error generating detailed maintenance report',
+        error: 'Internal Server Error',
+        statusCode: 500
+      });
+    }
   }
 
   @Get('maintenance/:id/professional')

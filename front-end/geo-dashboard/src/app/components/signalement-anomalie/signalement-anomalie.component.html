@@ -1,252 +1,334 @@
-<div class="form-container">
-  <!-- Header Section -->
-  <div class="form-header">
-    <h2 class="form-title">
-      <span class="section-icon">⚠️</span>
-      Signalement d'Anomalie
-    </h2>
-    <p class="form-subtitle">
-      Déclarer une anomalie pour une intervention rapide et efficace
-    </p>
-  </div>
+<div class="signalement-container">
+  <div class="form-card">
+    <!-- Header Section -->
+    <div class="form-header">
+      <h2 class="form-title">
+        <span class="section-icon">⚠️</span>
+        Signalement d'Anomalie
+      </h2>
+      <p class="form-subtitle">
+        Déclarer une anomalie pour une intervention rapide et efficace
+      </p>
+    </div>
 
-  <!-- Success Alert -->
-  <div *ngIf="showSuccess" class="alert alert-success">
-    <i class="fas fa-check-circle me-2"></i>
-    <strong>Succès!</strong> Anomalie signalée avec succès ! Elle sera prise en compte dans les meilleurs délais.
-  </div>
+    <!-- Success Alert -->
+    <div *ngIf="showSuccess" class="alert alert-success">
+      <i class="fas fa-check-circle me-2"></i>
+      <strong>Succès!</strong> Anomalie signalée avec succès !
+    </div>
 
-  <!-- Error Alert -->
-  <div *ngIf="errorMessage" class="alert alert-danger">
-    <i class="fas fa-exclamation-circle me-2"></i>
-    <strong>Erreur:</strong> {{ errorMessage }}
-  </div>
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      <strong>Erreur:</strong> {{ errorMessage }}
+    </div>
 
-  <form [formGroup]="signalementForm" (ngSubmit)="onSubmit()">
-    
-    <!-- Basic Information Section -->
-    <div class="form-section">
-      <div class="section-title">
-        <span class="section-icon">📋</span>
-        Informations Générales
-      </div>
-      <div class="section-description">
-        Identifiez l'anomalie et l'actif concerné
-      </div>
+    <form [formGroup]="signalementForm" (ngSubmit)="onSubmit()">
       
-      <div class="form-group required">
-        <label for="titre" class="form-label">
-          <span class="label-icon">🏷️</span>
-          Titre de l'Anomalie
-        </label>
-        <input 
-          type="text" 
-          id="titre"
-          class="form-control"
-          [class.is-invalid]="isFieldInvalid('titre')"
-          [class.is-valid]="signalementForm.get('titre')?.valid && signalementForm.get('titre')?.touched"
-          formControlName="titre"
-          placeholder="Ex: Défense endommagée sur quai C1">
-        <div *ngIf="isFieldInvalid('titre')" class="invalid-feedback">
-          {{ getFieldErrorMessage('titre') }}
+      <!-- Basic Information Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">📋</span>
+          <div>
+            <h4 class="section-title">Informations Générales</h4>
+            <p class="section-description">Identifiez l'anomalie et l'actif concerné</p>
+          </div>
         </div>
-        <div class="form-text">
-          <i class="fas fa-lightbulb icon"></i>
-          Utilisez un titre court et descriptif pour identifier rapidement l'anomalie
-        </div>
-      </div>
+        
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="titre" class="form-label required">
+                <span class="label-icon">🏷️</span>
+                Titre de l'Anomalie
+              </label>
+              <input 
+                type="text" 
+                id="titre"
+                class="form-control form-control-sm"
+                [class.is-invalid]="isFieldInvalid('titre')"
+                [class.is-valid]="signalementForm.get('titre')?.valid && signalementForm.get('titre')?.touched"
+                formControlName="titre"
+                placeholder="Ex: Défense endommagée sur quai C1">
+              <div *ngIf="isFieldInvalid('titre')" class="invalid-feedback">
+                {{ getFieldErrorMessage('titre') }}
+              </div>
+            </div>
+          </div>
 
-      <div class="form-group required">
-        <label for="actifId" class="form-label">
-          <span class="label-icon">🏭</span>
-          Actif Concerné
-        </label>
-        
-        <!-- Loading state -->
-        <div *ngIf="isLoadingActifs" class="loading-overlay">
-          <div class="spinner-border spinner-border-sm me-2"></div>
-          <span>Chargement des actifs...</span>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="rapportePar" class="form-label">
+                <span class="label-icon">👤</span>
+                Rapporté par
+              </label>
+              <input 
+                type="text" 
+                id="rapportePar"
+                class="form-control form-control-sm"
+                formControlName="rapportePar"
+                placeholder="Nom de la personne qui rapporte l'anomalie">
+              <div class="form-text">
+                <i class="fas fa-info-circle icon"></i>
+                Optionnel - Nom de l'agent qui signale l'anomalie
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <select 
-          id="actifId"
-          class="form-select"
-          [class.is-invalid]="isFieldInvalid('actifId')"
-          [class.is-valid]="signalementForm.get('actifId')?.valid && signalementForm.get('actifId')?.touched"
-          formControlName="actifId">
-          <option value="" disabled>Sélectionner un actif</option>
-          <option 
-            *ngFor="let actif of allActifs" 
-            [value]="actif.id"
-            [title]="actif.description || actif.nom">
-            {{ actif.nom }} ({{ actif.code }}) - {{ actif.type }}
-          </option>
-          <option value="" disabled *ngIf="allActifs.length === 0">
-            Aucun actif disponible
-          </option>
-        </select>
-        
-        <div *ngIf="isFieldInvalid('actifId')" class="invalid-feedback">
-          {{ getFieldErrorMessage('actifId') }}
-        </div>
-        
-        <div class="form-text">
-          <i class="fas fa-database icon"></i>
-          {{ allActifs.length > 0 ? allActifs.length + ' actif(s) disponible(s)' : 'Chargement des actifs...' }}
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-12">
+            <div class="form-group">
+              <label for="actifId" class="form-label required">
+                <span class="label-icon">🏭</span>
+                Actif Concerné
+              </label>
+              
+              <!-- Loading state -->
+              <div *ngIf="isLoadingActifs" class="loading-overlay">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                <span>Chargement...</span>
+              </div>
+              
+              <select 
+                id="actifId"
+                class="form-select form-select-sm"
+                [class.is-invalid]="isFieldInvalid('actifId')"
+                [class.is-valid]="signalementForm.get('actifId')?.valid && signalementForm.get('actifId')?.touched"
+                formControlName="actifId">
+                <option value="" disabled>Sélectionner un actif</option>
+                <option 
+                  *ngFor="let actif of allActifs" 
+                  [value]="actif.id"
+                  [title]="actif.description || actif.nom">
+                  {{ actif.nom }} ({{ actif.code }})
+                </option>
+                <option value="" disabled *ngIf="allActifs.length === 0">
+                  Aucun actif disponible
+                </option>
+              </select>
+              
+              <div *ngIf="isFieldInvalid('actifId')" class="invalid-feedback">
+                {{ getFieldErrorMessage('actifId') }}
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- Selected Asset Display -->
-        <div *ngIf="getSelectedActifDisplay()" class="alert alert-info mt-3">
+        <div *ngIf="getSelectedActifDisplay()" class="selected-asset-info">
           <i class="fas fa-check me-2"></i>
           <strong>Sélectionné:</strong> {{ getSelectedActifDisplay() }}
         </div>
       </div>
-    </div>
 
-    <!-- Description Section -->
-    <div class="form-section">
-      <div class="section-title">
-        <span class="section-icon">📝</span>
-        Description Détaillée
-      </div>
-      <div class="section-description">
-        Décrivez précisément l'anomalie observée
-      </div>
-      
-      <div class="form-group required">
-        <label for="description" class="form-label">
-          <span class="label-icon">📄</span>
-          Description de l'Anomalie
-        </label>
-        <textarea 
-          id="description"
-          class="form-control"
-          [class.is-invalid]="isFieldInvalid('description')"
-          [class.is-valid]="signalementForm.get('description')?.valid && signalementForm.get('description')?.touched"
-          formControlName="description"
-          rows="5"
-          placeholder="Décrivez en détail:
-• L'anomalie observée sur l'actif
-• Les symptômes ou signes visibles
-• Les risques potentiels identifiés
-• Les conditions de découverte
-• Les actions recommandées"></textarea>
-        <div *ngIf="isFieldInvalid('description')" class="invalid-feedback">
-          {{ getFieldErrorMessage('description') }}
+      <!-- Description & Classification Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">📝</span>
+          <div>
+            <h4 class="section-title">Description et Classification</h4>
+            <p class="section-description">Décrivez et catégorisez l'anomalie</p>
+          </div>
         </div>
-        <div class="form-text">
-          <i class="fas fa-info-circle icon"></i>
-          Plus la description est précise, plus l'intervention sera efficace
+        
+        <div class="row g-3">
+          <div class="col-md-7">
+            <div class="form-group">
+              <label for="description" class="form-label required">
+                <span class="label-icon">📄</span>
+                Description de l'Anomalie
+              </label>
+              <textarea 
+                id="description"
+                class="form-control form-control-sm"
+                [class.is-invalid]="isFieldInvalid('description')"
+                [class.is-valid]="signalementForm.get('description')?.valid && signalementForm.get('description')?.touched"
+                formControlName="description"
+                rows="4"
+                placeholder="Décrivez l'anomalie observée, les symptômes, les risques potentiels..."></textarea>
+              <div *ngIf="isFieldInvalid('description')" class="invalid-feedback">
+                {{ getFieldErrorMessage('description') }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-5">
+            <div class="form-group">
+              <label for="typeAnomalie" class="form-label required">
+                <span class="label-icon">🔧</span>
+                Type d'Anomalie
+              </label>
+              <select 
+                id="typeAnomalie"
+                class="form-select form-select-sm"
+                [class.is-invalid]="isFieldInvalid('typeAnomalie')"
+                [class.is-valid]="signalementForm.get('typeAnomalie')?.valid && signalementForm.get('typeAnomalie')?.touched"
+                formControlName="typeAnomalie">
+                <option value="" disabled>Sélectionnez un type</option>
+                <option *ngFor="let type of typesAnomalies" [value]="type.value">
+                  {{ type.label }}
+                </option>
+              </select>
+              <div *ngIf="isFieldInvalid('typeAnomalie')" class="invalid-feedback">
+                {{ getFieldErrorMessage('typeAnomalie') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label required">
+                <span class="label-icon">⚡</span>
+                Niveau de Priorité
+              </label>
+              <div class="priority-grid">
+                <div *ngFor="let priorite of priorites" class="priority-option">
+                  <div class="form-check">
+                    <input 
+                      class="form-check-input" 
+                      type="radio" 
+                      [id]="'priorite-' + priorite.value"
+                      [value]="priorite.value"
+                      formControlName="priorite">
+                    <label class="form-check-label" [for]="'priorite-' + priorite.value">
+                      <span class="priority-indicator" [style.background-color]="priorite.color"></span>
+                      <span class="priority-text">{{ priorite.label }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="isFieldInvalid('priorite')" class="invalid-feedback">
+                {{ getFieldErrorMessage('priorite') }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Classification Section -->
-    <div class="form-section">
-      <div class="section-title">
-        <span class="section-icon">🏷️</span>
-        Classification et Priorité
+      <!-- Photos Annexes Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">📸</span>
+          <div>
+            <h4 class="section-title">Photos Annexes</h4>
+            <p class="section-description">Ajoutez des photos pour documenter l'anomalie (optionnel)</p>
+          </div>
+        </div>
+        
+        <div class="photo-upload-zone">
+          <input 
+            type="file" 
+            id="imageUpload"
+            class="d-none"
+            accept="image/*"
+            multiple
+            (change)="onFileSelected($event)">
+          
+          <label for="imageUpload" class="upload-area" 
+                 [class.has-file]="selectedFiles.length > 0">
+            <div class="upload-content">
+              <i class="fas fa-cloud-upload-alt upload-icon"></i>
+              <h5 class="upload-title">Cliquez pour ajouter des photos</h5>
+              <p class="upload-text">
+                Formats acceptés: JPG, PNG, GIF<br>
+                Taille max: 5MB par fichier
+              </p>
+            </div>
+          </label>
+
+          <!-- Image Previews -->
+          <div *ngIf="imagePreviews.length > 0" class="image-previews mt-3">
+            <div class="preview-grid">
+              <div *ngFor="let preview of imagePreviews; let i = index" class="image-preview-item">
+                <div class="preview-container">
+                  <img [src]="preview.url" [alt]="preview.name" class="preview-image">
+                  <button type="button" 
+                          class="btn btn-danger btn-sm remove-image" 
+                          (click)="removeImage(i)"
+                          [title]="'Supprimer ' + preview.name">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <div class="image-info">
+                  <small class="text-muted">{{ preview.name }}</small>
+                  <small class="text-muted d-block">{{ preview.size }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="section-description">
-        Catégorisez l'anomalie pour une meilleure gestion
-      </div>
-      
-      <div class="row">
-        <div class="col-md-6">
-          <div class="form-group required">
-            <label for="typeAnomalie" class="form-label">
-              <span class="label-icon">🔧</span>
-              Type d'Anomalie
-            </label>
-            <select 
-              id="typeAnomalie"
-              class="form-select"
-              [class.is-invalid]="isFieldInvalid('typeAnomalie')"
-              [class.is-valid]="signalementForm.get('typeAnomalie')?.valid && signalementForm.get('typeAnomalie')?.touched"
-              formControlName="typeAnomalie">
-              <option value="" disabled>Sélectionnez un type</option>
-              <option *ngFor="let type of typesAnomalies" [value]="type.value">
-                {{ type.label }}
-              </option>
-            </select>
-            <div *ngIf="isFieldInvalid('typeAnomalie')" class="invalid-feedback">
-              {{ getFieldErrorMessage('typeAnomalie') }}
+
+      <!-- Location Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-icon">📍</span>
+          <div>
+            <h4 class="section-title">Coordonnées GPS</h4>
+            <p class="section-description">Position géographique de l'anomalie</p>
+          </div>
+        </div>
+        
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="latitude" class="form-label required">
+                <span class="label-icon">🌐</span>
+                Latitude
+              </label>
+              <input 
+                type="number" 
+                id="latitude"
+                class="form-control form-control-sm"
+                [class.is-invalid]="isFieldInvalid('latitude')"
+                [class.is-valid]="signalementForm.get('latitude')?.valid && signalementForm.get('latitude')?.touched"
+                formControlName="latitude"
+                step="0.0000001"
+                placeholder="Ex: 36.7377">
+              <div *ngIf="isFieldInvalid('latitude')" class="invalid-feedback">
+                {{ getFieldErrorMessage('latitude') }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="longitude" class="form-label required">
+                <span class="label-icon">🌍</span>
+                Longitude
+              </label>
+              <input 
+                type="number" 
+                id="longitude"
+                class="form-control form-control-sm"
+                [class.is-invalid]="isFieldInvalid('longitude')"
+                [class.is-valid]="signalementForm.get('longitude')?.valid && signalementForm.get('longitude')?.touched"
+                formControlName="longitude"
+                step="0.0000001"
+                placeholder="Ex: 3.0637">
+              <div *ngIf="isFieldInvalid('longitude')" class="invalid-feedback">
+                {{ getFieldErrorMessage('longitude') }}
+              </div>
             </div>
           </div>
         </div>
         
-        <div class="col-md-6">
-          <div class="form-group required">
-            <label class="form-label">
-              <span class="label-icon">⚡</span>
-              Niveau de Priorité
-            </label>
-            <div class="priority-grid">
-              <div *ngFor="let priorite of priorites" class="priority-option">
-                <div class="form-check">
-                  <input 
-                    class="form-check-input" 
-                    type="radio" 
-                    [id]="'priorite-' + priorite.value"
-                    [value]="priorite.value"
-                    formControlName="priorite">
-                  <label class="form-check-label" [for]="'priorite-' + priorite.value">
-                    <span class="priority-indicator" [style.background-color]="priorite.color"></span>
-                    <span class="priority-text">
-                      <strong>{{ priorite.label }}</strong>
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div *ngIf="isFieldInvalid('priorite')" class="invalid-feedback">
-              {{ getFieldErrorMessage('priorite') }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Location Section -->
-    <div class="form-section">
-      <div class="section-title">
-        <span class="section-icon">📍</span>
-        Localisation (Optionnel)
-      </div>
-      <div class="section-description">
-        Précisez la localisation si elle diffère de l'actif principal
-      </div>
-      
-      <div class="form-group">
-        <label for="localisation" class="form-label">
-          <span class="label-icon">🗺️</span>
-          Informations de Localisation
-        </label>
-        <textarea 
-          id="localisation"
-          class="form-control"
-          formControlName="localisation"
-          rows="3"
-          placeholder="Ex: Quai B, section 3, côté tribord
-Zone de stockage containers, rangée 5
-Bâtiment administratif, niveau 2, bureau 205"></textarea>
-        <div class="form-text">
+        <div class="form-text mt-2">
           <i class="fas fa-map-marker-alt icon"></i>
-          Ajoutez des détails de localisation pour faciliter l'intervention
+          Cliquez sur la carte pour définir automatiquement les coordonnées
         </div>
       </div>
-    </div>
 
-    <!-- Form Actions -->
-    <div class="btn-group">
-      <button type="submit" class="btn btn-primary" [disabled]="signalementForm.invalid || isSubmitting">
-        <i class="fas fa-paper-plane me-2"></i>
-        {{ isSubmitting ? '⏳ Envoi en cours...' : '📤 Signaler l\'Anomalie' }}
-      </button>
-      <button type="button" class="btn btn-secondary" (click)="onReset()">
-        <i class="fas fa-undo me-2"></i>
-        Réinitialiser
-      </button>
-    </div>
-  </form>
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+          <i class="fas fa-times me-2"></i>
+          Annuler
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="signalementForm.invalid || isSubmitting">
+          <i class="fas fa-paper-plane me-2"></i>
+          {{ isSubmitting ? 'Envoi en cours...' : 'Signaler l\'Anomalie' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

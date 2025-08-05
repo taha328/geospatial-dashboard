@@ -542,7 +542,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   getEtatColor(etat: string): string {
     const colors: { [key: string]: string } = {
       'bon': '#28a745',
-      'bon': '#28a745',
       'moyen': '#ffc107',
       'mauvais': '#dc3545'
     };
