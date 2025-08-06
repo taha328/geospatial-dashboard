@@ -25,7 +25,7 @@ export class FamilleActif {
       'equipements_specifiques',
       'zones_stockage',
       'equipements_transport',
-      'ouvrages_amarrage', // <-- Add this new value
+      'ouvrages_amarrage', 
     ],
     name: 'type',
     nullable: true,

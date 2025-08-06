@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-// Import existing components following geospatial dashboard structure
+// Import existing components that stay in app module
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { DashboardIntegreComponent } from './components/dashboard-integre/dashboard-integre.component';
 
@@ -9,33 +9,30 @@ const routes: Routes = [
   // Default route to integrated dashboard
   { path: '', redirectTo: '/dashboard-integre', pathMatch: 'full' },
   
-  // Dashboard routes following project conventions
+  // Dashboard routes - keep as direct components (not lazy loaded)
   { path: 'dashboard', component: DashboardComponent },
   { path: 'dashboard-integre', component: DashboardIntegreComponent },
   
-  // Map routes - using OpenLayers 7 + ol-ext as specified
+  // CORRECTED: Lazy load feature modules, not components
   {
     path: 'map',
-    loadChildren: () => import('./components/map/map.component').then(m => ({ default: m.MapComponent }))
+    loadChildren: () => import('./features/map/map.module').then(m => m.MapModule)
   },
-
-  // Vessel tracking routes
+  {
+    path: 'assets',
+    loadChildren: () => import('./features/asset-management/asset-management.module').then(m => m.AssetManagementModule)
+  },
+  {
+    path: 'users',
+    loadChildren: () => import('./features/user-management/user-management.module').then(m => m.UserManagementModule)
+  },
   {
     path: 'vessels',
-    loadChildren: () => import('./components/vessel-finder/vessel-finder.component').then(m => ({ default: m.VesselFinderComponent }))
+    loadChildren: () => import('./features/vessel-finder/vessel-finder.module').then(m => m.VesselFinderModule)
   },
-  
-  // Point and zone management through map interface
   {
-    path: 'points',
-    loadChildren: () => import('./components/map/map.component').then(m => ({ default: m.MapComponent })),
-    data: { mode: 'points' }
-  },
-  
-  {
-    path: 'zones', 
-    loadChildren: () => import('./components/map/map.component').then(m => ({ default: m.MapComponent })),
-    data: { mode: 'zones' }
+    path: 'zones',
+    loadChildren: () => import('./features/zones/zones.module').then(m => m.ZonesModule)
   },
   
   // Fallback route
@@ -44,7 +41,6 @@ const routes: Routes = [
 
 @NgModule({
   imports: [RouterModule.forRoot(routes, {
-    // Following Angular 18 best practices
     enableTracing: false,
     scrollPositionRestoration: 'top',
     paramsInheritanceStrategy: 'emptyOnly'

@@ -30,7 +30,6 @@ export class ReportService {
         size: 'A4',
         info: {
           Title: `Rapport de Maintenance - ${maintenance.titre}`,
-          Author: 'Geospatial Dashboard',
           Subject: `Maintenance ID: ${maintenance.id}`,
           Keywords: 'maintenance, geospatial, actif',
         }
@@ -56,10 +55,8 @@ export class ReportService {
         margin: this.pageMargin,
         size: 'A4',
         info: {
-          Title: `Rapport Professionnel de Maintenance - ${maintenance.titre}`,
-          Author: 'Geospatial Dashboard',
+          Title: `Rapport de Maintenance - ${maintenance.titre}`,
           Subject: `Maintenance ID: ${maintenance.id}`,
-          Keywords: 'maintenance, geospatial, rapport professionnel, actif',
         }
       });
       const buffers: Buffer[] = [];
@@ -92,9 +89,15 @@ export class ReportService {
   private createProfessionalReport(doc: PDFKit.PDFDocument, maintenance: Maintenance): void {
     this.createCoverPage(doc, maintenance);
     doc.addPage();
+    doc.y = this.pageMargin;
     
     this.createTableOfContents(doc);
-    doc.addPage();
+    
+    // Check if we need a new page for executive summary
+    if (doc.y > doc.page.height - 200) {
+      doc.addPage();
+      doc.y = this.pageMargin;
+    }
     
     this.createExecutiveSummary(doc, maintenance);
     this.addDetailedAnalysis(doc, maintenance);
@@ -110,19 +113,9 @@ export class ReportService {
     doc
       .rect(0, 0, doc.page.width, headerHeight)
       .fill(this.colors.primary);
+
     
-    // Company logo area (placeholder)
-    doc
-      .rect(this.pageMargin, 15, 50, 50)
-      .lineWidth(2)
-      .fillAndStroke(this.colors.white, this.colors.accent);
-    
-    // Add logo text
-    doc
-      .fillColor(this.colors.accent)
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text('GEO', this.pageMargin + 15, 35, { width: 20, align: 'center' });
+
     
     // Main title
     doc
@@ -164,16 +157,7 @@ export class ReportService {
       .lineWidth(3)
       .fillAndStroke(this.colors.white, this.colors.accent);
     
-    doc
-      .fillColor(this.colors.accent)
-      .fontSize(16)
-      .font('Helvetica-Bold')
-      .text('GEOSPATIAL\nDASHBOARD', this.pageMargin + 5, 40, { 
-        width: 50, 
-        align: 'center',
-        lineGap: 2
-      });
-    
+
     // Main title
     doc
       .fillColor(this.colors.white)
@@ -181,10 +165,7 @@ export class ReportService {
       .font('Helvetica-Bold')
       .text('RAPPORT DE MAINTENANCE', this.pageMargin + 120, 35);
     
-    doc
-      .fontSize(14)
-      .font('Helvetica')
-      .text('RAPPORT PROFESSIONNEL', this.pageMargin + 120, 70);
+
     
     // Content box
     const boxY = 180;
@@ -272,6 +253,7 @@ export class ReportService {
 
   private createTableOfContents(doc: PDFKit.PDFDocument): void {
     this.addSectionTitle(doc, 'TABLE DES MATIÈRES');
+    doc.moveDown(0.5);
     
     const contents = [
       { title: '1. Résumé Exécutif', page: 3 },
@@ -282,8 +264,18 @@ export class ReportService {
       { title: '6. Recommandations', page: 5 },
     ];
     
+    let currentY = doc.y;
+    
     contents.forEach((item, index) => {
-      const y = doc.y + (index * 20);
+      const y = currentY + (index * 25);
+      
+      // Ensure we don't go off the page
+      if (y > doc.page.height - 100) {
+        doc.addPage();
+        doc.y = this.pageMargin;
+        currentY = doc.y;
+        return;
+      }
       
       doc
         .fillColor(this.colors.text)
@@ -292,18 +284,21 @@ export class ReportService {
         .text(item.title, this.pageMargin, y);
       
       // Dotted line
-      const dotY = y + 6;
-      for (let x = this.pageMargin + 200; x < doc.page.width - 80; x += 8) {
+      const dotY = y + 8;
+      for (let x = this.pageMargin + 200; x < doc.page.width - 80; x += 10) {
         doc
           .fillColor(this.colors.lightText)
-          .circle(x, dotY, 0.5)
-          .fill();
+          .fontSize(8)
+          .text('.', x, dotY);
       }
       
       doc
         .fillColor(this.colors.text)
+        .fontSize(12)
         .text(item.page.toString(), doc.page.width - 80, y, { align: 'right', width: 40 });
     });
+    
+    doc.y = currentY + (contents.length * 25) + 20;
   }
 
   private createExecutiveSummary(doc: PDFKit.PDFDocument, maintenance: Maintenance): void {
@@ -350,9 +345,11 @@ export class ReportService {
       }
     ];
     
+    const startY = doc.y;
+    
     metrics.forEach((metric, index) => {
       const x = startX + (index * (cardWidth + cardSpacing));
-      const y = doc.y;
+      const y = startY;
       
       // Card background
       doc
@@ -370,21 +367,21 @@ export class ReportService {
         .fillColor(this.colors.white)
         .fontSize(10)
         .font('Helvetica-Bold')
-        .text(metric.title, x + 8, y + 7, { width: cardWidth - 16, align: 'center' });
+        .text(metric.title, x + 8, y + 8, { width: cardWidth - 16, align: 'center' });
       
-      // Value
+      // Value - properly positioned
       doc
         .fillColor(metric.color)
         .fontSize(11)
         .font('Helvetica-Bold')
-        .text(metric.value, x + 8, y + 40, { 
+        .text(metric.value, x + 8, y + 45, { 
           width: cardWidth - 16, 
-          align: 'center',
-          lineGap: 2
+          align: 'center'
         });
     });
     
-    doc.y += cardHeight + this.sectionSpacing;
+    // Set Y position after the cards
+    doc.y = startY + cardHeight + 20;
   }
 
   private addDetailedAnalysis(doc: PDFKit.PDFDocument, maintenance: Maintenance): void {
@@ -556,15 +553,17 @@ export class ReportService {
       .font('Helvetica-Bold')
       .text(title, this.pageMargin, doc.y);
     
+    doc.moveDown(0.3);
+    
     // Underline
     doc
-      .moveTo(this.pageMargin, doc.y + 5)
-      .lineTo(doc.page.width - this.pageMargin, doc.y + 5)
+      .moveTo(this.pageMargin, doc.y)
+      .lineTo(doc.page.width - this.pageMargin, doc.y)
       .strokeColor(this.colors.accent)
       .lineWidth(2)
       .stroke();
     
-    doc.y += 20;
+    doc.moveDown(1);
   }
 
   private addSubsectionTitle(doc: PDFKit.PDFDocument, title: string): void {
@@ -576,7 +575,7 @@ export class ReportService {
       .font('Helvetica-Bold')
       .text(title, this.pageMargin, doc.y);
     
-    doc.y += this.lineHeight;
+    doc.moveDown(0.5);
   }
 
   private addParagraph(doc: PDFKit.PDFDocument, text: string): void {
@@ -589,10 +588,10 @@ export class ReportService {
       .text(text, this.pageMargin, doc.y, {
         width: doc.page.width - (2 * this.pageMargin),
         align: 'justify',
-        lineGap: 2
+        lineGap: 3
       });
     
-    doc.y += this.sectionSpacing;
+    doc.moveDown(1);
   }
 
   private addKeyValuePair(doc: PDFKit.PDFDocument, key: string, value: string, y: number): void {
@@ -600,34 +599,37 @@ export class ReportService {
       .fillColor(this.colors.text)
       .fontSize(10)
       .font('Helvetica-Bold')
-      .text(key, this.pageMargin + 15, y);
+      .text(key, this.pageMargin + 15, y, { continued: false });
     
     doc
       .fillColor(this.colors.text)
       .fontSize(10)
       .font('Helvetica')
-      .text(value, this.pageMargin + 150, y);
+      .text(value, this.pageMargin + 150, y, { continued: false });
   }
 
   private addBulletPoint(doc: PDFKit.PDFDocument, text: string, number: number): void {
-    this.checkPageSpace(doc, 30);
+    this.checkPageSpace(doc, 40);
+    
+    const startY = doc.y;
     
     doc
       .fillColor(this.colors.accent)
       .fontSize(10)
       .font('Helvetica-Bold')
-      .text(`${number}.`, this.pageMargin, doc.y);
+      .text(`${number}.`, this.pageMargin, startY, { continued: false });
     
     doc
       .fillColor(this.colors.text)
       .fontSize(10)
       .font('Helvetica')
-      .text(text, this.pageMargin + 20, doc.y, {
+      .text(text, this.pageMargin + 20, startY, {
         width: doc.page.width - (2 * this.pageMargin) - 20,
-        lineGap: 2
+        lineGap: 3,
+        continued: false
       });
     
-    doc.y += this.sectionSpacing;
+    doc.moveDown(1);
   }
 
   private checkPageSpace(doc: PDFKit.PDFDocument, requiredSpace: number): void {
@@ -688,19 +690,21 @@ export class ReportService {
     
     this.checkPageSpace(doc, 25);
     
+    const startY = doc.y;
+    
     doc
       .fillColor(this.colors.secondary)
       .fontSize(10)
       .font('Helvetica-Bold')
-      .text(label, this.pageMargin, doc.y);
+      .text(label, this.pageMargin, startY, { continued: false });
     
     doc
       .fillColor(this.colors.text)
       .fontSize(10)
       .font('Helvetica')
-      .text(value, this.pageMargin + 120, doc.y);
+      .text(value, this.pageMargin + 120, startY, { continued: false });
     
-    doc.y += this.lineHeight;
+    doc.moveDown(0.8);
   }
 
   // Footer methods
@@ -746,11 +750,7 @@ export class ReportService {
         .rect(0, doc.page.height - 60, doc.page.width, 60)
         .fill(this.colors.primary);
       
-      doc
-        .fillColor(this.colors.white)
-        .fontSize(9)
-        .font('Helvetica-Bold')
-        .text('GEOSPATIAL DASHBOARD', this.pageMargin, doc.page.height - 40);
+
       
       doc
         .fontSize(8)
