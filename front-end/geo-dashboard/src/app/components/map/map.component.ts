@@ -54,7 +54,6 @@ export class MapComponent implements OnInit, OnDestroy {
   
   newGeometry = {
     name: '',
-    description: '',
     color: '#ff0000',
     opacity: 0.5,
   };
@@ -76,9 +75,10 @@ export class MapComponent implements OnInit, OnDestroy {
   showAnomalies = true;
   showSignalementForm = false;
   showActifForm = false;
-  signalementMode = false;
-  actifCreationMode = false;
   clickCoordinates: [number, number] | null = null;
+  currentDrawnGeometry: any = null; // Store the drawn geometry for actif creation
+  currentDrawnFeature: Feature<Geometry> | null = null;
+  selectedAssetForAnomalie: Feature<Geometry> | null = null;
 
   constructor(
     private pointService: PointService,
@@ -97,7 +97,8 @@ export class MapComponent implements OnInit, OnDestroy {
     this.loadAnomaliesData();
     this.route.queryParams.subscribe(params => {
       if (params['action'] === 'signalAnomalie') {
-        this.toggleSignalementMode();
+        // When coming from external link, just show a notification or set a flag
+        console.log('Navigate to anomaly reporting mode');
       }
     });
   }
@@ -302,6 +303,7 @@ export class MapComponent implements OnInit, OnDestroy {
   startDrawing() {
     this.isDrawing = true;
     this.removeDrawInteraction();
+    
     const source = this.drawType === 'Point' ? this.pointSource : this.zoneSource;
     
     this.drawInteraction = new Draw({
@@ -319,6 +321,7 @@ export class MapComponent implements OnInit, OnDestroy {
   stopDrawing() {
     this.isDrawing = false;
     this.removeDrawInteraction();
+    this.map.getViewport().style.cursor = 'default';
   }
 
   private removeDrawInteraction() {
@@ -329,7 +332,36 @@ export class MapComponent implements OnInit, OnDestroy {
 
   private onDrawEnd(feature: Feature<Geometry>) {
     this.selectedFeature = feature;
-    this.saveNewGeometry(feature);
+    
+    // For all drawing types, show the actif creation form
+    // since all geometries are considered assets
+    this.showActifFormForGeometry(feature);
+  }
+
+  private showActifFormForGeometry(feature: Feature<Geometry>) {
+    const geometry = feature.getGeometry();
+    if (!geometry) return;
+
+    // Get coordinates based on geometry type
+    let coordinates: [number, number];
+    
+    if (geometry instanceof Point) {
+      const coords = geometry.getCoordinates();
+      const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
+      coordinates = [lonLat[0], lonLat[1]];
+    } else {
+      // For polygons and lines, use the centroid
+      const extent = geometry.getExtent();
+      const centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+      const lonLat = transform(centerCoords, 'EPSG:3857', 'EPSG:4326');
+      coordinates = [lonLat[0], lonLat[1]];
+    }
+
+    // Store coordinates and geometry info for the form
+    this.clickCoordinates = coordinates;
+    this.currentDrawnFeature = feature;
+    this.showActifForm = true;
+    this.stopDrawing();
   }
 
   private saveNewGeometry(feature: Feature<Geometry>) {
@@ -339,43 +371,28 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.drawType === 'Point') {
       const coords = (geometry as Point).getCoordinates();
       const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
-      const pointData = {
-        longitude: lonLat[0],
-        latitude: lonLat[1],
-        description: this.newGeometry.description,
-        color: this.newGeometry.color,
-        type: 'point'
-      };
-
-      this.pointService.createPoint(pointData).subscribe({
-        next: (point) => {
-          feature.setProperties({ id: point.id, type: 'point', data: point });
-          this.points.push(point);
-          this.resetForm();
-        },
-        error: (err) => { console.error('Error saving point:', err); this.pointSource.removeFeature(feature); }
-      });
+      
+      // Store coordinates for point actif creation
+      this.clickCoordinates = [lonLat[0], lonLat[1]];
+      this.currentDrawnGeometry = null; // No complex geometry for points
+      this.showActifForm = true;
     } else {
+      // For polygon/linestring, store the geometry
       const geoJsonFormat = new GeoJSON();
-      const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, { featureProjection: 'EPSG:3857' });
-      const zoneData = {
-        name: this.newGeometry.name,
-        type: this.drawType.toLowerCase(),
-        geometry: geoJsonGeometry,
-        description: this.newGeometry.description,
-        color: this.newGeometry.color,
-        opacity: this.newGeometry.opacity
-      };
-
-      this.zoneService.createZone(zoneData).subscribe({
-        next: (zone) => {
-          feature.setProperties({ id: zone.id, type: 'zone', data: zone });
-          this.zones.push(zone);
-          this.resetForm();
-        },
-        error: (err) => { console.error('Error saving zone:', err); this.zoneSource.removeFeature(feature); }
+      
+      // Transform to EPSG:4326 (WGS84) before creating GeoJSON
+      const geoJsonGeometry = geoJsonFormat.writeGeometry(geometry, { 
+        featureProjection: 'EPSG:3857',
+        dataProjection: 'EPSG:4326' // Transform to WGS84 for storage
       });
+      
+      this.currentDrawnGeometry = JSON.parse(geoJsonGeometry);
+      this.clickCoordinates = null; // No point coordinates for complex shapes
+      
+      console.log('Captured geometry for polygon/linestring:', this.currentDrawnGeometry);
+      this.showActifForm = true;
     }
+    
     this.stopDrawing();
   }
 
@@ -410,7 +427,6 @@ export class MapComponent implements OnInit, OnDestroy {
     if (data) {
       this.newGeometry = {
         name: data.name || '',
-        description: data.description || '',
         color: data.color || '#ff0000',
         opacity: data.opacity || 0.5
       };
@@ -447,13 +463,132 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   private resetForm() {
-    this.newGeometry = { name: '', description: '', color: '#ff0000', opacity: 0.5 };
+    this.newGeometry = { name: '', color: '#ff0000', opacity: 0.5 };
   }
 
   refreshData() {
     this.pointSource.clear();
     this.zoneSource.clear();
     this.loadMapData();
+  }
+
+  // Helper methods for dynamic button text and icons
+  getDrawingStatusText(): string {
+    if (this.drawType === 'Point') {
+      return 'Cliquez sur la carte pour placer un actif point';
+    } else if (this.drawType === 'Polygon') {
+      return 'Dessinez une zone pour créer un actif zone';
+    } else {
+      return 'Dessinez une route pour créer un actif route';
+    }
+  }
+
+  // Helper methods for selected feature display
+  getFeatureTypeDisplay(): string {
+    if (!this.selectedFeature) return '';
+    
+    const type = this.selectedFeature.get('type');
+    switch (type) {
+      case 'actif': return 'Actif';
+      case 'anomalie': return 'Anomalie';
+      case 'point': return 'Point';
+      case 'zone': return 'Zone';
+      default: return type || 'Inconnu';
+    }
+  }
+
+  getFeatureName(): string {
+    if (!this.selectedFeature) return '';
+    const data = this.selectedFeature.get('data');
+    return (
+      data?.nom ||
+      data?.name ||
+      (data && (data as any).libelle) ||
+      (data && (data as any).label) ||
+      (data && (data as any).designation) ||
+      ''
+    );
+  }
+
+
+
+  isExistingAsset(): boolean {
+    if (!this.selectedFeature) return false;
+    const type = this.selectedFeature.get('type');
+    return type === 'actif' || type === 'point' || type === 'zone';
+  }
+
+  signalAnomalieForSelectedFeature(): void {
+    if (!this.selectedFeature) return;
+
+    // Get coordinates from the selected feature
+    const geometry = this.selectedFeature.getGeometry();
+    if (!geometry) return;
+
+    let coordinates: [number, number];
+    
+    if (geometry instanceof Point) {
+      const coords = geometry.getCoordinates();
+      const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
+      coordinates = [lonLat[0], lonLat[1]];
+    } else {
+      // For polygons and lines, use the centroid
+      const extent = geometry.getExtent();
+      const centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+      const lonLat = transform(centerCoords, 'EPSG:3857', 'EPSG:4326');
+      coordinates = [lonLat[0], lonLat[1]];
+    }
+
+  // Store coordinates and show anomaly form
+    this.clickCoordinates = coordinates;
+    this.selectedAssetForAnomalie = this.selectedFeature;
+    this.showSignalementForm = true;
+  }
+
+  /**
+   * Get selected asset data for anomaly form
+   * Extracts asset properties from OpenLayers feature
+   */
+  getSelectedAssetData(): any {
+    if (!this.selectedAssetForAnomalie) {
+      return null;
+    }
+
+    // Extract properties from the OpenLayers feature
+    const properties = this.selectedAssetForAnomalie.getProperties();
+    const data: any = properties['data'] || {};
+    const rawId = properties['id'] ?? data.id;
+    const nom = (
+      data.nom ||
+      data.name ||
+      (data as any).libelle ||
+      (data as any).label ||
+      (data as any).designation ||
+      properties['nom'] ||
+      properties['name'] ||
+      properties['libelle'] ||
+      properties['label'] ||
+      properties['designation'] ||
+      ''
+    );
+    const code = data.code || properties['code'] || (rawId != null ? String(rawId) : '');
+    const type = data.type || data.famille_type || properties['type'] || properties['famille_type'];
+    
+    // Return asset data in the format expected by anomaly component
+    const selected = {
+      id: rawId,
+      nom,
+      code,
+      type,
+      data, // keep full original data
+      // Include any other relevant properties
+      ...properties
+    };
+    if (!nom) {
+      // Helpful debug once; guard against flooding console
+      try { console.debug('Selected asset has no name properties', selected); } catch {}
+    }
+    return selected;
   }
 
   // UI control methods
@@ -683,26 +818,6 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleSignalementMode() {
-    this.signalementMode = !this.signalementMode;
-    
-    if (this.signalementMode) {
-      // Activer le mode signalement
-      this.map.getViewport().style.cursor = 'crosshair';
-      this.map.once('click', (evt) => {
-        const coordinate = transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
-        this.clickCoordinates = [coordinate[0], coordinate[1]]; // [lng, lat] - format standard
-        this.showSignalementForm = true;
-        this.signalementMode = false;
-        this.map.getViewport().style.cursor = 'default';
-      });
-    } else {
-      // Désactiver le mode signalement
-      this.map.getViewport().style.cursor = 'default';
-      this.showSignalementForm = false;
-    }
-  }
-
   onAnomalieSignaled() {
     console.log('Anomalie signalée depuis la carte!');
     
@@ -713,6 +828,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.loadAnomaliesData();
     this.showSignalementForm = false;
     this.clickCoordinates = null;
+    this.selectedAssetForAnomalie = null;
     
     // Informer l'utilisateur
     alert('Anomalie signalée avec succès! Les KPI seront mis à jour automatiquement.');
@@ -723,66 +839,43 @@ export class MapComponent implements OnInit, OnDestroy {
    */
   onSignalementCancelled() {
     this.showSignalementForm = false;
-    this.signalementMode = false;
     this.clickCoordinates = null;
+    this.selectedAssetForAnomalie = null;
     this.map.getViewport().style.cursor = 'default';
   }
 
-  /**
-   * Active/désactive le mode de création d'actif
-   */
-  toggleActifCreationMode() {
-    this.actifCreationMode = !this.actifCreationMode;
-    
-    if (this.actifCreationMode) {
-      // Désactiver d'autres modes interactifs s'ils sont actifs
-      if (this.signalementMode) {
-        this.signalementMode = false;
-      }
-      
-      // Changer le curseur pour indiquer le mode de création
-      this.map.getViewport().style.cursor = 'crosshair';
-      
-      // Activer l'interaction pour cliquer sur la carte
-      this.map.once('click', this.handleMapClickForActif);
-    } else {
-      // Désactiver l'interaction de clic et restaurer le curseur
-      this.map.getViewport().style.cursor = 'default';
-    }
-  }
-  
-  /**
-   * Gère le clic sur la carte pour la création d'un actif
-   */
-  handleMapClickForActif = (e: any) => {
-    if (!this.actifCreationMode) return;
-    
-    // Convertir les coordonnées du clic en coordonnées lon/lat
-    const clickCoords = this.map.getEventCoordinate(e.originalEvent);
-    const lonLat = transform(clickCoords, 'EPSG:3857', 'EPSG:4326');
-    
-    // Stocker les coordonnées pour le formulaire
-    this.clickCoordinates = [lonLat[0], lonLat[1]];
-    
-    // Afficher le formulaire d'actif
-    this.showActifForm = true;
-  }
-  
   /**
    * Gère l'annulation de la création d'actif
    */
   onActifFormCancel() {
     this.showActifForm = false;
     this.clickCoordinates = null;
-    this.actifCreationMode = false;
+    this.currentDrawnGeometry = null;
+    
+    // If we have a drawn feature that wasn't saved, remove it
+    if (this.currentDrawnFeature) {
+      const geometry = this.currentDrawnFeature.getGeometry();
+      const source = geometry instanceof Point ? this.pointSource : this.zoneSource;
+      source.removeFeature(this.currentDrawnFeature);
+      this.currentDrawnFeature = null;
+    }
+
     this.map.getViewport().style.cursor = 'default';
-  }
-  
-  /**
+  }/**
    * Gère la création réussie d'un actif depuis le formulaire
    */
   onActifCreated(actifData: any) {
     console.log('Actif créé avec succès:', actifData);
+    
+    // If we have a drawn feature, update it with the actif data
+    if (this.currentDrawnFeature) {
+      this.currentDrawnFeature.setProperties({
+        id: actifData.id,
+        type: 'actif',
+        data: actifData
+      });
+      this.currentDrawnFeature = null;
+    }
     
     // Recharger les actifs sur la carte
     this.loadActifsData();
@@ -790,7 +883,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // Fermer le formulaire et réinitialiser l'état
     this.showActifForm = false;
     this.clickCoordinates = null;
-    this.actifCreationMode = false;
+    this.currentDrawnGeometry = null;
     this.map.getViewport().style.cursor = 'default';
   }
 
@@ -828,7 +921,6 @@ export class MapComponent implements OnInit, OnDestroy {
     // Fermer le formulaire et réinitialiser l'état
     this.showActifForm = false;
     this.clickCoordinates = null;
-    this.actifCreationMode = false;
     this.map.getViewport().style.cursor = 'default';
     
     // Informer l'utilisateur

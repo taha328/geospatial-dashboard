@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Actif } from '../entities/actif.entity';
+
+interface GeoJSONGeometry {
+  type: string;
+  coordinates: any[];
+}
 
 @Injectable()
 export class ActifService {
@@ -90,22 +95,38 @@ export class ActifService {
   }
 
   async getActifsPourCarte(): Promise<any[]> {
-    const actifs = await this.findAll();
+    const actifs = await this.actifRepository.query(`
+      SELECT 
+        a.id,
+        a.nom,
+        a.code,
+        a.type,
+        a."statutOperationnel",
+        a."etatGeneral",
+        ST_AsGeoJSON(ST_Transform(a.geometry, 4326)) as geometry,
+        g.nom as "groupeNom",
+        f.nom as "familleNom", 
+        p.nom as "portefeuilleNom"
+      FROM actifs a
+      LEFT JOIN "groupes_actifs" g ON a."groupeActifId" = g.id
+      LEFT JOIN "familles_actifs" f ON g."familleActifId" = f.id
+      LEFT JOIN portefeuilles p ON f."portefeuilleId" = p.id
+      ORDER BY a."dateCreation" DESC
+    `);
     
     return actifs.map(actif => ({
       id: actif.id,
       nom: actif.nom,
       code: actif.code,
-      latitude: actif.latitude,
-      longitude: actif.longitude,
+      geometry: actif.geometry ? JSON.parse(actif.geometry) : null,
       statutOperationnel: actif.statutOperationnel,
       etatGeneral: actif.etatGeneral,
-      type: actif.type || 'inconnu', // Utiliser directement le type de l'actif
-      groupe: actif.groupeActif?.nom,
-      famille: actif.groupeActif?.familleActif?.nom,
-      portefeuille: actif.groupeActif?.familleActif?.portefeuille?.nom,
-      anomaliesActives: actif.anomalies?.filter(a => ['nouveau', 'en_cours'].includes(a.statut)).length || 0,
-      maintenancesPrevues: actif.maintenances?.filter(m => ['planifiee', 'en_cours'].includes(m.statut)).length || 0
+      type: actif.type || 'inconnu',
+      groupe: actif.groupeNom,
+      famille: actif.familleNom,
+      portefeuille: actif.portefeuilleNom,
+      anomaliesActives: 0, 
+      maintenancesPrevues: 0
     }));
   }
 
@@ -126,41 +147,85 @@ export class ActifService {
     type: string;
     statutOperationnel: string;
     etatGeneral: string;
-    latitude: number;
-    longitude: number;
-    dateInstallation?: Date;
-    dateAcquisition?: Date;
+    latitude?: number;
+    longitude?: number;
+    geometry?: any;
+    groupeActifId?: number;
   }): Promise<Actif> {
-    // Vérifier si le code existe déjà
-    const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
-    
-    // Si le code existe déjà, renvoyer une erreur pour éviter les doublons
-    if (existingActif) {
-      throw new Error(`Un actif avec le code ${actifData.code} existe déjà.`);
+    if (actifData.code) {
+      const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
+      if (existingActif) {
+        throw new BadRequestException(`Un actif avec le code ${actifData.code} existe déjà.`);
+      }
     }
-    
-    // Créer un actif avec les données minimales requises
-    const newActif = this.actifRepository.create({
-      nom: actifData.nom,
-      code: actifData.code,
-      type: actifData.type,
-      statutOperationnel: actifData.statutOperationnel,
-      etatGeneral: actifData.etatGeneral,
-      // Utiliser les coordonnées correctes
-      latitude: actifData.latitude,
-      longitude: actifData.longitude,
-      dateMiseEnService: actifData.dateInstallation || new Date(),
-      description: `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`
-    });
-    
-    return await this.actifRepository.save(newActif);
+
+    const hasLatLng = actifData.latitude != null && actifData.longitude != null;
+    const hasGeometry = actifData.geometry != null;
+
+    if (!hasLatLng && !hasGeometry) {
+      throw new BadRequestException('Either coordinates (latitude/longitude) or a geometry must be provided.');
+    }
+
+    let geometryForDb: string;
+
+    if (hasGeometry) {
+      let geometry = actifData.geometry;
+      if (typeof geometry === 'string') {
+        try {
+          geometry = JSON.parse(geometry);
+        } catch (e) {
+          throw new BadRequestException('Invalid JSON geometry format.');
+        }
+      }
+      geometryForDb = `ST_Transform(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'), 26191)`;
+    } else { // hasLatLng
+      geometryForDb = `ST_Transform(ST_SetSRID(ST_MakePoint(${actifData.longitude}, ${actifData.latitude}), 4326), 26191)`;
+    }
+
+    try {
+      const query = `
+        INSERT INTO actifs (
+          nom, code, type, "statutOperationnel", "etatGeneral", 
+          geometry, "groupeActifId", description, "dateMiseEnService"
+        )
+        VALUES ($1, $2, $3, $4, $5, ${geometryForDb}, $6, $7, $8)
+        RETURNING 
+          id, nom, code, type, "statutOperationnel", "etatGeneral",
+          ST_AsGeoJSON(ST_Transform(geometry, 4326)) as geometry,
+          "groupeActifId", description, "dateCreation", "dateMiseAJour", "dateMiseEnService"
+      `;
+      
+      const params = [
+        actifData.nom,
+        actifData.code,
+        actifData.type,
+        actifData.statutOperationnel,
+        actifData.etatGeneral,
+        actifData.groupeActifId || null,
+        `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`,
+        new Date()
+      ];
+
+      const result = await this.actifRepository.query(query, params);
+
+      if (!result?.[0]) {
+        throw new Error('Failed to create actif from map.');
+      }
+
+      const createdActif = result[0];
+      createdActif.geometry = JSON.parse(createdActif.geometry);
+
+      return createdActif as Actif;
+    } catch (error) {
+      console.error('Error creating actif from map:', error);
+      throw new BadRequestException(`Erreur lors de la création de l'actif: ${error.message}`);
+    }
   }
   
   /**
    * Récupère les actifs qui ne sont pas associés à un groupe
    */
   async findActifsSansGroupe(): Promise<Actif[]> {
-    // Utiliser IsNull pour la condition where
     return this.actifRepository.createQueryBuilder('actif')
       .leftJoinAndSelect('actif.anomalies', 'anomalies')
       .leftJoinAndSelect('actif.maintenances', 'maintenances')

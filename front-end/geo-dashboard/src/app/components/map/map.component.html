@@ -37,11 +37,11 @@
       </div>
 
       <div class="sidebar-content" [class.collapsed]="sidebarCollapsed">
-        <!-- Asset Management Tools -->
+        <!-- Layer Visibility Controls -->
         <div class="tool-section">
           <div class="section-header">
-            <div class="section-icon">🏗️</div>
-            <h4>Gestion des Actifs</h4>
+            <div class="section-icon">👁️</div>
+            <h4>Affichage des Couches</h4>
           </div>
           
           <div class="asset-controls">
@@ -60,16 +60,6 @@
                 Afficher les Anomalies
               </span>
             </label>
-            
-            <button class="action-button primary" (click)="toggleActifCreationMode()">
-              <span class="button-icon">🏗️</span>
-              {{ actifCreationMode ? 'Annuler Création' : 'Créer un Actif' }}
-            </button>
-            
-            <button class="action-button secondary" (click)="toggleSignalementMode()">
-              <span class="button-icon">📝</span>
-              {{ signalementMode ? 'Annuler Signalement' : 'Signaler Anomalie' }}
-            </button>
           </div>
         </div>
 
@@ -109,8 +99,8 @@
               (click)="startDrawing()" 
               [disabled]="isDrawing"
               class="btn btn-primary btn-with-icon">
-              <span class="btn-icon">{{ isDrawing ? '⏳' : '✨' }}</span>
-              {{ isDrawing ? 'Dessin en cours...' : 'Commencer' }}
+              <span class="btn-icon">{{ isDrawing ? '⏳' : '🏗️' }}</span>
+              {{ isDrawing ? 'Dessin en cours...' : 'Créer Actif ' + (drawType === 'Point' ? 'Point' : drawType === 'Polygon' ? 'Zone' : 'Route') }}
             </button>
             <button 
               (click)="stopDrawing()" 
@@ -128,34 +118,8 @@
             <div class="section-icon">⚙️</div>
             <h4>Propriétés {{ drawType === 'LineString' ? 'Route' : 'Zone' }}</h4>
           </div>
-          
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="name">
-                <span class="label-icon">🏷️</span>
-                Nom
-              </label>
-              <input 
-                type="text" 
-                id="name" 
-                [(ngModel)]="newGeometry.name" 
-                class="form-input"
-                [placeholder]="drawType === 'LineString' ? 'Nom de la route' : 'Nom de la zone'">
-            </div>
-            
-            <div class="form-group">
-              <label for="description">
-                <span class="label-icon">📝</span>
-                Description
-              </label>
-              <textarea 
-                id="description" 
-                [(ngModel)]="newGeometry.description" 
-                class="form-input form-textarea"
-                rows="3"
-                [placeholder]="drawType === 'LineString' ? 'Description de la route' : 'Description de la zone'"></textarea>
-            </div>
 
+          <!-- Properties controls -->
             <div class="form-row">
               <div class="form-group">
                 <label for="color">
@@ -190,43 +154,25 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
+              </div><!-- end tool-section (properties non-point) -->
         <!-- Point Properties -->
         <div class="tool-section" *ngIf="drawType === 'Point'">
           <div class="section-header">
             <div class="section-icon">📍</div>
             <h4>Propriétés Point</h4>
           </div>
-          
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="point-description">
-                <span class="label-icon">📝</span>
-                Description
-              </label>
+          <div class="form-group">
+            <label for="point-color">
+              <span class="label-icon">🎨</span>
+              Couleur
+            </label>
+            <div class="color-input-wrapper">
               <input 
-                type="text" 
-                id="point-description" 
-                [(ngModel)]="newGeometry.description" 
-                class="form-input"
-                placeholder="Description du point">
-            </div>
-            
-            <div class="form-group">
-              <label for="point-color">
-                <span class="label-icon">🎨</span>
-                Couleur
-              </label>
-              <div class="color-input-wrapper">
-                <input 
-                  type="color" 
-                  id="point-color" 
-                  [(ngModel)]="newGeometry.color" 
-                  class="form-color">
-                <span class="color-preview" [style.background-color]="newGeometry.color"></span>
-              </div>
+                type="color" 
+                id="point-color" 
+                [(ngModel)]="newGeometry.color" 
+                class="form-color">
+              <span class="color-preview" [style.background-color]="newGeometry.color"></span>
             </div>
           </div>
         </div>
@@ -242,24 +188,35 @@
             <div class="selection-info">
               <div class="info-item">
                 <span class="info-label">Type:</span>
-                <span class="info-value">{{ selectedFeature.get('type') }}</span>
+                <span class="info-value">{{ getFeatureTypeDisplay() }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">ID:</span>
-                <span class="info-value">{{ selectedFeature.get('data')?.id }}</span>
+                <span class="info-value">{{ selectedFeature.get('data')?.id || selectedFeature.get('id') }}</span>
               </div>
-              <div class="info-item" *ngIf="selectedFeature.get('data')?.name">
+              <div class="info-item" *ngIf="getFeatureName()">
                 <span class="info-label">Nom:</span>
-                <span class="info-value">{{ selectedFeature.get('data')?.name }}</span>
+                <span class="info-value">{{ getFeatureName() }}</span>
               </div>
             </div>
             
-            <button 
-              (click)="deleteSelectedFeature()" 
-              class="btn btn-danger btn-with-icon btn-full">
-              <span class="btn-icon">🗑️</span>
-              Supprimer
-            </button>
+            <div class="selection-actions">
+              <!-- Signaler Anomalie button for existing assets -->
+              <button 
+                (click)="signalAnomalieForSelectedFeature()" 
+                class="btn btn-warning btn-with-icon btn-full"
+                *ngIf="isExistingAsset()">
+                <span class="btn-icon">📝</span>
+                Signaler Anomalie
+              </button>
+              
+              <button 
+                (click)="deleteSelectedFeature()" 
+                class="btn btn-danger btn-with-icon btn-full">
+                <span class="btn-icon">🗑️</span>
+                Supprimer
+              </button>
+            </div>
           </div>
         </div>
 
@@ -295,17 +252,7 @@
       <div class="map-toolbar">
         <div class="toolbar-left">
           <div class="view-controls">
-            <button class="toolbar-btn" (click)="resetView()" title="Vue par défaut">
-              <span class="btn-icon">🏠</span>
-            </button>
-            <button class="toolbar-btn" (click)="zoomIn()" title="Zoom avant">
-              <span class="btn-icon">🔍</span>
-              <span class="btn-icon small">+</span>
-            </button>
-            <button class="toolbar-btn" (click)="zoomOut()" title="Zoom arrière">
-              <span class="btn-icon">🔍</span>
-              <span class="btn-icon small">−</span>
-            </button>
+
           </div>
         </div>
         
@@ -316,19 +263,7 @@
           </div>
         </div>
         
-        <div class="toolbar-right">
-          <div class="layer-controls">
-            <button class="toolbar-btn" (click)="toggleLayer('satellite')" title="Vue satellite">
-              <span class="btn-icon">🛰️</span>
-            </button>
-            <button class="toolbar-btn" (click)="toggleLayer('terrain')" title="Vue terrain">
-              <span class="btn-icon">🏔️</span>
-            </button>
-            <button class="toolbar-btn" (click)="toggleFullscreen()" title="Plein écran">
-              <span class="btn-icon">⛶</span>
-            </button>
-          </div>
-        </div>
+
       </div>
       
       <div class="map-wrapper">
@@ -362,15 +297,7 @@
         <div *ngIf="isDrawing" class="drawing-status">
           <div class="drawing-info">
             <span class="drawing-icon">✏️</span>
-            <span>Mode dessin: {{ drawType === 'Point' ? 'Point' : drawType === 'Polygon' ? 'Zone' : 'Route' }}</span>
-          </div>
-        </div>
-
-        <!-- Signalement Mode Status -->
-        <div *ngIf="signalementMode" class="signalement-status">
-          <div class="signalement-info">
-            <span class="signalement-icon">🎯</span>
-            <span>Cliquez sur la carte pour signaler une anomalie</span>
+            <span>{{ getDrawingStatusText() }}</span>
           </div>
         </div>
       </div>
@@ -383,6 +310,7 @@
       <app-signalement-anomalie
         [latitude]="clickCoordinates?.[1]"
         [longitude]="clickCoordinates?.[0]"
+        [selectedAsset]="getSelectedAssetData()"
         (anomalieSignaled)="onAnomalieSignaled()"
         (cancelled)="onSignalementCancelled()">
       </app-signalement-anomalie>
@@ -394,9 +322,9 @@
     <div class="actif-modal">
       <app-actif-form
         [coordinates]="clickCoordinates"
+        [geometry]="currentDrawnGeometry"
         (submit)="onActifCreated($event)"
         (cancel)="onActifFormCancel()">
       </app-actif-form>
     </div>
   </div>
-</div>

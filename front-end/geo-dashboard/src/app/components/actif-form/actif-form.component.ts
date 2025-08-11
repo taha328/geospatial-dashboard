@@ -13,6 +13,7 @@ import { CarteIntegrationService } from '../../services/carte-integration.servic
 })
 export class ActifFormComponent implements OnInit {
   @Input() coordinates: [number, number] | null = null;
+  @Input() geometry: any = null; // GeoJSON geometry for polygon/linestring actifs
   @Input() editMode = false;
   @Input() actifId: number | null = null;
   
@@ -44,6 +45,14 @@ export class ActifFormComponent implements OnInit {
         latitude: this.coordinates[1]   // latitude
       });
     }
+
+    if (this.geometry) {
+      // For polygon/linestring actifs, we don't need lat/lng
+      this.actifForm.get('latitude')?.setValidators(null);
+      this.actifForm.get('longitude')?.setValidators(null);
+      this.actifForm.get('latitude')?.updateValueAndValidity();
+      this.actifForm.get('longitude')?.updateValueAndValidity();
+    }
     
     if (this.editMode && this.actifId) {
       this.loadActifDetails();
@@ -62,8 +71,8 @@ export class ActifFormComponent implements OnInit {
       numeroSerie: [''],
       statutOperationnel: ['operationnel'],
       etatGeneral: ['bon'],
-      latitude: [null, Validators.required],
-      longitude: [null, Validators.required],
+      latitude: [null, this.geometry ? null : Validators.required], // Not required for polygon/linestring
+      longitude: [null, this.geometry ? null : Validators.required], // Not required for polygon/linestring
       dateMiseEnService: [this.formatDate(new Date())],
       dateFinGarantie: [''],
       fournisseur: [''],
@@ -226,19 +235,28 @@ export class ActifFormComponent implements OnInit {
       return;
     }
 
-    // Si l'actif a des coordonnées, utiliser le service de carte (pour les actifs créés depuis la carte)
+    // Si l'actif a des coordonnées ou une géométrie, utiliser le service de carte
     // Sinon, utiliser le service actif normal (pour les actifs créés depuis le formulaire de gestion)
     let createObservable;
     
-    if (actifData.latitude && actifData.longitude && this.coordinates) {
-      // Préparer les données pour l'API de carte (format GeoJSON)
+    if (this.coordinates || this.geometry) {
+      // Préparer les données pour l'API de carte (format spécialisé)
       const geoData = {
-        ...actifData,
-        geom: {
-          type: 'Point',
-          coordinates: [actifData.longitude, actifData.latitude]
-        }
+        ...actifData
       };
+
+      // Add coordinates or geometry based on what we have
+      if (this.coordinates && actifData.latitude && actifData.longitude) {
+        // Point actif - pas besoin de changement
+      } else if (this.geometry) {
+        // Polygon/LineString actif
+        console.log('Adding geometry to actif data:', this.geometry);
+        geoData.geometry = this.geometry;
+        // Remove lat/lng for geometry-based actifs
+        delete geoData.latitude;
+        delete geoData.longitude;
+      }
+
       createObservable = this.carteIntegrationService.createActif(geoData);
     } else {
       // Utiliser le service actif normal

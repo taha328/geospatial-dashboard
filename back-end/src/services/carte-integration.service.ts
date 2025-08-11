@@ -21,7 +21,8 @@ export class CarteIntegrationService {
       portefeuille.children?.forEach(famille => {
         famille.children?.forEach(groupe => {
           groupe.children?.forEach(actif => {
-            if (actif.latitude && actif.longitude) {
+            // Include actifs with either coordinates OR geometry
+            if ((actif.latitude && actif.longitude) || actif.geometry) {
               actifs.push({
                 id: actif.id,
                 nom: actif.nom,
@@ -31,6 +32,7 @@ export class CarteIntegrationService {
                 etatGeneral: actif.etatGeneral,
                 latitude: actif.latitude,
                 longitude: actif.longitude,
+                geometry: actif.geometry, // Include geometry for polygon/linestring actifs
                 code: actif.code,
                 numeroSerie: actif.numeroSerie,
                 groupeNom: groupe.nom,
@@ -50,7 +52,8 @@ export class CarteIntegrationService {
     // Récupérer également les actifs qui ne sont pas associés à un groupe
     const actifsSansGroupe = await this.actifService.findActifsSansGroupe();
     actifsSansGroupe.forEach(actif => {
-      if (actif.latitude && actif.longitude) {
+      // Include actifs with either coordinates OR geometry
+      if ((actif.latitude && actif.longitude) || actif.geometry) {
         actifs.push({
           id: actif.id,
           nom: actif.nom,
@@ -60,6 +63,7 @@ export class CarteIntegrationService {
           etatGeneral: actif.etatGeneral,
           latitude: actif.latitude,
           longitude: actif.longitude,
+          geometry: actif.geometry, // Include geometry for polygon/linestring actifs
           code: actif.code,
           numeroSerie: actif.numeroSerie,
           // Ces actifs n'ont pas de groupe/famille/portefeuille
@@ -212,27 +216,45 @@ export class CarteIntegrationService {
     type: string;
     statutOperationnel: string;
     etatGeneral: string;
-    geom: {
+    geom?: {
       type: string;
-      coordinates: [number, number];
+      coordinates: [number, number] | [number, number][] | [number, number][][]; // Point | LineString | Polygon
     };
+    geometry?: any; // GeoJSON geometry for complex shapes
+    latitude?: number;
+    longitude?: number;
   }) {
     try {
-      // Extraire les coordonnées
-      const [longitude, latitude] = actifData.geom.coordinates;
-      
-      // Créer l'actif avec le service ActifService
-      return this.actifService.createActifFromMap({
+      let createData: any = {
         nom: actifData.nom,
         code: actifData.code,
         type: actifData.type || 'equipment',
         statutOperationnel: actifData.statutOperationnel || 'operationnel',
         etatGeneral: actifData.etatGeneral || 'bon',
-        latitude,
-        longitude,
         dateInstallation: new Date(),
         dateAcquisition: new Date()
-      });
+      };
+
+      // Handle different geometry types
+      if (actifData.geom && actifData.geom.type === 'Point') {
+        // Point geometry - extract coordinates
+        const [longitude, latitude] = actifData.geom.coordinates as [number, number];
+        createData.latitude = latitude;
+        createData.longitude = longitude;
+      } else if (actifData.latitude && actifData.longitude) {
+        // Direct coordinates provided
+        createData.latitude = actifData.latitude;
+        createData.longitude = actifData.longitude;
+      } else if (actifData.geometry || (actifData.geom && ['LineString', 'Polygon'].includes(actifData.geom.type))) {
+        // Complex geometry (LineString, Polygon) - use geometry field
+        console.log('Processing complex geometry:', actifData.geometry || actifData.geom);
+        createData.geometry = actifData.geometry || actifData.geom;
+      } else {
+        throw new Error('Either point coordinates or geometry must be provided');
+      }
+      
+      // Créer l'actif avec le service ActifService
+      return this.actifService.createActifFromMap(createData);
     } catch (error) {
       throw new Error(`Erreur lors de la création de l'actif: ${error.message}`);
     }

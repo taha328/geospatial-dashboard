@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CarteIntegrationService, SignalementAnomalie } from '../../services/carte-integration.service';
@@ -20,9 +20,10 @@ interface ImagePreview {
   templateUrl: './signalement-anomalie.component.html',
   styleUrls: ['./signalement-anomalie.component.scss']
 })
-export class SignalementAnomalieComponent implements OnInit {
+export class SignalementAnomalieComponent implements OnInit, OnChanges {
   @Input() latitude?: number;
   @Input() longitude?: number;
+  @Input() selectedAsset?: any; // The pre-selected asset from the map
   @Output() anomalieSignaled = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
@@ -86,27 +87,31 @@ export class SignalementAnomalieComponent implements OnInit {
       });
     }
     
-    // Load all assets following geospatial dashboard patterns
-    this.loadAllActifs();
+    // Set actifId if selectedAsset is provided
+    if (this.selectedAsset) {
+      this.signalementForm.patchValue({
+  actifId: (this.selectedAsset as any).data?.id || this.selectedAsset.id
+      });
+    }
+    
+    // We no longer load all assets for manual selection when an asset is required
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedAsset'] && this.selectedAsset) {
+      const id = (this.selectedAsset as any).data?.id || this.selectedAsset.id;
+      if (id) {
+        this.signalementForm.patchValue({ actifId: id });
+        this.signalementForm.get('actifId')?.markAsDirty();
+        this.signalementForm.get('actifId')?.markAsTouched();
+      }
+    }
   }
 
   /**
    * Load all assets following project service patterns
    */
-  async loadAllActifs() {
-    try {
-      this.isLoadingActifs = true;
-      const allAssets = await this.actifService.getActifs().toPromise();
-      this.allActifs = allAssets || [];
-      
-      console.log(`Loaded ${this.allActifs.length} actifs for anomaly reporting`);
-    } catch (error) {
-      console.error('Error loading all actifs:', error);
-      this.errorMessage = 'Erreur lors du chargement des actifs disponibles.';
-    } finally {
-      this.isLoadingActifs = false;
-    }
-  }
+  // Removed manual asset loading dropdown logic since selection comes from map
 
   setCoordinates(lat: number, lng: number) {
     this.signalementForm.patchValue({
@@ -324,13 +329,24 @@ export class SignalementAnomalieComponent implements OnInit {
   /**
    * Get display text for selected asset following UI patterns
    */
-  getSelectedActifDisplay(): string {
-    const selectedId = this.signalementForm.get('actifId')?.value;
-    if (!selectedId) return '';
-    
-    const selectedActif = this.allActifs.find(actif => actif.id === parseInt(selectedId));
-    
-    return selectedActif ? `${selectedActif.nom} (${selectedActif.code})` : '';
+  // Dropdown display helper removed (no longer needed)
+
+  /**
+   * Helper methods for selected asset display when asset is pre-selected from map
+   */
+  getSelectedAssetName(): string {
+    if (!this.selectedAsset) return '';
+  const data = (this.selectedAsset as any).data || {};
+  const name = data.nom || data.name || this.selectedAsset.nom || this.selectedAsset.name;
+  if (name) return name;
+  // If no name, optionally return empty so UI can handle gracefully
+  return '';
+  }
+
+  getSelectedAssetCode(): string {
+    if (!this.selectedAsset) return '';
+  const data = (this.selectedAsset as any).data || {};
+  return data.code || this.selectedAsset.code || 'N/A';
   }
 
   /**

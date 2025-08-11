@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { CarteIntegrationService } from '../services/carte-integration.service';
 import { AnomalieService } from '../gestion_des_actifs/services/anomalie.service';
+import { CreateActifFromMapDto } from '../carte-integration/dto/create-actif-from-map.dto';
 
 @Controller('api/carte')
 export class CarteIntegrationController {
@@ -68,19 +69,21 @@ export class CarteIntegrationController {
   }
 
   @Post('actifs')
-  async createActif(@Body() actifData: {
-    nom: string;
-    code: string;
-    type: string;
-    statutOperationnel: string;
-    etatGeneral: string;
-    geom: {
-      type: string;
-      coordinates: [number, number];
-    };
-  }) {
+  async createActif(@Body() actifData: CreateActifFromMapDto) {
     try {
-      return await this.carteIntegrationService.createActif(actifData);
+      // Transform the DTO data to match the service interface
+      const serviceData = {
+        nom: actifData.nom,
+        code: actifData.code,
+        type: actifData.type,
+        statutOperationnel: actifData.statutOperationnel,
+        etatGeneral: actifData.etatGeneral,
+        latitude: actifData.latitude,
+        longitude: actifData.longitude,
+        geometry: actifData.geometry,
+      };
+
+      return await this.carteIntegrationService.createActif(serviceData);
     } catch (error) {
       // Renvoyer une réponse d'erreur appropriée
       throw new HttpException({

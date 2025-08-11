@@ -79,46 +79,31 @@
         <div class="row g-3 mt-2">
           <div class="col-md-12">
             <div class="form-group">
-              <label for="actifId" class="form-label required">
+              <label class="form-label required">
                 <span class="label-icon">🏭</span>
                 Actif Concerné
               </label>
-              
-              <!-- Loading state -->
-              <div *ngIf="isLoadingActifs" class="loading-overlay">
-                <div class="spinner-border spinner-border-sm me-2"></div>
-                <span>Chargement...</span>
+              <!-- Always show auto-selected asset card -->
+              <div class="selected-asset-display" *ngIf="selectedAsset; else noAssetSelected">
+                <div class="asset-info-card compact">
+                  <div class="asset-icon"><i class="fas fa-cog"></i></div>
+                  <div class="asset-details">
+                    <h5 class="asset-name">{{ getSelectedAssetName() || 'Actif sélectionné' }}</h5>
+                    <small class="asset-hint text-muted">{{ getSelectedAssetName() || '—' }}</small>
+                  </div>
+                  <div class="asset-status">
+                    <span class="badge bg-light text-secondary border"><i class="fas fa-check me-1"></i>Sélectionné</span>
+                  </div>
+                </div>
+                <input type="hidden" formControlName="actifId" />
               </div>
-              
-              <select 
-                id="actifId"
-                class="form-select form-select-sm"
-                [class.is-invalid]="isFieldInvalid('actifId')"
-                [class.is-valid]="signalementForm.get('actifId')?.valid && signalementForm.get('actifId')?.touched"
-                formControlName="actifId">
-                <option value="" disabled>Sélectionner un actif</option>
-                <option 
-                  *ngFor="let actif of allActifs" 
-                  [value]="actif.id"
-                  [title]="actif.description || actif.nom">
-                  {{ actif.nom }} ({{ actif.code }})
-                </option>
-                <option value="" disabled *ngIf="allActifs.length === 0">
-                  Aucun actif disponible
-                </option>
-              </select>
-              
-              <div *ngIf="isFieldInvalid('actifId')" class="invalid-feedback">
-                {{ getFieldErrorMessage('actifId') }}
-              </div>
+              <ng-template #noAssetSelected>
+                <div class="alert alert-warning p-2">
+                  Aucun actif n'a été transmis. Fermez et sélectionnez un actif sur la carte.
+                </div>
+              </ng-template>
             </div>
           </div>
-        </div>
-        
-        <!-- Selected Asset Display -->
-        <div *ngIf="getSelectedActifDisplay()" class="selected-asset-info">
-          <i class="fas fa-check me-2"></i>
-          <strong>Sélectionné:</strong> {{ getSelectedActifDisplay() }}
         </div>
       </div>
 

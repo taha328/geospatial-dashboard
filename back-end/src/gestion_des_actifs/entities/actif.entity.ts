@@ -29,11 +29,19 @@ export class Actif {
   @Column({ type: 'enum', enum: ['bon', 'moyen', 'mauvais', 'critique'], default: 'bon' })
   etatGeneral: string;
 
-  @Column('decimal', { precision: 10, scale: 6 })
+  @Column('decimal', { precision: 10, scale: 6, nullable: true })
   latitude: number;
 
-  @Column('decimal', { precision: 10, scale: 6 })
+  @Column('decimal', { precision: 10, scale: 6, nullable: true })
   longitude: number;
+
+  @Column({
+    type: 'geometry',
+    spatialFeatureType: 'Geometry',
+    srid: 26191, // Merchich / Nord Maroc SRID
+    nullable: true 
+  })
+  geometry: any; // PostGIS geometry for polygon/linestring actifs
 
   @Column({ type: 'date', nullable: true })
   dateMiseEnService: Date;

@@ -10,13 +10,31 @@
 }
 
 .navbar-container {
-  max-width: min(1000px, 95vw);
-  margin: 0 auto;
-  padding: 0 16px;
+  width: 100%;
+  margin: 0; // occupy full width
+  padding: 0 28px; // a bit more horizontal breathing room on large screens
+  display: flex;
+  align-items: stretch;
+  min-height: 64px;
+  gap: 24px;
+}
+
+// Distribute main zones
+.navbar-brand { flex: 1 1 auto; }
+.navbar-nav { flex: 2 1 0; justify-content: center; }
+.navbar-actions { flex: 1 1 auto; justify-content: flex-end; }
+
+// Ensure internal flex alignment
+.navbar-brand,
+.navbar-nav,
+.navbar-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 64px;
+}
+
+// Center nav links horizontally when space allows
+.navbar-nav { 
+  gap: 12px; 
 }
 
 // Brand Section
