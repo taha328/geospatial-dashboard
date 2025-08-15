@@ -549,46 +549,29 @@ export class MapComponent implements OnInit, OnDestroy {
    * Get selected asset data for anomaly form
    * Extracts asset properties from OpenLayers feature
    */
-  getSelectedAssetData(): any {
+    getSelectedAssetData(): any {
     if (!this.selectedAssetForAnomalie) {
       return null;
     }
 
     // Extract properties from the OpenLayers feature
-    const properties = this.selectedAssetForAnomalie.getProperties();
-    const data: any = properties['data'] || {};
-    const rawId = properties['id'] ?? data.id;
-    const nom = (
-      data.nom ||
-      data.name ||
-      (data as any).libelle ||
-      (data as any).label ||
-      (data as any).designation ||
-      properties['nom'] ||
-      properties['name'] ||
-      properties['libelle'] ||
-      properties['label'] ||
-      properties['designation'] ||
-      ''
-    );
-    const code = data.code || properties['code'] || (rawId != null ? String(rawId) : '');
-    const type = data.type || data.famille_type || properties['type'] || properties['famille_type'];
-    
-    // Return asset data in the format expected by anomaly component
-    const selected = {
-      id: rawId,
-      nom,
-      code,
-      type,
-      data, // keep full original data
-      // Include any other relevant properties
-      ...properties
-    };
-    if (!nom) {
-      // Helpful debug once; guard against flooding console
-      try { console.debug('Selected asset has no name properties', selected); } catch {}
-    }
-    return selected;
+      const properties: Record<string, any> = this.selectedAssetForAnomalie.getProperties();
+
+      // Avoid including the geometry object itself if present
+      const { geometry, Geometry, ...rest } = properties;
+
+      const id = rest['id'] ?? rest['actifId'] ?? rest['objectId'];
+      const code = rest['code'] ?? (id !== undefined ? String(id) : undefined);
+      const nom = rest['nom'] ?? rest['name'] ?? 'Actif sélectionné';
+      const type = rest['type'] ?? rest['famille_type'] ?? rest['categorie'] ?? rest['assetType'];
+
+      return {
+        id,
+        code: code || '',
+        nom,
+        type: type || 'inconnu',
+        ...rest
+      };
   }
 
   // UI control methods
