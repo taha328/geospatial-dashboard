@@ -1,5 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { Point, Polygon } from 'geojson';
 
 @Entity()
 export class Zone {

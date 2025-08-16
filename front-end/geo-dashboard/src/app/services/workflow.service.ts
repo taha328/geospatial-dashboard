@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface WorkflowAnomalie {
   anomalie: {
@@ -61,20 +62,20 @@ export interface AssetWorkflowSummary {
   providedIn: 'root'
 })
 export class WorkflowService {
-  private apiUrl = 'http://localhost:3000/workflow';
+  private baseUrl = `${environment.apiUrl}/workflow`;
 
   constructor(private http: HttpClient) {}
 
   getAnomalieWorkflow(anomalieId: number): Observable<WorkflowAnomalie> {
-    return this.http.get<WorkflowAnomalie>(`${this.apiUrl}/anomalie/${anomalieId}`);
+    return this.http.get<WorkflowAnomalie>(`${this.baseUrl}/anomalie/${anomalieId}`);
   }
 
   getMaintenanceWorkflow(maintenanceId: number): Observable<WorkflowMaintenance> {
-    return this.http.get<WorkflowMaintenance>(`${this.apiUrl}/maintenance/${maintenanceId}`);
+    return this.http.get<WorkflowMaintenance>(`${this.baseUrl}/maintenance/${maintenanceId}`);
   }
 
   getAssetWorkflowSummary(actifId: number): Observable<AssetWorkflowSummary> {
-    return this.http.get<AssetWorkflowSummary>(`${this.apiUrl}/asset/${actifId}/summary`);
+    return this.http.get<AssetWorkflowSummary>(`${this.baseUrl}/asset/${actifId}/summary`);
   }
 
   createMaintenanceFromAnomalie(anomalieId: number, data: {
@@ -84,11 +85,11 @@ export class WorkflowService {
     technicienResponsable?: string;
     coutEstime?: number;
   }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/anomalie/${anomalieId}/create-maintenance`, data);
+    return this.http.post(`${this.baseUrl}/anomalie/${anomalieId}/create-maintenance`, data);
   }
 
   startMaintenance(maintenanceId: number): Observable<any> {
-    return this.http.put(`${this.apiUrl}/maintenance/${maintenanceId}/start`, {});
+    return this.http.put(`${this.baseUrl}/maintenance/${maintenanceId}/start`, {});
   }
 
   completeMaintenance(maintenanceId: number, data: {
@@ -97,13 +98,13 @@ export class WorkflowService {
     piecesRemplacees?: any;
     resolveLinkedAnomaly?: boolean;
   }): Observable<any> {
-    return this.http.put(`${this.apiUrl}/maintenance/${maintenanceId}/complete`, data);
+    return this.http.put(`${this.baseUrl}/maintenance/${maintenanceId}/complete`, data);
   }
 
   resolveAnomalie(anomalieId: number, data: {
     actionsCorrectives: string;
     resolvedBy?: string;
   }): Observable<any> {
-    return this.http.put(`${this.apiUrl}/anomalie/${anomalieId}/resolve`, data);
+    return this.http.put(`${this.baseUrl}/anomalie/${anomalieId}/resolve`, data);
   }
 }

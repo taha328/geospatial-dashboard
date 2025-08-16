@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@
 import { MaintenanceService } from '../services/maintenance.service';
 import { Maintenance } from '../entities/maintenance.entity';
 
-@Controller('api/maintenances')
+@Controller('maintenances')
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}
 

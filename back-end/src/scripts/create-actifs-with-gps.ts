@@ -38,67 +38,55 @@ async function createActifsWithGPS() {
      const actifsToCreate = [
       {
         nom: 'Grue Portuaire A1',
-        code: 'GR-A1-001', // <--- ADDED
-        numeroSerie: 'SN-GR-A1-2020-001', // <--- ADDED
+        code: 'GR-A1-001',
         description: 'Grue principale pour containers',
         type: 'Équipement de manutention',
-        statut: 'operationnel',
         valeurAcquisition: 450000,
         dateAcquisition: new Date('2020-01-15'),
-        dateFinGarantie: new Date('2022-01-14'), // <--- ADDED
-        fournisseur: 'Liebherr', // <--- ADDED
+        dateFinGarantie: new Date('2022-01-14'),
+        fournisseur: 'Liebherr',
         durableVieUtile: 25,
         offset: { lat: 0.001, lng: 0.002 }
       },
       {
         nom: 'Grue Portuaire A2',
-        code: 'GR-A2-002', // <--- ADDED
-        numeroSerie: 'SN-GR-A2-2020-002', // <--- ADDED
+        code: 'GR-A2-002',
         description: 'Grue secondaire pour containers',
         type: 'Équipement de manutention',
-        statut: 'operationnel',
         valeurAcquisition: 420000,
         dateAcquisition: new Date('2020-03-10'),
-        dateFinGarantie: new Date('2022-03-09'), // <--- ADDED
-        fournisseur: 'Konecranes', // <--- ADDED
+        dateFinGarantie: new Date('2022-03-09'),
+        fournisseur: 'Konecranes',
         durableVieUtile: 25,
         offset: { lat: 0.0015, lng: 0.0025 }
       },
       {
         nom: 'Portique Roulant B1',
-        code: 'PR-B1-001', // <--- ADDED
-        numeroSerie: 'SN-PR-B1-2019-001', // <--- ADDED
+        code: 'PR-B1-001',
         description: 'Portique pour manutention lourde',
         type: 'Équipement de manutention',
-        statut: 'maintenance',
         valeurAcquisition: 280000,
         dateAcquisition: new Date('2019-08-20'),
-        dateFinGarantie: new Date('2021-08-19'), // <--- ADDED
-        fournisseur: 'ZPMC', // <--- ADDED
+        dateFinGarantie: new Date('2021-08-19'),
+        fournisseur: 'ZPMC',
         durableVieUtile: 20,
         offset: { lat: -0.001, lng: 0.001 }
       },
       {
         nom: 'Chariot Élévateur C1',
-        code: 'CE-C1-001', // <--- ADDED
-        numeroSerie: 'SN-CE-C1-2021-001', // <--- ADDED
+        code: 'CE-C1-001',
         description: 'Chariot élévateur 5 tonnes',
         type: 'Véhicule de service',
-        statut: 'operationnel',
         valeurAcquisition: 35000,
         dateAcquisition: new Date('2021-05-12'),
-        dateFinGarantie: null, // Example of null value if no warranty
-        fournisseur: 'Toyota Material Handling', // <--- ADDED
+        dateFinGarantie: null,
+        fournisseur: 'Toyota Material Handling',
         durableVieUtile: 10,
         offset: { lat: 0.0005, lng: -0.001 }
       },
-      // ... Add the missing fields (code, numeroSerie, dateFinGarantie, fournisseur)
-      // to the rest of the objects in the array in the same way.
-      // Make sure every object in the array has these properties.
       {
         nom: 'Chariot Élévateur C2',
         code: 'CE-C2-002',
-        numeroSerie: 'SN-CE-C2-2021-002',
         description: 'Chariot élévateur 3 tonnes',
         type: 'Véhicule de service',
         statut: 'operationnel',
@@ -112,7 +100,6 @@ async function createActifsWithGPS() {
       {
         nom: 'Système Éclairage Zone A',
         code: 'ECL-A-001',
-        numeroSerie: 'N/A',
         description: 'Éclairage LED haute performance',
         type: 'Infrastructure',
         statut: 'operationnel',
@@ -126,7 +113,6 @@ async function createActifsWithGPS() {
       {
         nom: 'Bollards Quai Nord',
         code: 'BOL-N-001',
-        numeroSerie: 'N/A',
         description: 'Bollards d\'amarrage renforcés',
         type: 'Infrastructure',
         statut: 'operationnel',
@@ -140,7 +126,6 @@ async function createActifsWithGPS() {
       {
         nom: 'Système Surveillance S1',
         code: 'SURV-S1-001',
-        numeroSerie: 'SN-SURV-S1-2021-001',
         description: 'Caméras de surveillance HD',
         type: 'Sécurité',
         statut: 'operationnel',
@@ -154,7 +139,6 @@ async function createActifsWithGPS() {
       {
         nom: 'Générateur Secours G1',
         code: 'GEN-G1-001',
-        numeroSerie: 'SN-GEN-G1-2020-001',
         description: 'Générateur diesel 500 kVA',
         type: 'Équipement électrique',
         statut: 'operationnel',
@@ -168,7 +152,6 @@ async function createActifsWithGPS() {
       {
         nom: 'Balances Électroniques B1',
         code: 'BAL-B1-001',
-        numeroSerie: 'SN-BAL-B1-2018-001',
         description: 'Balances pour containers',
         type: 'Équipement de mesure',
         statut: 'hors_service',
@@ -194,7 +177,7 @@ async function createActifsWithGPS() {
         description: actifData.description,
         type: actifData.type,
         code: actifData.code,
-        numeroSerie: actifData.numeroSerie,
+
         statutOperationnel: actifData.statut,
         valeurAcquisition: actifData.valeurAcquisition,
         dateMiseEnService: actifData.dateAcquisition,

@@ -199,7 +199,7 @@ async function ajouterActifsSurCarte() {
       const actif = await actifService.create({
         ...actifData,
         groupeActifId: groupeActifId || undefined,
-        numeroSerie: `SN-${actifData.code}-${Date.now()}`,
+
         dateMiseEnService: new Date(),
         fournisseur: 'Port Authority Equipment',
         valeurAcquisition: Math.random() * 100000 + 50000 // Valeur aléatoire

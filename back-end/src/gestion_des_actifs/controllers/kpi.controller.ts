@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { KPIService, KPIData } from '../services/kpi.service';
 
-@Controller('api/kpis')
+@Controller('kpis')
 export class KPIController {
   constructor(private readonly kpiService: KPIService) {}
 

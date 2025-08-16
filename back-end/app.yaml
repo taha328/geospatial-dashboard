@@ -1,0 +1,13 @@
+runtime: nodejs20
+service: default
+
+env_variables:
+  NODE_ENV: production
+  DB_USERNAME: postgres
+  DB_NAME: db
+  DB_HOST: /cloudsql/integrated-hawk-466115-q5:us-central1:geospatial-db
+  DB_PASSWORD: SetAStrongPassword123!    # or fetch via Secret Manager later
+  RUN_MIGRATIONS: "false"
+
+beta_settings:
+  cloud_sql_instances: integrated-hawk-466115-q5:us-central1:geospatial-db

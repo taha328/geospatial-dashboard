@@ -1,7 +1,7 @@
 import { Controller, Post, Get } from '@nestjs/common';
 import { ActifsSeedService } from './actifs-seed.service';
 
-@Controller('api/seed')
+@Controller('seed')
 export class SeedController {
   constructor(private readonly actifsSeedService: ActifsSeedService) {}
 

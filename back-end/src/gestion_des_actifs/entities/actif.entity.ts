@@ -20,8 +20,6 @@ export class Actif {
   @Column({ length: 100, unique: true })
   code: string;
 
-  @Column({ length: 100, nullable: true })
-  numeroSerie: string;
 
   @Column({ type: 'enum', enum: ['operationnel', 'hors_service', 'maintenance', 'alerte'], default: 'operationnel' })
   statutOperationnel: string;

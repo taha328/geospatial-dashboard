@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, N
 import { ActifService } from '../services/actif.service';
 import { Actif } from '../entities/actif.entity';
 
-@Controller('api/actifs')
+@Controller('actifs')
 export class ActifController {
   constructor(private readonly actifService: ActifService) {}
 

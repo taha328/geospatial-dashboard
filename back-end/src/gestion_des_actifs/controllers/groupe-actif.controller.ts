@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query } 
 import { GroupeActifService } from '../services/groupe-actif.service';
 import { GroupeActif } from '../entities/groupe-actif.entity';
 
-@Controller('api/groupes')
+@Controller('groupes')
 export class GroupeActifController {
   constructor(private readonly groupeActifService: GroupeActifService) {}
 

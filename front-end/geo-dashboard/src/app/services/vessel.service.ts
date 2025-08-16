@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface VesselApiResponse {
   vessels: any[];
@@ -22,7 +23,7 @@ export interface VesselTrackPoint {
   providedIn: 'root'
 })
 export class VesselService {
-  private baseUrl = 'http://localhost:3000/api'; // Adjust to match your backend
+  private baseUrl = `${environment.apiUrl}/vessels`;
 
   constructor(private http: HttpClient) {}
 

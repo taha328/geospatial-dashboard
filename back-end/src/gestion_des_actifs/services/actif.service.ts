@@ -141,17 +141,8 @@ export class ActifService {
   /**
    * Crée un nouvel actif directement depuis la carte
    */
-  async createActifFromMap(actifData: {
-    nom: string;
-    code: string;
-    type: string;
-    statutOperationnel: string;
-    etatGeneral: string;
-    latitude?: number;
-    longitude?: number;
-    geometry?: any;
-    groupeActifId?: number;
-  }): Promise<Actif> {
+  // Accept all fields from DTO
+  async createActifFromMap(actifData: any): Promise<Actif> {
     if (actifData.code) {
       const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
       if (existingActif) {
@@ -186,35 +177,43 @@ export class ActifService {
       const query = `
         INSERT INTO actifs (
           nom, code, type, "statutOperationnel", "etatGeneral", 
-          geometry, "groupeActifId", description, "dateMiseEnService"
+          geometry, "groupeActifId", description, "dateMiseEnService",
+          "dateFinGarantie", fournisseur, "valeurAcquisition", specifications, latitude, longitude
         )
-        VALUES ($1, $2, $3, $4, $5, ${geometryForDb}, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, ${geometryForDb}, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING 
           id, nom, code, type, "statutOperationnel", "etatGeneral",
           ST_AsGeoJSON(ST_Transform(geometry, 4326)) as geometry,
-          "groupeActifId", description, "dateCreation", "dateMiseAJour", "dateMiseEnService"
+          "groupeActifId", description, "dateCreation", "dateMiseAJour", "dateMiseEnService",
+          "dateFinGarantie", fournisseur, "valeurAcquisition", specifications, latitude, longitude
       `;
-      
       const params = [
-        actifData.nom,
-        actifData.code,
-        actifData.type,
-        actifData.statutOperationnel,
-        actifData.etatGeneral,
-        actifData.groupeActifId || null,
-        `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`,
-        new Date()
+  actifData.nom,
+  actifData.code,
+  actifData.type,
+  actifData.statutOperationnel,
+  actifData.etatGeneral,
+  actifData.groupeActifId || null,
+  actifData.description || `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`,
+  actifData.dateMiseEnService ? new Date(actifData.dateMiseEnService) : null,
+  actifData.dateFinGarantie ? new Date(actifData.dateFinGarantie) : null,
+  actifData.fournisseur || null,
+  actifData.valeurAcquisition || null,
+  actifData.specifications ? JSON.stringify(actifData.specifications) : null,
+  actifData.latitude || null,
+  actifData.longitude || null
       ];
-
       const result = await this.actifRepository.query(query, params);
-
       if (!result?.[0]) {
         throw new Error('Failed to create actif from map.');
       }
-
       const createdActif = result[0];
       createdActif.geometry = JSON.parse(createdActif.geometry);
-
+      if (createdActif.specifications && typeof createdActif.specifications === 'string') {
+        try {
+          createdActif.specifications = JSON.parse(createdActif.specifications);
+        } catch {}
+      }
       return createdActif as Actif;
     } catch (error) {
       console.error('Error creating actif from map:', error);

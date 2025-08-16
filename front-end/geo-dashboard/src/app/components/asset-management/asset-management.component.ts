@@ -3,7 +3,8 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ActifService, HierarchyNode, StatistiquesActifs, ActifPourCarte } from '../../services/actif.service';
+import { ActifService, HierarchyNode, StatistiquesActifs } from '../../services/actif.service';
+import { ActifPourCarte } from '../../services/carte-integration.service';
 import { AnomalieService, StatistiquesAnomalies, Anomalie } from '../../services/anomalie.service';
 import { MaintenanceService, StatistiquesMaintenance, Maintenance } from '../../services/maintenance.service';
 import { WorkflowService, AssetWorkflowSummary } from '../../services/workflow.service';
@@ -777,14 +778,19 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     return mapActifs.map(actif => ({
       id: actif.id,
       nom: actif.nom || actif.name,
-      code: actif.code || `ACT-${actif.id}`,
-      type: actif.type,
-      statutOperationnel: actif.status || actif.statutOperationnel || 'operationnel',
-      etatGeneral: actif.condition || actif.etatGeneral || 'bon',
+      type: actif.type || '',
+      typeActif: actif.typeActif || '',
+      statutOperationnel: actif.statutOperationnel || actif.status || 'operationnel',
+      etatGeneral: actif.etatGeneral || actif.condition || 'bon',
       latitude: actif.latitude,
       longitude: actif.longitude,
-      anomaliesActives: actif.anomaliesActives || 0,
-      maintenancesPrevues: actif.maintenancesPrevues || 0
+      code: actif.code || `ACT-${actif.id}`,
+      groupeNom: actif.groupeNom || actif.groupe || '',
+      familleNom: actif.familleNom || actif.famille || '',
+      portefeuilleNom: actif.portefeuilleNom || actif.portefeuille || '',
+      iconType: actif.iconType || '',
+      statusColor: actif.statusColor || '',
+      geometry: actif.geometry || null
     }));
   }
 
@@ -912,10 +918,13 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   getAssetPriority(actif: ActifPourCarte): string {
-    if (actif.anomaliesActives > 0) {
+    // Use anomaliesActives and maintenancesPrevues if present, else fallback to 0
+    const anomalies = (actif as any).anomaliesActives || 0;
+    const maintenances = (actif as any).maintenancesPrevues || 0;
+    if (anomalies > 0) {
       return 'critique';
     }
-    if (actif.maintenancesPrevues > 0) {
+    if (maintenances > 0) {
       return 'maintenance';
     }
     return 'normal';
@@ -941,15 +950,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   // Issue detection methods
   hasUrgentIssues(actif: ActifPourCarte): boolean {
-    return actif.anomaliesActives > 0;
+  return ((actif as any).anomaliesActives || 0) > 0;
   }
 
   needsMaintenance(actif: ActifPourCarte): boolean {
-    return actif.maintenancesPrevues > 0;
+  return ((actif as any).maintenancesPrevues || 0) > 0;
   }
 
   hasIssuesOrMaintenance(actif: ActifPourCarte): boolean {
-    return actif.anomaliesActives > 0 || actif.maintenancesPrevues > 0;
+  return ((actif as any).anomaliesActives || 0) > 0 || ((actif as any).maintenancesPrevues || 0) > 0;
   }
 
   // Enhanced filtering with priority support
@@ -980,9 +989,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
           actif.nom,
           actif.code,
           actif.type,
-          actif.groupe,
-          actif.famille,
-          actif.portefeuille
+          actif.groupeNom,
+          actif.familleNom,
+          actif.portefeuilleNom
         ].join(' ').toLowerCase();
         
         if (!searchableText.includes(searchText)) {

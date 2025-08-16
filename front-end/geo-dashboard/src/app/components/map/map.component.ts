@@ -719,13 +719,37 @@ export class MapComponent implements OnInit, OnDestroy {
     this.actifSource.clear();
 
     actifs.forEach(actif => {
-      if (actif.latitude && actif.longitude) {
-        const feature = new Feature({
+      let feature: Feature<Geometry> | null = null;
+      if (actif.latitude != null && actif.longitude != null) {
+        feature = new Feature({
           geometry: new Point(fromLonLat([actif.longitude, actif.latitude])),
           id: actif.id,
           type: 'actif',
           data: actif
         });
+      } else if (actif.geometry) {
+        // Try to parse GeoJSON geometry
+        try {
+          const geoJsonFormat = new GeoJSON();
+          const geojson = typeof actif.geometry === 'string' ? JSON.parse(actif.geometry) : actif.geometry;
+          const features = geoJsonFormat.readFeatures({
+            type: 'Feature',
+            geometry: geojson,
+            properties: {}
+          }, {
+            featureProjection: 'EPSG:3857'
+          });
+          if (features.length > 0) {
+            feature = features[0];
+            feature.setId(actif.id);
+            feature.set('type', 'actif');
+            feature.set('data', actif);
+          }
+        } catch (e) {
+          console.error('Erreur lors du parsing de la géométrie GeoJSON de l\'actif:', e, actif);
+        }
+      }
+      if (feature) {
         this.actifSource.addFeature(feature);
       }
     });

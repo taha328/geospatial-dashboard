@@ -68,11 +68,10 @@ export class ActifFormComponent implements OnInit {
       code: [{ value: this.editMode ? '' : '(Généré automatiquement)', disabled: !this.editMode }, this.editMode ? Validators.required : null],
       type: ['', Validators.required],
       description: [''],
-      numeroSerie: [''],
       statutOperationnel: ['operationnel'],
       etatGeneral: ['bon'],
-      latitude: [null, this.geometry ? null : Validators.required], // Not required for polygon/linestring
-      longitude: [null, this.geometry ? null : Validators.required], // Not required for polygon/linestring
+      latitude: [null, this.geometry ? null : Validators.required],
+      longitude: [null, this.geometry ? null : Validators.required],
       dateMiseEnService: [this.formatDate(new Date())],
       dateFinGarantie: [''],
       fournisseur: [''],
@@ -107,7 +106,6 @@ export class ActifFormComponent implements OnInit {
           code: actif.code,
           type: actif.type,
           description: actif.description,
-          numeroSerie: actif.numeroSerie,
           statutOperationnel: actif.statutOperationnel,
           etatGeneral: actif.etatGeneral,
           latitude: actif.latitude,
@@ -242,21 +240,20 @@ export class ActifFormComponent implements OnInit {
     if (this.coordinates || this.geometry) {
       // Préparer les données pour l'API de carte (format spécialisé)
       const geoData = {
-        ...actifData
+        ...actifData,
+        // Always send lat/lng if available, even with geometry
+        latitude: this.coordinates ? this.coordinates[1] : actifData.latitude,
+        longitude: this.coordinates ? this.coordinates[0] : actifData.longitude,
+        geometry: this.geometry ? this.geometry : undefined,
+        fournisseur: actifData.fournisseur,
+        valeurAcquisition: actifData.valeurAcquisition,
+        specifications: actifData.specifications,
+        groupeActifId: actifData.groupeActifId
       };
-
-      // Add coordinates or geometry based on what we have
-      if (this.coordinates && actifData.latitude && actifData.longitude) {
-        // Point actif - pas besoin de changement
-      } else if (this.geometry) {
-        // Polygon/LineString actif
-        console.log('Adding geometry to actif data:', this.geometry);
-        geoData.geometry = this.geometry;
-        // Remove lat/lng for geometry-based actifs
-        delete geoData.latitude;
-        delete geoData.longitude;
+      // Remove geometry if not present
+      if (!this.geometry) {
+        delete geoData.geometry;
       }
-
       createObservable = this.carteIntegrationService.createActif(geoData);
     } else {
       // Utiliser le service actif normal
@@ -307,7 +304,6 @@ export class ActifFormComponent implements OnInit {
       code: code,
       type: formValue.type,
       description: formValue.description,
-      numeroSerie: formValue.numeroSerie,
       statutOperationnel: formValue.statutOperationnel,
       etatGeneral: formValue.etatGeneral,
       latitude: formValue.latitude,

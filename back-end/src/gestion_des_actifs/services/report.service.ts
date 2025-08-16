@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Maintenance } from '../entities/maintenance.entity';
-import * as PDFDocument from 'pdfkit';
+// Runtime constructor import
+import PDFDocument from 'pdfkit';
+// Types import (namespace types like PDFKit.PDFDocument)
+// Types are available under the global namespace PDFKit (from @types/pdfkit)
+import type * as PDFKit from 'pdfkit';
 
 @Injectable()
 export class ReportService {

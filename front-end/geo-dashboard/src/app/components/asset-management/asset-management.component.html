@@ -282,9 +282,6 @@
                 <span class="detail-label">Code:</span>
                 <span class="detail-value">{{ selectedNode.code }}</span>
               </div>
-              <div class="detail-row" *ngIf="selectedNode.numeroSerie">
-                <span class="detail-label">N° Série:</span>
-                <span class="detail-value">{{ selectedNode.numeroSerie }}</span>
               </div>
               <div class="detail-row" *ngIf="selectedNode.statutOperationnel">
                 <span class="detail-label">Statut:</span>
@@ -483,7 +480,7 @@
                   <h4>{{ actif.nom }}</h4>
                   <div class="asset-meta">
                     <span class="asset-code">{{ actif.code }}</span>
-                    <span class="asset-group" *ngIf="actif.groupe">{{ actif.groupe }}</span>
+                    <span class="asset-group" *ngIf="actif.groupeNom">{{ actif.groupeNom }}</span>
                   </div>
                 </div>
               </div>
@@ -510,13 +507,13 @@
                     {{ actif.etatGeneral }}
                   </span>
                 </div>
-                <div class="info-item" *ngIf="actif.famille">
+                <div class="info-item" *ngIf="actif.familleNom">
                   <span class="info-label">Famille:</span>
-                  <span class="info-value">{{ actif.famille }}</span>
+                  <span class="info-value">{{ actif.familleNom }}</span>
                 </div>
-                <div class="info-item" *ngIf="actif.portefeuille">
+                <div class="info-item" *ngIf="actif.portefeuilleNom">
                   <span class="info-label">Portefeuille:</span>
-                  <span class="info-value">{{ actif.portefeuille }}</span>
+                  <span class="info-value">{{ actif.portefeuilleNom }}</span>
                 </div>
               </div>
             </div>
@@ -529,10 +526,10 @@
               
               <div class="issue-items">
                 <!-- Active Anomalies -->
-                <div class="issue-item anomaly" *ngIf="actif.anomaliesActives > 0">
+                <div class="issue-item anomaly" *ngIf="(actif['anomaliesActives'] || 0) > 0">
                   <div class="issue-icon">⚠️</div>
                   <div class="issue-details">
-                    <span class="issue-count">{{ actif.anomaliesActives }}</span>
+                    <span class="issue-count">{{ actif['anomaliesActives'] || 0 }}</span>
                     <span class="issue-label">Anomalie(s) active(s)</span>
                     <button class="issue-action-btn" 
                             (click)="viewAnomaliesForActif(actif, $event)"
@@ -543,10 +540,10 @@
                 </div>
                 
                 <!-- Planned Maintenance -->
-                <div class="issue-item maintenance" *ngIf="actif.maintenancesPrevues > 0">
+                <div class="issue-item maintenance" *ngIf="(actif['maintenancesPrevues'] || 0) > 0">
                   <div class="issue-icon">🔧</div>
                   <div class="issue-details">
-                    <span class="issue-count">{{ actif.maintenancesPrevues }}</span>
+                    <span class="issue-count">{{ actif['maintenancesPrevues'] || 0 }}</span>
                     <span class="issue-label">Maintenance(s) prévue(s)</span>
                     <button class="issue-action-btn" 
                             (click)="viewMaintenanceForActif(actif, $event)"
@@ -1155,7 +1152,7 @@
       </div>
     </div>
   </div>
-</div>
+
 
 <!-- Asset Details Modal -->
 <div class="modal fade" [class.show]="showAssetDetailsModal" [style.display]="showAssetDetailsModal ? 'block' : 'none'" *ngIf="showAssetDetailsModal">
@@ -1193,9 +1190,9 @@
               <h6>Hiérarchie & Localisation</h6>
               <dl class="row">
                 <dt class="col-sm-4">Groupe:</dt>
-                <dd class="col-sm-8">{{ selectedAssetForAction.groupe || 'Non assigné' }}</dd>
+                <dd class="col-sm-8">{{ selectedAssetForAction.groupeNom || 'Non assigné' }}</dd>
                 <dt class="col-sm-4">Famille:</dt>
-                <dd class="col-sm-8">{{ selectedAssetForAction.famille || 'Non assignée' }}</dd>
+                <dd class="col-sm-8">{{ selectedAssetForAction.familleNom || 'Non assignée' }}</dd>
                 <dt class="col-sm-4">Coordonnées:</dt>
                 <dd class="col-sm-8">{{ formatCoordinates(selectedAssetForAction) }}</dd>
               </dl>

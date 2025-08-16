@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, timer } from 'rxjs';
 import { catchError, switchMap, tap, filter } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // Following structure patterns from MAP_SYSTEM_README.md
 export interface KPIResponse {
@@ -43,7 +44,7 @@ export interface KPIResponse {
 })
 export class KpiService {
   // Backend endpoint from project instructions
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private baseUrl = `${environment.apiUrl}/kpi`;
   private kpiData = new BehaviorSubject<KPIResponse | null>(null);
   private refreshInterval = 30000; // 30 seconds
 
@@ -58,7 +59,7 @@ export class KpiService {
   }
 
   private fetchKPIs(): Observable<KPIResponse> {
-    return this.http.get<KPIResponse>(`${this.apiUrl}/kpis`).pipe(
+    return this.http.get<KPIResponse>(`${this.baseUrl}/kpis`).pipe(
       tap(data => this.kpiData.next(data)),
       catchError(error => {
         console.error('Error fetching KPIs:', error);
