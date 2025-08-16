@@ -53,3 +53,6 @@ coverage/
 # Optional: ignore temporary files
 *.tmp
 *.swp
+back-end/app.yaml
+front-end/geo-dashboard/src/environments/environment.ts
+front-end/geo-dashboard/src/environments/environment.ts
