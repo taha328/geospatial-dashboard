@@ -80,8 +80,7 @@ export class PortefeuilleService {
             etatGeneral: actif.etatGeneral,
             latitude: actif.latitude,
             longitude: actif.longitude,
-            code: actif.code,
-            numeroSerie: actif.numeroSerie
+            code: actif.code
           }))
         }))
       }))

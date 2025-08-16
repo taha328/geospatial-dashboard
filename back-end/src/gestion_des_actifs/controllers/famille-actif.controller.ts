@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@
 import { FamilleActifService } from '../services/famille-actif.service';
 import { FamilleActif } from '../entities/famille-actif.entity';
 
-@Controller('api/familles')
+@Controller('familles')
 export class FamilleActifController {
   constructor(private readonly familleActifService: FamilleActifService) {}
 

@@ -20,7 +20,7 @@ import { AnomalieService } from '../services/anomalie.service';
 import { Anomalie } from '../entities/anomalie.entity';
 import { WorkflowService } from '../services/workflow.service';
 
-@Controller('api/anomalies')
+@Controller('anomalies')
 export class AnomalieController {
   constructor(
     private readonly anomalieService: AnomalieService,

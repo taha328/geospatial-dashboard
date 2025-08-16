@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Anomalie {
   id: number;
@@ -59,7 +60,7 @@ export interface AnomalieParMois {
   providedIn: 'root'
 })
 export class AnomalieService {
-  private baseUrl = 'http://localhost:3000/api/anomalies';
+  private baseUrl = `${environment.apiUrl}/anomalies`;
 
   constructor(private http: HttpClient) {}
 

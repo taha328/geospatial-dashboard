@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface ActifPourCarte {
   id: number;
@@ -12,12 +13,14 @@ export interface ActifPourCarte {
   latitude: number;
   longitude: number;
   code: string;
-  numeroSerie: string;
   groupeNom: string;
   familleNom: string;
   portefeuilleNom: string;
   iconType: string;
   statusColor: string;
+  geometry?: any; // GeoJSON geometry for map display
+  anomaliesActives?: number;
+  maintenancesPrevues?: number;
 }
 
 export interface AnomaliePourCarte {
@@ -53,30 +56,34 @@ export interface SignalementAnomalie {
   providedIn: 'root'
 })
 export class CarteIntegrationService {
-  private apiUrl = 'http://localhost:3000/api/carte';
-  private anomaliesApiUrl = 'http://localhost:3000/api/anomalies'; // Add this
+  private baseUrl = `${environment.apiUrl}/carte`;
 
   constructor(private http: HttpClient) {}
 
   // Récupérer tous les actifs pour la carte
   getActifsForMap(): Observable<ActifPourCarte[]> {
-    return this.http.get<ActifPourCarte[]>(`${this.apiUrl}/actifs`);
+    return this.http.get<ActifPourCarte[]>(`${this.baseUrl}/actifs`);
   }
 
   // Récupérer toutes les anomalies pour la carte
   getAnomaliesForMap(): Observable<AnomaliePourCarte[]> {
-    return this.http.get<AnomaliePourCarte[]>(`${this.apiUrl}/anomalies`);
+    return this.http.get<AnomaliePourCarte[]>(`${this.baseUrl}/anomalies`);
   }
 
   // Récupérer le dashboard complet de la carte
   getCarteDashboard(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/dashboard`);
+    return this.http.get(`${this.baseUrl}/dashboard`);
   }
 
   // Signaler une anomalie depuis la carte
   signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie | FormData): Observable<any> {
-    // Use the correct endpoint that matches the backend controller
-    return this.http.post(`${this.anomaliesApiUrl}/carte/signaler`, anomalie);
+    // Use the correct carte endpoint for anomaly reporting
+    return this.http.post(`${this.baseUrl}/anomalies/signaler`, anomalie);
+  }
+
+  // Créer un nouvel actif depuis la carte
+  createActif(actifData: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/actifs`, actifData);
   }
 
   // Méthodes utilitaires pour l'affichage
@@ -123,10 +130,5 @@ export class CarteIntegrationService {
       'faible': 'Faible'
     };
     return labels[priorite] || priorite;
-  }
-
-  // Créer un nouvel actif
-  createActif(actifData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/actifs`, actifData);
   }
 }

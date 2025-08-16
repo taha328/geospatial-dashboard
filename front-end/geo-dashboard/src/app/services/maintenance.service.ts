@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Maintenance {
   id: number;
@@ -63,7 +64,7 @@ export interface CoutMaintenanceParMois {
   providedIn: 'root'
 })
 export class MaintenanceService {
-  private baseUrl = 'http://localhost:3000/api/maintenances';
+  private baseUrl = `${environment.apiUrl}/maintenances`;
 
   constructor(private http: HttpClient) {}
 

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@
 import { PortefeuilleService } from '../services/portefeuille.service';
 import { Portefeuille } from '../entities/portefeuille.entity';
 
-@Controller('api/portefeuilles')
+@Controller('portefeuilles')
 export class PortefeuilleController {
   constructor(private readonly portefeuilleService: PortefeuilleService) {}
 

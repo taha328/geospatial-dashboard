@@ -5,7 +5,7 @@ import { CarteIntegrationService } from '../services/carte-integration.service';
 import { AnomalieService } from '../gestion_des_actifs/services/anomalie.service';
 import { CreateActifFromMapDto } from '../carte-integration/dto/create-actif-from-map.dto';
 
-@Controller('api/carte')
+@Controller('carte')
 export class CarteIntegrationController {
   constructor(
     private readonly carteIntegrationService: CarteIntegrationService,

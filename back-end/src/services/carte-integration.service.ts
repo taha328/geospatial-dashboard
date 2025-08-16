@@ -34,7 +34,6 @@ export class CarteIntegrationService {
                 longitude: actif.longitude,
                 geometry: actif.geometry, // Include geometry for polygon/linestring actifs
                 code: actif.code,
-                numeroSerie: actif.numeroSerie,
                 groupeNom: groupe.nom,
                 familleNom: famille.nom,
                 portefeuilleNom: portefeuille.nom,
@@ -65,8 +64,8 @@ export class CarteIntegrationService {
           longitude: actif.longitude,
           geometry: actif.geometry, // Include geometry for polygon/linestring actifs
           code: actif.code,
-          numeroSerie: actif.numeroSerie,
-          // Ces actifs n'ont pas de groupe/famille/portefeuille
+
+
           groupeNom: 'Non catégorisé',
           familleNom: 'Non catégorisé',
           portefeuilleNom: 'Non catégorisé',

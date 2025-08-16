@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { ActifPourCarte } from './carte-integration.service';
 
 export interface Portefeuille {
   id: number;
@@ -49,7 +51,6 @@ export interface Actif {
   description?: string;
   code: string;
   type?: string;
-  numeroSerie?: string;
   statutOperationnel: string;
   etatGeneral: string;
   latitude: number;
@@ -64,21 +65,6 @@ export interface Actif {
   dateMiseAJour: Date;
 }
 
-export interface ActifPourCarte {
-  id: number;
-  nom: string;
-  code: string;
-  latitude: number;
-  longitude: number;
-  statutOperationnel: string;
-  etatGeneral: string;
-  type: string;
-  groupe?: string;
-  famille?: string;
-  portefeuille?: string;
-  anomaliesActives: number;
-  maintenancesPrevues: number;
-}
 
 export interface HierarchyNode {
   id: number;
@@ -106,7 +92,7 @@ export interface StatistiquesActifs {
   providedIn: 'root'
 })
 export class ActifService {
-  private baseUrl = 'http://localhost:3000/api';
+  private baseUrl = `${environment.apiUrl}`;
 
   constructor(private http: HttpClient) {}
 
