@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsObject, IsDateString } from 'class-validator';
 
 export class CreateActifFromMapDto {
   @IsString()
@@ -21,18 +21,16 @@ export class CreateActifFromMapDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   dateMiseEnService?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   dateFinGarantie?: string;
 
   @IsOptional()
   @IsString()
   fournisseur?: string;
-
-
 
   @IsOptional()
   @IsNumber()
@@ -43,8 +41,8 @@ export class CreateActifFromMapDto {
   specifications?: object;
 
   @IsOptional()
-  @IsString()
-  groupeActifId?: string;
+  @IsNumber()
+  groupeActifId?: number;
 
   @IsOptional()
   @IsNumber()

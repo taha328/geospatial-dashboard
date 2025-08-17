@@ -76,7 +76,7 @@ export interface HierarchyNode {
   latitude?: number;
   longitude?: number;
   code?: string;
-  numeroSerie?: string;
+
   children?: HierarchyNode[];
 }
 

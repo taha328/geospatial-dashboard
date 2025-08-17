@@ -7,7 +7,7 @@ env_variables:
   DB_NAME: db
   DB_HOST: /cloudsql/integrated-hawk-466115-q5:us-central1:geospatial-db
   DB_PASSWORD: SetAStrongPassword123!    # or fetch via Secret Manager later
-  RUN_MIGRATIONS: "false"
+  RUN_MIGRATIONS: "true"
 
 beta_settings:
   cloud_sql_instances: integrated-hawk-466115-q5:us-central1:geospatial-db

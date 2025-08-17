@@ -77,13 +77,14 @@ export class CarteIntegrationService {
 
   // Signaler une anomalie depuis la carte
   signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie | FormData): Observable<any> {
-    // Use the correct carte endpoint for anomaly reporting
-    return this.http.post(`${this.baseUrl}/anomalies/signaler`, anomalie);
+    // Use the correct anomalies endpoint for anomaly reporting
+    return this.http.post(`${environment.apiUrl}/anomalies/carte/signaler`, anomalie);
   }
 
   // Créer un nouvel actif depuis la carte
   createActif(actifData: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/actifs`, actifData);
+    // Use the specific from-map endpoint
+    return this.http.post<any>(`${this.baseUrl}/actifs/from-map`, actifData);
   }
 
   // Méthodes utilitaires pour l'affichage

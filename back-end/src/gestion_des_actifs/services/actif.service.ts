@@ -3,9 +3,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Actif } from '../entities/actif.entity';
 
+// Move interfaces outside the class
 interface GeoJSONGeometry {
   type: string;
-  coordinates: any[];
+  coordinates: number[];
+}
+
+interface CreateActifFromMapDto {
+  nom: string;
+  code: string;
+  type: string;
+  description: string;
+  statutOperationnel: string;
+  etatGeneral: string;
+  latitude: number;
+  longitude: number;
+  valeurAcquisition?: number;
+  groupeActifId?: number;
+  dateMiseEnService?: string;
+  dateFinGarantie?: string;
+  fournisseur?: string;
+  specifications?: any;
 }
 
 @Injectable()
@@ -45,7 +63,7 @@ export class ActifService {
       
       // Si le code existe déjà, renvoyer une erreur ou gérer la situation
       if (existingActif) {
-        throw new Error(`Un actif avec le code ${actifData.code} existe déjà.`);
+        throw new BadRequestException(`Un actif avec le code ${actifData.code} existe déjà.`);
       }
     }
     
@@ -94,7 +112,8 @@ export class ActifService {
       .getMany();
   }
 
-  async getActifsPourCarte(): Promise<any[]> {
+ async getActifsPourCarte(): Promise<any[]> {
+
     const actifs = await this.actifRepository.query(`
       SELECT 
         a.id,
@@ -138,92 +157,65 @@ export class ActifService {
     return this.findOne(id);
   }
 
-  /**
-   * Crée un nouvel actif directement depuis la carte
-   */
-  // Accept all fields from DTO
-  async createActifFromMap(actifData: any): Promise<Actif> {
+  async createActifFromMap(actifData: CreateActifFromMapDto): Promise<Actif> {
+    // Validation checks
     if (actifData.code) {
-      const existingActif = await this.actifRepository.findOne({ where: { code: actifData.code } });
+      const existingActif = await this.actifRepository.findOne({
+        where: { code: actifData.code },
+      });
       if (existingActif) {
         throw new BadRequestException(`Un actif avec le code ${actifData.code} existe déjà.`);
       }
     }
 
-    const hasLatLng = actifData.latitude != null && actifData.longitude != null;
-    const hasGeometry = actifData.geometry != null;
-
-    if (!hasLatLng && !hasGeometry) {
-      throw new BadRequestException('Either coordinates (latitude/longitude) or a geometry must be provided.');
-    }
-
-    let geometryForDb: string;
-
-    if (hasGeometry) {
-      let geometry = actifData.geometry;
-      if (typeof geometry === 'string') {
-        try {
-          geometry = JSON.parse(geometry);
-        } catch (e) {
-          throw new BadRequestException('Invalid JSON geometry format.');
-        }
-      }
-      geometryForDb = `ST_Transform(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'), 26191)`;
-    } else { // hasLatLng
-      geometryForDb = `ST_Transform(ST_SetSRID(ST_MakePoint(${actifData.longitude}, ${actifData.latitude}), 4326), 26191)`;
+    if (!actifData.latitude || !actifData.longitude) {
+      throw new BadRequestException('Coordinates (latitude/longitude) must be provided.');
     }
 
     try {
-      const query = `
-        INSERT INTO actifs (
-          nom, code, type, "statutOperationnel", "etatGeneral", 
-          geometry, "groupeActifId", description, "dateMiseEnService",
-          "dateFinGarantie", fournisseur, "valeurAcquisition", specifications, latitude, longitude
-        )
-        VALUES ($1, $2, $3, $4, $5, ${geometryForDb}, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-        RETURNING 
-          id, nom, code, type, "statutOperationnel", "etatGeneral",
-          ST_AsGeoJSON(ST_Transform(geometry, 4326)) as geometry,
-          "groupeActifId", description, "dateCreation", "dateMiseAJour", "dateMiseEnService",
-          "dateFinGarantie", fournisseur, "valeurAcquisition", specifications, latitude, longitude
-      `;
-      const params = [
-  actifData.nom,
-  actifData.code,
-  actifData.type,
-  actifData.statutOperationnel,
-  actifData.etatGeneral,
-  actifData.groupeActifId || null,
-  actifData.description || `Créé depuis la carte le ${new Date().toLocaleString('fr-FR')}`,
-  actifData.dateMiseEnService ? new Date(actifData.dateMiseEnService) : null,
-  actifData.dateFinGarantie ? new Date(actifData.dateFinGarantie) : null,
-  actifData.fournisseur || null,
-  actifData.valeurAcquisition || null,
-  actifData.specifications ? JSON.stringify(actifData.specifications) : null,
-  actifData.latitude || null,
-  actifData.longitude || null
-      ];
-      const result = await this.actifRepository.query(query, params);
-      if (!result?.[0]) {
-        throw new Error('Failed to create actif from map.');
-      }
-      const createdActif = result[0];
-      createdActif.geometry = JSON.parse(createdActif.geometry);
-      if (createdActif.specifications && typeof createdActif.specifications === 'string') {
-        try {
-          createdActif.specifications = JSON.parse(createdActif.specifications);
-        } catch {}
-      }
-      return createdActif as Actif;
+      // Create new Actif instance
+      const newActif = new Actif();
+      
+      // Set basic properties
+      newActif.nom = actifData.nom;
+      newActif.code = actifData.code;
+      newActif.type = actifData.type;
+      newActif.description = actifData.description;
+      newActif.statutOperationnel = actifData.statutOperationnel;
+      newActif.etatGeneral = actifData.etatGeneral;
+      newActif.latitude = Number(actifData.latitude);  // Store as number
+      newActif.longitude = Number(actifData.longitude); // Store as number
+      
+      // Set optional properties
+      if (actifData.valeurAcquisition) newActif.valeurAcquisition = actifData.valeurAcquisition;
+      if (actifData.groupeActifId) newActif.groupeActifId = actifData.groupeActifId;
+      if (actifData.dateMiseEnService) newActif.dateMiseEnService = new Date(actifData.dateMiseEnService);
+      if (actifData.dateFinGarantie) newActif.dateFinGarantie = new Date(actifData.dateFinGarantie);
+      if (actifData.fournisseur) newActif.fournisseur = actifData.fournisseur;
+      if (actifData.specifications) newActif.specifications = actifData.specifications;
+      
+      // Set timestamps
+      newActif.dateCreation = new Date();
+      newActif.dateMiseAJour = new Date();
+      
+      // Set geometry for PostGIS
+      newActif.geometry = {
+        type: 'Point',
+        coordinates: [Number(actifData.longitude), Number(actifData.latitude)]
+      };
+
+      // Save using repository
+      const savedActif = await this.actifRepository.save(newActif);
+      
+      // Return the saved entity
+      return savedActif;
+      
     } catch (error) {
-      console.error('Error creating actif from map:', error);
-      throw new BadRequestException(`Erreur lors de la création de l'actif: ${error.message}`);
+      console.error('Error saving actif:', error);
+      throw new BadRequestException(`Error saving actif: ${error.message}`);
     }
   }
-  
-  /**
-   * Récupère les actifs qui ne sont pas associés à un groupe
-   */
+
   async findActifsSansGroupe(): Promise<Actif[]> {
     return this.actifRepository.createQueryBuilder('actif')
       .leftJoinAndSelect('actif.anomalies', 'anomalies')
@@ -232,3 +224,4 @@ export class ActifService {
       .getMany();
   }
 }
+

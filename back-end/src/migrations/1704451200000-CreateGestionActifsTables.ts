@@ -63,7 +63,7 @@ export class CreateGestionActifsTables1704451200000 implements MigrationInterfac
         "nom" character varying(255) NOT NULL,
         "description" text,
         "code" character varying(100) NOT NULL,
-        "numeroSerie" character varying(100),
+
         "statutOperationnel" character varying CHECK ("statutOperationnel" IN ('operationnel', 'hors_service', 'maintenance', 'alerte')) NOT NULL DEFAULT 'operationnel',
         "etatGeneral" character varying CHECK ("etatGeneral" IN ('bon', 'moyen', 'mauvais', 'critique')) NOT NULL DEFAULT 'bon',
         "latitude" numeric(10,6) NOT NULL,

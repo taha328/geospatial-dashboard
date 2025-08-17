@@ -71,6 +71,14 @@ export class AnomalieService {
   getAnomalies(): Observable<Anomalie[]> {
     return this.http.get<Anomalie[]>(this.baseUrl);
   }
+  
+    /**
+     * Signaler une anomalie depuis la carte interactive
+     * Utilise le bon endpoint backend: /anomalies/carte/signaler
+     */
+    signalerAnomalieDepuisCarte(formData: FormData): Observable<Anomalie> {
+      return this.http.post<Anomalie>(`${this.baseUrl}/carte/signaler`, formData);
+    }
 
   getAnomalie(id: number): Observable<Anomalie> {
     return this.http.get<Anomalie>(`${this.baseUrl}/${id}`);

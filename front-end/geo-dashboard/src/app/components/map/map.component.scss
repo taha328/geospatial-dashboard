@@ -1192,16 +1192,66 @@
 }
 
 /* OpenLayers specific styles */
+
 .ol-popup {
   position: absolute;
-  background-color: white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  padding: 15px;
-  border-radius: 10px;
-  border: 1px solid #cccccc;
-  bottom: 12px;
-  left: -50px;
-  min-width: 200px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.18);
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  min-width: 160px;
+  max-width: 240px;
+  font-size: 14px;
+  z-index: 1000;
+  text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ol-popup .popup-header {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 15px;
+}
+
+.ol-popup .popup-content {
+  width: 100%;
+}
+
+.ol-popup button {
+  margin-top: 6px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(255,193,7,0.08);
+}
+
+.ol-popup:after, .ol-popup:before {
+  top: 100%;
+  left: 50%;
+  border: solid transparent;
+  content: " ";
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
+}
+
+.ol-popup:after {
+  border-top-color: #fff;
+  border-width: 10px;
+  margin-left: -10px;
+}
+
+.ol-popup:before {
+  border-top-color: #e0e0e0;
+  border-width: 11px;
+  margin-left: -11px;
 }
 
 .ol-popup:after, .ol-popup:before {

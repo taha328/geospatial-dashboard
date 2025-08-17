@@ -273,7 +273,20 @@
           [class.drawing]="isDrawing"
           [class.fullscreen]="isFullscreen">
         </div>
-        
+
+        <!-- Floating Popup for Asset Actions -->
+        <div *ngIf="selectedFeature && isExistingAsset()" class="ol-popup" [ngStyle]="popupPositionStyle">
+          <div class="popup-content">
+            <div class="popup-header">
+              <strong>{{ getFeatureName() }}</strong>
+              <small class="text-muted d-block">{{ selectedFeature.get('data')?.code || selectedFeature.get('id') }}</small>
+            </div>
+            <button class="btn btn-sm btn-warning mt-2 w-100" (click)="signalAnomalieForSelectedFeature()">
+              <i class="fas fa-exclamation-triangle"></i> Signaler Anomalie
+            </button>
+          </div>
+        </div>
+
         <!-- Status Overlays -->
         <div *ngIf="loading" class="status-overlay loading">
           <div class="status-content">

@@ -313,7 +313,7 @@ export class ActifFormComponent implements OnInit {
       fournisseur: formValue.fournisseur,
       valeurAcquisition: formValue.valeurAcquisition,
       specifications: formValue.specifications,
-      groupeActifId: formValue.groupeActifId
+      groupeActifId: formValue.groupeActifId !== '' && formValue.groupeActifId !== null && formValue.groupeActifId !== undefined ? Number(formValue.groupeActifId) : null
     };
   }
   

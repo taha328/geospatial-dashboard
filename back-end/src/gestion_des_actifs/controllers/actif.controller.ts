@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, N
 import { ActifService } from '../services/actif.service';
 import { Actif } from '../entities/actif.entity';
 
-@Controller('actifs')
+@Controller('carte/actifs')
 export class ActifController {
   constructor(private readonly actifService: ActifService) {}
 
@@ -61,6 +61,11 @@ export class ActifController {
   @Post()
   async create(@Body() actifData: Partial<Actif>): Promise<Actif> {
     return this.actifService.create(actifData);
+  }
+
+  @Post('from-map')
+  async createFromMap(@Body() actifData: any): Promise<Actif> {
+    return this.actifService.createActifFromMap(actifData);
   }
 
   @Put(':id')

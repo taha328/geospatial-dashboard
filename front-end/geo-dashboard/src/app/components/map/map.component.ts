@@ -33,8 +33,31 @@ import { ActivatedRoute } from '@angular/router';
   styleUrls: ['./map.component.scss']
 })
 export class MapComponent implements OnInit, OnDestroy {
+  get popupPositionStyle(): any {
+    if (!this.selectedFeature || !this.map) return { display: 'none' };
+    const geometry = this.selectedFeature.getGeometry();
+    if (!geometry) return { display: 'none' };
+    let coordinate: [number, number];
+    if (geometry instanceof Point) {
+      const coords = geometry.getCoordinates();
+      coordinate = [coords[0], coords[1]];
+    } else {
+      const extent = geometry.getExtent();
+      coordinate = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+    }
+    // Convert map coordinates to pixel position
+    const pixel = this.map.getPixelFromCoordinate(coordinate);
+    if (!pixel) return { display: 'none' };
+    return {
+      position: 'absolute',
+      left: pixel[0] + 'px',
+      top: pixel[1] + 'px',
+      zIndex: 1000
+    };
+  }
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef;
 
+  
   private map!: Map;
   private pointSource!: VectorSource;
   private zoneSource!: VectorSource;
@@ -142,9 +165,9 @@ export class MapComponent implements OnInit, OnDestroy {
     });
 
     this.selectInteraction = new Select({
-      condition: click,
-      layers: [this.clusterLayer, this.zoneLayer],
-      style: (feature: FeatureLike) => this.getSelectedStyle(feature)
+  condition: click,
+  layers: [this.clusterLayer, this.zoneLayer, this.actifLayer],
+  style: (feature: FeatureLike) => this.getSelectedStyle(feature)
     });
     
     this.modifyInteraction = new Modify({
@@ -706,6 +729,7 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   private addActifsToMap(actifs: ActifPourCarte[]) {
+    let wasCreated = false;
     if (!this.actifSource) {
       this.actifSource = new VectorSource();
       this.actifLayer = new VectorLayer({
@@ -713,6 +737,7 @@ export class MapComponent implements OnInit, OnDestroy {
         style: (feature: FeatureLike) => this.getActifStyle(feature)
       });
       this.map.addLayer(this.actifLayer);
+      wasCreated = true;
     }
 
     // Vider la source avant d'ajouter les nouveaux actifs pour éviter les doublons
@@ -753,6 +778,36 @@ export class MapComponent implements OnInit, OnDestroy {
         this.actifSource.addFeature(feature);
       }
     });
+
+    // Re-initialize Select interaction after actifLayer is created
+    if (wasCreated && this.selectInteraction) {
+      this.map.removeInteraction(this.selectInteraction);
+    }
+    if (wasCreated) {
+      this.selectInteraction = new Select({
+        condition: click,
+        layers: [this.clusterLayer, this.zoneLayer, this.actifLayer],
+        style: (feature: FeatureLike) => this.getSelectedStyle(feature)
+      });
+      this.map.addInteraction(this.selectInteraction);
+
+      this.selectInteraction.on('select', (e: SelectEvent) => {
+        this.selectedFeature = null;
+        this.resetForm();
+
+        if (e.selected.length > 0) {
+          const feature = e.selected[0];
+          const clusteredFeatures = feature.get('features');
+
+          if (clusteredFeatures && clusteredFeatures.length > 1) {
+            this.selectInteraction.getFeatures().clear();
+          } else {
+            this.selectedFeature = clusteredFeatures ? clusteredFeatures[0] : feature as Feature<Geometry>;
+            this.onFeatureSelected(this.selectedFeature);
+          }
+        }
+      });
+    }
   }
 
   private addAnomaliesToMap(anomalies: AnomaliePourCarte[]) {
