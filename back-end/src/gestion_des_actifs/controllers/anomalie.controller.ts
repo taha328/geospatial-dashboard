@@ -13,12 +13,15 @@ import {
   HttpStatus 
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { Storage } from '@google-cloud/storage';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { AnomalieService } from '../services/anomalie.service';
 import { Anomalie } from '../entities/anomalie.entity';
 import { WorkflowService } from '../services/workflow.service';
+
+const storage = new Storage();
+const bucket = storage.bucket(process.env.GCS_BUCKET || 'integrated-hawk-466115-q5.appspot.com');
 
 @Controller('anomalies')
 export class AnomalieController {
@@ -68,46 +71,7 @@ export class AnomalieController {
 
   @Post('carte/signaler')
   @UseInterceptors(FilesInterceptor('photosAnnexes', 10, {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const uploadsDir = join(process.cwd(), 'uploads', 'anomalies');
-        cb(null, uploadsDir);
-      },
-      filename: (req, file, cb) => {
-        // Generate unique filename following project naming conventions
-        const timestamp = Date.now();
-        const randomSuffix = Math.round(Math.random() * 1E9);
-        const sanitizedOriginalName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filename = `anomalie-${timestamp}-${randomSuffix}${extname(sanitizedOriginalName)}`;
-        cb(null, filename);
-      },
-    }),
-    fileFilter: (req, file, cb) => {
-      try {
-        // Validate image file types following project security patterns
-        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        
-        if (!allowedMimeTypes.includes(file.mimetype.toLowerCase())) {
-          return cb(new Error('Only image files (JPG, PNG, GIF) are allowed!'), false);
-        }
-        
-        // Additional file extension validation
-        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-        const fileExtension = extname(file.originalname).toLowerCase();
-        
-        if (!allowedExtensions.includes(fileExtension)) {
-          return cb(new Error('Invalid file extension'), false);
-        }
-        
-        cb(null, true);
-      } catch (error) {
-        cb(new Error('File validation error'), false);
-      }
-    },
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB limit
-      files: 10 // Max 10 files
-    },
+    limits: { fileSize: 5 * 1024 * 1024, files: 10 },
   }))
   async signalerAnomalieDepuisCarte(
     @UploadedFiles() files: Array<Express.Multer.File>,
@@ -136,8 +100,24 @@ export class AnomalieController {
         throw new HttpException('Longitude must be between -180 and 180 degrees', HttpStatus.BAD_REQUEST);
       }
 
-      // Process uploaded files following project file handling patterns
-      const photosPaths = files && files.length > 0 ? files.map(file => file.path) : [];
+      // Upload files to Google Cloud Storage and get public URLs
+      let photosUrls: string[] = [];
+      if (files && files.length > 0) {
+        photosUrls = await Promise.all(files.map(async (file) => {
+          const blob = bucket.file(`anomalies/${Date.now()}-${file.originalname}`);
+          const blobStream = blob.createWriteStream({
+            resumable: false,
+            contentType: file.mimetype,
+            predefinedAcl: 'publicRead',
+          });
+          blobStream.end(file.buffer);
+          await new Promise((resolve, reject) => {
+            blobStream.on('finish', resolve);
+            blobStream.on('error', reject);
+          });
+          return `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+        }));
+      }
 
       // Parse FormData string values to correct types following project patterns
       const anomalieData = {
@@ -149,7 +129,7 @@ export class AnomalieController {
         longitude: longitude, // Now guaranteed to be number, not undefined
         rapportePar: body.rapportePar?.toString().trim() || undefined,
         actifId: body.actifId ? this.parseInt(body.actifId, 'actifId') : undefined,
-        photosAnnexes: photosPaths, // Include photos array following geospatial dashboard patterns
+        photosAnnexes: photosUrls, // Use GCS URLs
       };
 
       // Validate required fields following geospatial dashboard validation patterns
