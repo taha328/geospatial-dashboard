@@ -935,13 +935,61 @@
 
 // Enhanced filters section
 .assets-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: #e9ecef;
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 4px rgba(52, 152, 219, 0.03);
+
   .filter-group {
-    min-width: 120px;
-    
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+    max-width: 160px;
+
     label {
+      font-size: 0.95rem;
       font-weight: 600;
       color: #495057;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
+      letter-spacing: 0.01em;
+    }
+
+    .filter-select,
+    .filter-input {
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+      background: #fff;
+      color: #1e293b;
+      transition: border-color 0.2s;
+      outline: none;
+      box-shadow: 0 1px 2px rgba(52,152,219,0.02);
+
+      &:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px #2563eb22;
+      }
+    }
+
+    .filter-select {
+      cursor: pointer;
+    }
+  }
+}
+
+// Responsive adjustments for filters only
+@media (max-width: 1024px) {
+  .assets-filters {
+    flex-direction: column;
+    gap: 8px;
+    padding: 7px 4px;
+    .filter-group {
+      min-width: 100%;
+      max-width: 100%;
     }
   }
 }
@@ -2394,7 +2442,7 @@
       }
     }
 
-    .empty-state-modern {
+    .empty-state {
       text-align: center;
       padding: 60px 40px;
       background: white;
@@ -2415,7 +2463,7 @@
       }
 
       .empty-message {
-        margin: 0 0 24px 0;
+        margin: 0;
         color: #6c757d;
         font-size: 16px;
         line-height: 1.5;
@@ -2606,7 +2654,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
+        border-radius:  12px;
         background: #f8f9fa;
       }
 

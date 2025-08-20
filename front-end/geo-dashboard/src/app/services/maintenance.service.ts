@@ -113,7 +113,7 @@ export class MaintenanceService {
   }
 
   startMaintenance(id: number): Observable<Maintenance> {
-    return this.http.put<Maintenance>(`http://localhost:3000/workflow/maintenance/${id}/start`, {});
+    return this.http.put<Maintenance>(`${environment.apiUrl}/workflow/maintenance/${id}/start`, {});
   }
 
   completeMaintenance(id: number, completionData: { 
@@ -126,7 +126,7 @@ export class MaintenanceService {
     documentAnnexe?: string;
     resolveLinkedAnomaly?: boolean 
   }): Observable<any> {
-    return this.http.put(`http://localhost:3000/workflow/maintenance/${id}/complete`, completionData);
+    return this.http.put(`${environment.apiUrl}/workflow/maintenance/${id}/complete`, completionData);
   }
 
   updateCompletedMaintenance(id: number, updateData: { 
@@ -138,7 +138,7 @@ export class MaintenanceService {
     piecesRemplacees?: string;
     documentAnnexe?: string;
   }): Observable<any> {
-    return this.http.put(`http://localhost:3000/workflow/maintenance/${id}/update-completed`, updateData);
+    return this.http.put(`${environment.apiUrl}/workflow/maintenance/${id}/update-completed`, updateData);
   }
 
   deleteMaintenance(id: number): Observable<void> {

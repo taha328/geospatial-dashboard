@@ -16,6 +16,7 @@ import { KpiService } from './services/kpi.service';
 // Import services from existing geospatial project structure
 import { UserService } from './services/user.service';
 import { VesselService } from './services/vessel.service';
+import { MaterialModule } from './shared/material.module';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { VesselService } from './services/vessel.service';
     CommonModule,
     HttpClientModule,
     RouterModule,
-    AppRoutingModule
+    AppRoutingModule,
+    MaterialModule
     // Remove AppComponent from imports - standalone components should not be imported in NgModule
   ],
   providers: [

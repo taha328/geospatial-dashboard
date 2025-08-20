@@ -14,7 +14,6 @@ import { CompleteMaintenanceModalComponent } from '../../components/complete-mai
     FormsModule,
     ReactiveFormsModule,
     AssetManagementRoutingModule,
-    // Import standalone components
     AssetManagementComponent,
     ActifFormComponent,
     CreateMaintenanceModalComponent,

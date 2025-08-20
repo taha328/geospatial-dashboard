@@ -280,7 +280,8 @@
             <div class="details-content">
               <div class="detail-row" *ngIf="selectedNode.code">
                 <span class="detail-label">Code:</span>
-                <span class="detail-value">{{ selectedNode.code }}</span>
+                <span cla
+                ss="detail-value">{{ selectedNode.code }}</span>
               </div>
               </div>
               <div class="detail-row" *ngIf="selectedNode.statutOperationnel">
@@ -610,25 +611,7 @@
     <div class="tab-content" [class.active]="activeTab === 'anomalies'">
       <div class="anomalies-section">
         <!-- Main Header -->
-        <div class="main-header">
-          <div class="header-left">
-            <div class="title-group">
-              <h2 class="section-title">
-                <i class="icon-anomaly">⚠️</i>
-                Gestion des Anomalies
-              </h2>
-              <p class="section-subtitle">
-                Système de gestion intégré des anomalies avec workflow automatisé
-              </p>
-            </div>
-          </div>
-          <div class="header-right">
-            <button class="btn-create-anomaly" (click)="openCreateAnomalieModal()">
-              <i class="icon-plus">+</i>
-              Nouvelle Anomalie
-            </button>
-          </div>
-        </div>
+
 
         <!-- Workflow Overview -->
         <div class="workflow-overview">
@@ -1517,37 +1500,68 @@
 <!-- Maintenance Details Modal -->
 <div class="modal fade" [class.show]="showMaintenanceDetailsModal" [style.display]="showMaintenanceDetailsModal ? 'block' : 'none'" *ngIf="showMaintenanceDetailsModal">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
+    <div class="modal-content maintenance-details-content">
       <div class="modal-header">
-        <h5 class="modal-title">Détails de la Maintenance</h5>
+        <h5 class="modal-title details-title">
+          <span class="section-icon">🔧</span>
+          Détails de la Maintenance
+        </h5>
         <button type="button" class="btn-close" (click)="closeMaintenanceDetailsModal()"></button>
       </div>
       <div class="modal-body" *ngIf="selectedMaintenanceForDetails">
-        <div class="maintenance-details-content">
-          <div class="row">
-            <div class="col-md-6">
-              <h6>Informations Générales</h6>
-              <dl class="row">
-                <dt class="col-sm-4">Titre</dt>
-                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.titre }}</dd>
-                <dt class="col-sm-4">Description</dt>
-                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.description }}</dd>
-                <dt class="col-sm-4">Type</dt>
-                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.typeMaintenance }}</dd>
-                <dt class="col-sm-4">Statut</dt>
-                <dd class="col-sm-8">{{ selectedMaintenanceForDetails.statut }}</dd>
-              </dl>
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Informations Générales</h6>
+            <dl class="row">
+              <dt class="col-sm-5">Titre</dt>
+              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.titre }}</dd>
+              <dt class="col-sm-5">Description</dt>
+              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.description }}</dd>
+              <dt class="col-sm-5">Type</dt>
+              <dd class="col-sm-7">
+                <span class="badge type-badge">{{ selectedMaintenanceForDetails.typeMaintenance }}</span>
+              </dd>
+              <dt class="col-sm-5">Statut</dt>
+              <dd class="col-sm-7">
+                <span class="badge status-{{ selectedMaintenanceForDetails.statut }}">
+                  {{ selectedMaintenanceForDetails.statut }}
+                </span>
+              </dd>
+            </dl>
+            <hr>
+          </div>
+          <div class="col-md-6">
+            <h6>Planification & Coûts</h6>
+            <dl class="row">
+              <dt class="col-sm-5">Date Prévue</dt>
+              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.datePrevue | date:'dd/MM/yyyy' }}</dd>
+              <dt class="col-sm-5">Technicien</dt>
+              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.technicienResponsable }}</dd>
+              <dt class="col-sm-5">Coût Estimé</dt>
+              <dd class="col-sm-7">{{ formatCurrency(selectedMaintenanceForDetails.coutEstime) }}</dd>
+            </dl>
+            <hr>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <h6>Rapport d'Intervention</h6>
+            <div class="stat-box">
+              <span class="stat-label">{{ selectedMaintenanceForDetails.rapportIntervention || 'Non renseigné' }}</span>
             </div>
-            <div class="col-md-6">
-              <h6>Planification et Coûts</h6>
-              <dl class="row">
-                <dt class="col-sm-5">Date Prévue</dt>
-                <dd class="col-sm-7">{{ selectedMaintenanceForDetails.datePrevue | date:'dd/MM/yyyy' }}</dd>
-                <dt class="col-sm-5">Technicien</dt>
-                <dd class="col-sm-7">{{ selectedMaintenanceForDetails.technicienResponsable }}</dd>
-                <dt class="col-sm-5">Coût Estimé</dt>
-                <dd class="col-sm-7">{{ formatCurrency(selectedMaintenanceForDetails.coutEstime) }}</dd>
-              </dl>
+          </div>
+          <div class="col-md-6">
+            <h6>Pièces Remplacées</h6>
+            <div class="stat-box">
+              <span class="stat-label">{{ selectedMaintenanceForDetails.piecesRemplacees || 'Aucune' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <h6>Entreprise Externe</h6>
+            <div class="stat-box">
+              <span class="stat-label">{{ selectedMaintenanceForDetails.entrepriseExterne || 'Non renseignée' }}</span>
             </div>
           </div>
         </div>

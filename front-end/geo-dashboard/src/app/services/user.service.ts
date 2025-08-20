@@ -27,7 +27,7 @@ export class UserService {
   }
 
   createUser(user: User): Observable<User> {
-    return this.http.post<User>(this.baseUrl, user);
+    return this.http.post<User>(`${this.baseUrl}/create`, user);
   }
 
   updateUser(id: number, user: Partial<User>): Observable<User> {
