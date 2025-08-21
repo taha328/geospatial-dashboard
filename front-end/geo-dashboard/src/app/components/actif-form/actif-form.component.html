@@ -12,7 +12,6 @@
     <!-- Hiérarchie - Portefeuille, Famille, Groupe -->
     <div class="hierarchy-section">
       <h3>Hiérarchie</h3>
-      
       <div class="form-group">
         <label for="portefeuille">Portefeuille</label>
         <select id="portefeuille" formControlName="portefeuilleId" class="form-control" (change)="onPortefeuilleChange()">
@@ -23,7 +22,6 @@
           Portefeuille requis
         </div>
       </div>
-      
       <div class="form-group">
         <label for="famille">Famille d'actifs</label>
         <select id="famille" formControlName="familleActifId" class="form-control" [disabled]="!familles.length" (change)="onFamilleChange()">
@@ -34,7 +32,6 @@
           Famille requise
         </div>
       </div>
-      
       <div class="form-group">
         <label for="groupe">Groupe d'actifs</label>
         <select id="groupe" formControlName="groupeActifId" class="form-control" [disabled]="!groupes.length">
@@ -46,11 +43,10 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Informations de base -->
     <div class="basic-info-section">
       <h3>Informations de base</h3>
-      
       <div class="form-group">
         <label for="nom">Nom de l'actif</label>
         <input id="nom" type="text" formControlName="nom" class="form-control">
@@ -58,7 +54,6 @@
           Nom requis
         </div>
       </div>
-      
       <div class="form-group">
         <label for="type">Type d'actif</label>
         <select id="type" formControlName="type" class="form-control">
@@ -76,15 +71,12 @@
           Type requis
         </div>
       </div>
-      
-      <div class="form-group">
-      </div>
+      <div class="form-group"></div>
     </div>
-    
+
     <!-- État et statut -->
     <div class="status-section">
       <h3>État et statut</h3>
-      
       <div class="form-group">
         <label for="statutOperationnel">Statut opérationnel</label>
         <select id="statutOperationnel" formControlName="statutOperationnel" class="form-control">
@@ -94,7 +86,6 @@
           <option value="alerte">En alerte</option>
         </select>
       </div>
-      
       <div class="form-group">
         <label for="etatGeneral">État général</label>
         <select id="etatGeneral" formControlName="etatGeneral" class="form-control">
@@ -105,54 +96,47 @@
         </select>
       </div>
     </div>
-    
+
     <!-- Localisation -->
     <div class="location-section">
       <h3>Localisation</h3>
-      
       <div class="form-row">
         <div class="form-group">
           <label for="latitude">Latitude</label>
           <input id="latitude" type="number" formControlName="latitude" class="form-control" [readonly]="true">
         </div>
-        
         <div class="form-group">
           <label for="longitude">Longitude</label>
           <input id="longitude" type="number" formControlName="longitude" class="form-control" [readonly]="true">
         </div>
       </div>
     </div>
-    
+
     <!-- Informations additionnelles -->
     <div class="additional-info-section">
       <h3>Informations additionnelles</h3>
-      
       <div class="form-group">
         <label for="description">Description</label>
         <textarea id="description" formControlName="description" class="form-control" rows="3"></textarea>
       </div>
-      
       <div class="form-group">
         <label for="dateMiseEnService">Date de mise en service</label>
         <input id="dateMiseEnService" type="date" formControlName="dateMiseEnService" class="form-control">
       </div>
-      
       <div class="form-group">
         <label for="dateFinGarantie">Date de fin de garantie</label>
         <input id="dateFinGarantie" type="date" formControlName="dateFinGarantie" class="form-control">
       </div>
-      
       <div class="form-group">
         <label for="fournisseur">Fournisseur</label>
         <input id="fournisseur" type="text" formControlName="fournisseur" class="form-control">
       </div>
-      
       <div class="form-group">
         <label for="valeurAcquisition">Valeur d'acquisition (MAD)</label>
         <input id="valeurAcquisition" type="number" formControlName="valeurAcquisition" class="form-control">
       </div>
     </div>
-    
+
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Annuler</button>
       <button type="submit" class="btn btn-primary" [disabled]="actifForm.invalid || isSubmitting">
