@@ -32,6 +32,7 @@
               }
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
             ],
             "scripts": [],
@@ -113,8 +114,9 @@
               }
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss",
-                "node_modules/ol/ol.css",
+              "node_modules/ol/ol.css",
               "node_modules/ol-ext/dist/ol-ext.css"
             ]
 ,

@@ -12,3 +12,7 @@ declare module 'ol-ext/featureanimation/Slide';
 declare module 'ol-ext/featureanimation/Drop';
 declare module 'ol-ext/overlay/Popup';
 declare module 'ol-ext/overlay/PopupFeature';
+declare module 'ol-ext/util/element' {
+  const ol_ext_element: any;
+  export default ol_ext_element;
+}

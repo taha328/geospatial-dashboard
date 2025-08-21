@@ -23,6 +23,10 @@ import { SignalementAnomalieComponent } from '../signalement-anomalie/signalemen
 import { ActifFormComponent } from '../actif-form/actif-form.component';
 import { ActivatedRoute } from '@angular/router';
 
+// Add this import at the top of your map.component.ts file
+import ol_control_LayerSwitcher from './ol_control_LayerSwitcher'; // Adjust path as needed
+import ol_control_Legend from './ol_control_Legend';
+
 @Component({
   selector: 'app-map',
   standalone: true,
@@ -31,6 +35,11 @@ import { ActivatedRoute } from '@angular/router';
   styleUrls: ['./map.component.scss']
 })
 export class MapComponent implements OnInit, OnDestroy {
+  // LayerSwitcher control property
+  private layerSwitcher!: ol_control_LayerSwitcher;
+  // Legend control (project control)
+  private legendControl?: any;
+  
   get popupPositionStyle(): any {
     if (!this.selectedFeature || !this.map) return { display: 'none' };
     const geometry = this.selectedFeature.getGeometry();
@@ -52,6 +61,7 @@ export class MapComponent implements OnInit, OnDestroy {
       zIndex: 1000
     };
   }
+  
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef;
 
   private map!: Map;
@@ -156,7 +166,7 @@ export class MapComponent implements OnInit, OnDestroy {
       layers: [
         new TileLayer({ source: new XYZ({url: 'http://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'}) }),
         this.zoneLayer,
-        this.clusterLayer, // Only one layer for point actifs
+        this.clusterLayer,
         this.anomalieLayer,
       ],
       view: new View({
@@ -165,10 +175,34 @@ export class MapComponent implements OnInit, OnDestroy {
       })
     });
 
+    // Create and add the LayerSwitcher control
+    this.layerSwitcher = new ol_control_LayerSwitcher({
+      collapsed: false,
+      reordering: true,
+      trash: true,
+      extent: true,
+      selection: false,
+      counter: true,
+      show_progress: true,
+      mouseover: false,
+      displayInLayerSwitcher: (layer: any) => {
+        return layer.get('displayInLayerSwitcher') !== false;
+      }
+    });
+
+    // Add the control to the map
+    this.map.addControl(this.layerSwitcher);
+
+    // Set layer properties for better display in layer switcher
+    this.setupLayerProperties();
+
+    // Optional: Add event listeners for layer switcher events
+    this.setupLayerSwitcherEvents();
+    
     // Fix select interaction - only target cluster, zone, and anomalie layers
     this.selectInteraction = new Select({
       condition: click,
-      layers: [this.clusterLayer, this.zoneLayer, this.anomalieLayer], // Remove duplicate actifLayer
+      layers: [this.clusterLayer, this.zoneLayer, this.anomalieLayer],
       style: (feature: FeatureLike) => this.getSelectedStyle(feature)
     });
 
@@ -185,13 +219,64 @@ export class MapComponent implements OnInit, OnDestroy {
     // Make cluster distance zoom-dependent for better clustering
     this.map.getView().on('change:resolution', () => {
       const zoom = this.map.getView().getZoom() || 10;
-      const distance = Math.max(20, 60 - zoom * 2); // Smaller distance at higher zoom
+      const distance = Math.max(20, 60 - zoom * 2);
       this.clusterSource.setDistance(distance);
     });
 
     this.map.on('pointermove', (evt) => {
       const coordinate = transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
       this.mouseCoordinates = `${coordinate[1].toFixed(4)}°N, ${coordinate[0].toFixed(4)}°E`;
+    });
+
+  // Initialize project legend control
+  this.initializeLegendControl();
+  }
+
+  // Add this new method to set proper layer names and properties
+  private setupLayerProperties() {
+    // Set properties for base layer
+    const baseLayers = this.map.getLayers().getArray();
+    if (baseLayers[0]) {
+      baseLayers[0].set('title', 'Satellite');
+      baseLayers[0].set('baseLayer', true);
+      baseLayers[0].set('displayInLayerSwitcher', true);
+    }
+
+    // Set properties for your custom layers
+    this.zoneLayer.set('title', 'Zones');
+    this.zoneLayer.set('displayInLayerSwitcher', true);
+    
+    this.clusterLayer.set('title', 'Actifs');
+    this.clusterLayer.set('displayInLayerSwitcher', true);
+    
+    this.anomalieLayer.set('title', 'Anomalies');
+    this.anomalieLayer.set('displayInLayerSwitcher', true);
+  }
+
+  // Optional: Add event listeners for layer switcher events
+  private setupLayerSwitcherEvents() {
+    this.layerSwitcher.on('toggle' as any, (e: any) => {
+      console.log('Layer switcher toggled:', e.collapsed);
+    });
+
+    this.layerSwitcher.on('layer:visible' as any, (e: any) => {
+      console.log('Layer visibility changed:', e.layer.get('title'));
+    });
+
+    this.layerSwitcher.on('layer:opacity' as any, (e: any) => {
+      console.log('Layer opacity changed:', e.layer.get('title'));
+    });
+
+    this.layerSwitcher.on('info' as any, (e: any) => {
+      console.log('Layer info requested for:', e.layer.get('title'));
+    });
+
+    this.layerSwitcher.on('extent' as any, (e: any) => {
+      console.log('Zoom to extent requested for:', e.layer.get('title'));
+      const extent = e.layer.getExtent();
+      if (extent) {
+        this.map.getView().fit(extent);
+      }
     });
   }
 
@@ -244,7 +329,11 @@ export class MapComponent implements OnInit, OnDestroy {
         this.addZonesToMap(zones);
         this.loading = false;
       },
-      error: (err) => { this.error = 'Failed to load zones'; console.error(err); this.loading = false; }
+      error: (err) => { 
+        this.error = 'Failed to load zones'; 
+        console.error(err); 
+        this.loading = false; 
+      }
     });
   }
 
@@ -812,6 +901,11 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.clusterLayer) {
       this.clusterLayer.setVisible(this.showActifs);
     }
+    // Update project legend control if present
+    if (this.legendControl) {
+  this.legendControl.setItemVisibility('Actifs', this.showActifs);
+  this.legendControl.setItemVisibility("Groupes d'Actifs", this.showActifs);
+    }
   }
 
   toggleAnomaliesLayer() {
@@ -819,6 +913,81 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.anomalieLayer) {
       this.anomalieLayer.setVisible(this.showAnomalies);
     }
+    if (this.legendControl) {
+      this.legendControl.setItemVisibility('Anomalies', this.showAnomalies);
+    }
+  }
+
+  // Initialize project legend control (ol_control_Legend)
+  private initializeLegendControl() {
+    try {
+      this.legendControl = new ol_control_Legend({ collapsed: false, title: 'Légende' });
+      this.map.addControl(this.legendControl);
+
+      // Add default legend items (use plain labels and set swatches separately)
+      this.legendControl.addItem('Actifs', 'Actifs');
+      this.legendControl.setItemSwatch('Actifs', '#007bff', 'circle');
+
+      this.legendControl.addItem("Groupes d'Actifs", "Groupes d'Actifs");
+      this.legendControl.setItemSwatch("Groupes d'Actifs", '#17a2b8', 'rect');
+
+      this.legendControl.addItem('Zones', 'Zones');
+      // zone swatch uses semi-transparent fill; use a rect to indicate area
+      this.legendControl.setItemSwatch('Zones', 'rgba(255,0,0,0.4)', 'rect');
+
+      this.legendControl.addItem('Anomalies', 'Anomalies');
+      this.legendControl.setItemSwatch('Anomalies', '#ffc107', 'circle');
+
+      // Sync initial visibility
+      this.legendControl.setItemVisibility('Actifs', this.showActifs);
+      this.legendControl.setItemVisibility("Groupes d'Actifs", this.showActifs);
+      this.legendControl.setItemVisibility('Anomalies', this.showAnomalies);
+    } catch (e) {
+      console.warn('Could not initialize legend control:', e);
+      this.legendControl = undefined;
+    }
+  }
+
+  private updateLegendItemVisibility(itemTitle: string, visible: boolean) {
+    // Legend functionality disabled until ol_legend_Legend is available
+  }
+
+  private addLegendItems() {
+    // Legend functionality is disabled until ol_legend_Legend is available
+    this.addStatusBasedLegendItems();
+  }
+
+  private addStatusBasedLegendItems() {
+    const statusColors = {
+      'operational': '#28a745',
+      'maintenance': '#ffc107',
+      'broken': '#dc3545',
+      'inactive': '#6c757d'
+    };
+    // Legend functionality is disabled
+  }
+
+  private getStatusLabel(status: string): string {
+    const labels: { [key: string]: string } = {
+      'operational': 'Opérationnel',
+      'maintenance': 'En Maintenance',
+      'broken': 'En Panne',
+      'inactive': 'Inactif'
+    };
+    return labels[status] || status;
+  }
+
+  updateLegend() {
+    // Legend functionality is disabled
+  }
+
+  toggleLegend() {
+    // Legend functionality is disabled
+  }
+
+  isLegendVisible(): boolean {
+    // Legend functionality is disabled
+    return false;
   }
 
   onAnomalieSignaled() {
@@ -962,5 +1131,4 @@ export class MapComponent implements OnInit, OnDestroy {
       featureCount: this.actifSource?.getFeatures().length,
       clusterCount: this.clusterSource?.getFeatures().length
     };
-  }
-}
+  }}

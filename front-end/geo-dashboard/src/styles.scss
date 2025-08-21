@@ -1,5 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'ol/ol.css';
+@import "../node_modules/ol-ext/dist/ol-ext.css";
 
 /* Bootstrap Icons for better form icons */
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css');
@@ -40,3 +41,5 @@ html, body {
     padding-right: 8px;
   }
 }
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
