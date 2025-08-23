@@ -65,7 +65,10 @@ export class ActifController {
 
   @Post('from-map')
   async createFromMap(@Body() actifData: any): Promise<Actif> {
-    return this.actifService.createActifFromMap(actifData);
+  console.debug('[ActifController] createFromMap - received payload:', JSON.stringify(actifData));
+  const saved = await this.actifService.createActifFromMap(actifData);
+  console.debug('[ActifController] createFromMap - saved entity geometry:', JSON.stringify(saved.geometry));
+  return saved;
   }
 
   @Put(':id')

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActifService, Portefeuille, FamilleActif, GroupeActif } from '../../services/actif.service';
 import { CarteIntegrationService } from '../../services/carte-integration.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 
 // Angular Material modules
 import { MatCardModule } from '@angular/material/card';
@@ -51,6 +52,7 @@ export class ActifFormComponent implements OnInit {
     private fb: FormBuilder,
     private actifService: ActifService,
     private carteIntegrationService: CarteIntegrationService
+  , private dataRefreshService: DataRefreshService
   ) {}
   
   ngOnInit(): void {
@@ -71,6 +73,13 @@ export class ActifFormComponent implements OnInit {
       this.actifForm.get('longitude')?.setValidators(null);
       this.actifForm.get('latitude')?.updateValueAndValidity();
       this.actifForm.get('longitude')?.updateValueAndValidity();
+    }
+
+    // DEBUG: log incoming geometry on init
+    try {
+      console.debug('[ActifForm] ngOnInit - incoming geometry:', JSON.stringify(this.geometry));
+    } catch (e) {
+      console.debug('[ActifForm] ngOnInit - incoming geometry (non-serializable):', this.geometry);
     }
     
     if (this.editMode && this.actifId) {
@@ -229,6 +238,14 @@ export class ActifFormComponent implements OnInit {
         next: (response) => {
           this.isSubmitting = false;
           this.submit.emit(response);
+          // Notify other components (map) that data changed
+          this.dataRefreshService.notifyDataChanged();
+          // Also emit the created actif payload so map can add it immediately
+          try {
+            this.dataRefreshService.notifyActifCreated(response);
+          } catch (e) {
+            console.warn('notifyActifCreated failed', e);
+          }
           this.actifForm.reset();
         },
         error: (error) => {
@@ -273,6 +290,12 @@ export class ActifFormComponent implements OnInit {
       if (!this.geometry) {
         delete geoData.geometry;
       }
+      // DEBUG: show outgoing payload for troubleshooting geometry issues
+      try {
+        console.debug('[ActifForm] Sending payload to /carte/actifs/from-map:', JSON.stringify(geoData));
+      } catch (e) {
+        console.debug('[ActifForm] Sending payload (non-serializable):', geoData);
+      }
       createObservable = this.carteIntegrationService.createActif(geoData);
     } else {
       // Utiliser le service actif normal
@@ -283,6 +306,14 @@ export class ActifFormComponent implements OnInit {
       next: (response) => {
         this.isSubmitting = false;
         this.submit.emit(response);
+  // Notify other components (map) that data changed
+  this.dataRefreshService.notifyDataChanged();
+        // Also notify a single-actif creation so the map can add the feature immediately
+        try {
+          this.dataRefreshService.notifyActifCreated(response);
+        } catch (e) {
+          console.warn('notifyActifCreated failed', e);
+        }
         this.actifForm.reset();
       },
       error: (error) => {
@@ -309,32 +340,42 @@ export class ActifFormComponent implements OnInit {
     });
   }
 
-  prepareActifData(): any {
-    // Récupérer les valeurs, y compris celles des contrôles désactivés
-    const formValue = this.actifForm.getRawValue();
-    
-    // Générer un code unique s'il s'agit d'une création (pas d'édition)
-    const code = this.editMode 
-      ? formValue.code
-      : this.generateUniqueCode(formValue.nom, formValue.type);
-    
+prepareActifData(): any {
+  // Récupérer les valeurs, y compris celles des contrôles désactivés
+  const formValue = this.actifForm.getRawValue();
+  
+  // Générer un code unique s'il s'agit d'une création (pas d'édition)
+  const code = this.editMode 
+    ? formValue.code
+    : this.generateUniqueCode(formValue.nom, formValue.type);
+  
+  const baseData = {
+    nom: formValue.nom,
+    code: code,
+    type: formValue.type,
+    description: formValue.description,
+    statutOperationnel: formValue.statutOperationnel,
+    etatGeneral: formValue.etatGeneral,
+    latitude: formValue.latitude,
+    longitude: formValue.longitude,
+    dateMiseEnService: formValue.dateMiseEnService,
+    dateFinGarantie: formValue.dateFinGarantie,
+    fournisseur: formValue.fournisseur,
+    valeurAcquisition: formValue.valeurAcquisition,
+    specifications: formValue.specifications,
+    groupeActifId: formValue.groupeActifId !== '' && formValue.groupeActifId !== null && formValue.groupeActifId !== undefined ? Number(formValue.groupeActifId) : null
+  };
+
+  // Add geometry if it exists (for polygon/linestring actifs)
+  if (this.geometry) {
     return {
-      nom: formValue.nom,
-      code: code,
-      type: formValue.type,
-      description: formValue.description,
-      statutOperationnel: formValue.statutOperationnel,
-      etatGeneral: formValue.etatGeneral,
-      latitude: formValue.latitude,
-      longitude: formValue.longitude,
-      dateMiseEnService: formValue.dateMiseEnService,
-      dateFinGarantie: formValue.dateFinGarantie,
-      fournisseur: formValue.fournisseur,
-      valeurAcquisition: formValue.valeurAcquisition,
-      specifications: formValue.specifications,
-      groupeActifId: formValue.groupeActifId !== '' && formValue.groupeActifId !== null && formValue.groupeActifId !== undefined ? Number(formValue.groupeActifId) : null
+      ...baseData,
+      geometry: this.geometry
     };
   }
+
+  return baseData;
+}
   
   onCancel(): void {
     this.cancel.emit();

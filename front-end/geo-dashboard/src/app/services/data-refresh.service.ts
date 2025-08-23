@@ -8,11 +8,13 @@ export class DataRefreshService {
   private anomalieAddedSource = new Subject<void>();
   private maintenanceUpdatedSource = new Subject<void>();
   private dataChangedSource = new Subject<void>();
+  private actifCreatedSource = new Subject<any>();
 
   // Observable streams
   anomalieAdded$ = this.anomalieAddedSource.asObservable();
   maintenanceUpdated$ = this.maintenanceUpdatedSource.asObservable();
   dataChanged$ = this.dataChangedSource.asObservable();
+  actifCreated$ = this.actifCreatedSource.asObservable();
 
   constructor() {}
 
@@ -35,5 +37,12 @@ export class DataRefreshService {
    */
   notifyDataChanged() {
     this.dataChangedSource.next();
+  }
+
+  /**
+   * Notifie la création d'un actif et fournit sa charge utile
+   */
+  notifyActifCreated(actif: any) {
+    this.actifCreatedSource.next(actif);
   }
 }

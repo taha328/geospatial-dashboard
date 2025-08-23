@@ -116,6 +116,221 @@ export class MapComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initializeMap();
+    // Subscribe to data change notifications so the map can refresh automatically
+    this.dataRefreshService.dataChanged$.subscribe(() => {
+      console.log('DataRefreshService: data changed - refreshing map data');
+      this.refreshData();
+    });
+    // Subscribe to single-actif creation events to add the new feature immediately
+// Replace your actifCreated subscription in ngOnInit with this fixed version:
+
+this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
+  try {
+    console.log('DataRefreshService: new actif created, adding to map', actif);
+    
+    if (actif.geometry) {
+      const geoJsonFormat = new GeoJSON();
+      let geojson = typeof actif.geometry === 'string' ? JSON.parse(actif.geometry) : actif.geometry;
+      
+      // Remove any crs properties to avoid parser issues
+      geojson = this.stripCrsDeep(geojson);
+
+      console.log('Processing actifCreated geometry:', {
+        actifId: actif.id,
+        geometryType: geojson?.type,
+        coordinates: geojson?.coordinates,
+        coordinateCount: geojson?.coordinates?.[0]?.length || 'unknown'
+      });
+
+      let features: Feature<Geometry>[];
+      
+      try {
+        // CRITICAL FIX: The backend returns geometry in EPSG:4326, transform to EPSG:3857
+        features = geoJsonFormat.readFeatures(
+          { type: 'Feature', geometry: geojson, properties: {} }, 
+          { 
+            dataProjection: 'EPSG:4326',    // Backend always returns EPSG:4326
+            featureProjection: 'EPSG:3857'  // OpenLayers uses EPSG:3857
+          }
+        );
+        
+        if (!features || features.length === 0) {
+          throw new Error('No features created from geometry');
+        }
+
+        // Validate the parsed feature
+        const feature = features[0];
+        const geometry = feature.getGeometry();
+        
+        if (!geometry) {
+          throw new Error('Feature has no geometry after parsing');
+        }
+
+        const extent = geometry.getExtent();
+        
+        // Check for invalid extent
+        if (!extent || extent.some(val => !isFinite(val) || isNaN(val))) {
+          console.error('Invalid extent after parsing:', extent);
+          
+          // FALLBACK: Use currentDrawnGeometry if available
+          if (this.currentDrawnGeometry) {
+            console.log('Using currentDrawnGeometry as fallback');
+            try {
+              const fallbackFeatures = geoJsonFormat.readFeatures(
+                { type: 'Feature', geometry: this.currentDrawnGeometry, properties: {} },
+                { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' }
+              );
+              
+              if (fallbackFeatures && fallbackFeatures[0]) {
+                const fallbackGeom = fallbackFeatures[0].getGeometry();
+                const fallbackExtent = fallbackGeom?.getExtent();
+                
+                if (fallbackExtent && fallbackExtent.every(val => isFinite(val) && !isNaN(val))) {
+                  features = fallbackFeatures as Feature<Geometry>[];
+                  console.log('Successfully used fallback geometry');
+                } else {
+                  throw new Error('Fallback geometry also has invalid extent');
+                }
+              }
+            } catch (fallbackError) {
+              console.error('Fallback geometry parsing failed:', fallbackError);
+              // Use lat/lng as last resort
+              if (actif.latitude != null && actif.longitude != null) {
+                const pointFeature = new Feature({
+                  geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+                });
+                features = [pointFeature];
+                console.log('Used lat/lng point as final fallback');
+              } else {
+                throw new Error('No valid fallback available');
+              }
+            }
+          } else if (actif.latitude != null && actif.longitude != null) {
+            // Use lat/lng as fallback
+            const pointFeature = new Feature({
+              geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+            });
+            features = [pointFeature];
+            console.log('Used lat/lng point as fallback');
+          } else {
+            throw new Error('Cannot create valid feature - no fallback available');
+          }
+        } else {
+          console.log('Valid extent after parsing:', extent);
+        }
+
+      } catch (parseError) {
+        console.error('Geometry parsing failed:', parseError);
+        
+        // Try using currentDrawnGeometry first
+        if (this.currentDrawnGeometry) {
+          try {
+            features = geoJsonFormat.readFeatures(
+              { type: 'Feature', geometry: this.currentDrawnGeometry, properties: {} },
+              { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' }
+            );
+            console.log('Used currentDrawnGeometry after parse failure');
+          } catch (drawGeomError) {
+            console.error('currentDrawnGeometry also failed:', drawGeomError);
+            // Final fallback to point
+            if (actif.latitude != null && actif.longitude != null) {
+              features = [new Feature({
+                geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+              })];
+              console.log('Used point fallback after all geometry parsing failed');
+            } else {
+              throw new Error('All geometry parsing attempts failed');
+            }
+          }
+        } else if (actif.latitude != null && actif.longitude != null) {
+          // Direct fallback to point
+          features = [new Feature({
+            geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+          })];
+          console.log('Used point fallback - no drawn geometry available');
+        } else {
+          throw new Error('Cannot create feature - no valid geometry or coordinates');
+        }
+      }
+
+      // Add the validated features to the map
+      const added: Feature<Geometry>[] = [];
+      
+      features.forEach(f => {
+        f.setId(actif.id);
+        f.setProperties({ id: actif.id, type: 'actif', data: actif });
+        
+        const geom = f.getGeometry();
+        const type = geom?.getType?.() || '';
+        
+        if (type.toLowerCase().includes('polygon') || type.toLowerCase().includes('linestring')) {
+          this.zoneSource.addFeature(f);
+          added.push(f);
+          console.log(`Added ${type} feature to zoneSource`);
+          
+          // Auto-zoom to polygon for immediate feedback
+          if (type.toLowerCase().includes('polygon')) {
+            setTimeout(() => {
+              const extent = geom!.getExtent();
+              if (extent && extent.every(val => isFinite(val) && !isNaN(val))) {
+                this.map.getView().fit(extent, { 
+                  padding: [50, 50, 50, 50], 
+                  maxZoom: 16,
+                  duration: 1000 
+                });
+                console.log('Auto-zoomed to new polygon');
+              }
+            }, 100);
+          }
+        } else {
+          this.actifSource.addFeature(f);
+          added.push(f);
+          console.log(`Added ${type || 'Point'} feature to actifSource`);
+        }
+      });
+
+      // Ensure zone layer is visible and force refresh
+      if (this.zoneLayer && !this.zoneLayer.getVisible()) {
+        this.zoneLayer.setVisible(true);
+      }
+
+      // Force refresh sources
+      this.zoneSource.changed();
+      this.actifSource.changed();
+      
+      console.log(`Successfully added ${added.length} features for actif ${actif.id}`);
+
+    } else if (actif.latitude != null && actif.longitude != null) {
+      // Handle non-geometry actifs
+      const feature = new Feature({ geometry: new Point(fromLonLat([actif.longitude, actif.latitude])) });
+      feature.setId(actif.id);
+      feature.setProperties({ id: actif.id, type: 'actif', data: actif });
+      this.actifSource.addFeature(feature);
+      console.log('Added point actif from lat/lng');
+      
+    } else if (this.currentDrawnFeature) {
+      // Use the drawn feature if available
+      this.currentDrawnFeature.setId(actif.id);
+      this.currentDrawnFeature.setProperties({ id: actif.id, type: 'actif', data: actif });
+      
+      const geom = this.currentDrawnFeature.getGeometry();
+      if (geom && geom.getType && geom.getType().toLowerCase().includes('polygon')) {
+        this.zoneSource.addFeature(this.currentDrawnFeature);
+      } else {
+        this.actifSource.addFeature(this.currentDrawnFeature);
+      }
+      
+      this.currentDrawnFeature = null;
+      console.log('Used currentDrawnFeature as fallback');
+    }
+    
+    // Clear the drawn geometry reference
+    this.currentDrawnGeometry = null;
+    
+  } catch (e) {
+    console.error('Failed to add created actif to map:', e, actif);
+  }
+});
     this.loadMapData();
     this.loadActifsData();
     this.loadAnomaliesData();
@@ -165,8 +380,8 @@ export class MapComponent implements OnInit, OnDestroy {
       target: this.mapContainer.nativeElement,
       layers: [
         new TileLayer({ source: new XYZ({url: 'http://mt3.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'}) }),
-        this.zoneLayer,
         this.clusterLayer,
+        this.zoneLayer,
         this.anomalieLayer,
       ],
       view: new View({
@@ -174,6 +389,15 @@ export class MapComponent implements OnInit, OnDestroy {
         zoom: 12
       })
     });
+
+    // Ensure deterministic z-order: clusters below zones, anomalies on top
+    try {
+      if (this.clusterLayer && this.clusterLayer.setZIndex) this.clusterLayer.setZIndex(100);
+      if (this.zoneLayer && this.zoneLayer.setZIndex) this.zoneLayer.setZIndex(200);
+      if (this.anomalieLayer && this.anomalieLayer.setZIndex) this.anomalieLayer.setZIndex(300);
+    } catch (e) {
+      // ignore if setZIndex isn't available
+    }
 
     // Create and add the LayerSwitcher control
     this.layerSwitcher = new ol_control_LayerSwitcher({
@@ -230,6 +454,21 @@ export class MapComponent implements OnInit, OnDestroy {
 
   // Initialize project legend control
   this.initializeLegendControl();
+
+    // DEV: expose quick debug handles for console inspection
+    try {
+      (window as any).__mapDebug = {
+        map: this.map,
+        zoneSource: this.zoneSource,
+        actifSource: this.actifSource,
+        anomalieSource: this.anomalieSource,
+        zoneLayer: this.zoneLayer,
+        clusterLayer: this.clusterLayer
+      };
+      console.debug('[MapComponent] __mapDebug exposed on window for runtime inspection');
+    } catch (e) {
+      // ignore in non-browser environments
+    }
   }
 
   // Add this new method to set proper layer names and properties
@@ -251,6 +490,85 @@ export class MapComponent implements OnInit, OnDestroy {
     
     this.anomalieLayer.set('title', 'Anomalies');
     this.anomalieLayer.set('displayInLayerSwitcher', true);
+  }
+
+  // Recursively strip any `crs` properties from GeoJSON-like objects to avoid parser/runtime issues
+  private stripCrsDeep<T = any>(obj: T): T {
+    if (obj == null) return obj;
+    if (Array.isArray(obj)) {
+      return obj.map((v: any) => this.stripCrsDeep(v)) as unknown as T;
+    }
+    if (typeof obj === 'object') {
+      const out: any = {};
+      for (const key of Object.keys(obj as any)) {
+        if (key === 'crs') continue;
+        out[key] = this.stripCrsDeep((obj as any)[key]);
+      }
+      return out as T;
+    }
+    return obj;
+  }
+
+  // Heuristic to detect whether a GeoJSON geometry is already in WebMercator (EPSG:3857)
+  // or in geographic coordinates (EPSG:4326). Scans numeric coordinates and returns
+  // the most likely dataProjection to use when reading with ol/format/GeoJSON.
+  private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
+    if (!geojson) return 'EPSG:4326';
+    let maxAbs = 0;
+    const scan = (v: any) => {
+      if (v == null) return;
+      if (Array.isArray(v)) {
+        if (v.length >= 2 && typeof v[0] === 'number' && typeof v[1] === 'number') {
+          maxAbs = Math.max(maxAbs, Math.abs(v[0]), Math.abs(v[1]));
+        } else {
+          v.forEach(scan);
+        }
+      } else if (typeof v === 'object') {
+        Object.values(v).forEach(scan);
+      }
+    };
+    // Prefer scanning coordinates array if present
+    scan(geojson.coordinates ?? geojson);
+    // Threshold: coordinates with absolute values > 1e6 are almost certainly meters (EPSG:3857)
+    return maxAbs > 1e6 ? 'EPSG:3857' : 'EPSG:4326';
+  }
+
+  // Recursively swap coordinate pairs [x,y] -> [y,x] where found in arrays of numbers of length 2
+  private swapCoordsDeep<T = any>(obj: T): T {
+    if (obj == null) return obj;
+    if (Array.isArray(obj)) {
+      // If this is an array of two numbers, swap them
+      if (obj.length === 2 && typeof obj[0] === 'number' && typeof obj[1] === 'number') {
+        return [obj[1], obj[0]] as unknown as T;
+      }
+      return obj.map((v: any) => this.swapCoordsDeep(v)) as unknown as T;
+    }
+    if (typeof obj === 'object') {
+      const out: any = {};
+      for (const key of Object.keys(obj as any)) {
+        out[key] = this.swapCoordsDeep((obj as any)[key]);
+      }
+      return out as T;
+    }
+    return obj;
+  }
+
+  // Return the current map center in EPSG:4326 (lon, lat)
+  private getMapCenter4326(): [number, number] | null {
+    try {
+      const center = this.map.getView().getCenter();
+      if (!center) return null;
+      return transform(center, 'EPSG:3857', 'EPSG:4326') as [number, number];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Simple degree-space distance between two lon/lat pairs
+  private lonLatDegDistance(a: [number, number], b: [number, number]): number {
+    const dx = a[0] - b[0];
+    const dy = a[1] - b[1];
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   // Optional: Add event listeners for layer switcher events
@@ -320,44 +638,17 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   private loadMapData() {
-    this.loading = true;
-    this.error = null;
-
-    this.zoneService.getZones().subscribe({
-      next: (zones) => {
-        this.zones = zones;
-        this.addZonesToMap(zones);
-        this.loading = false;
-      },
-      error: (err) => { 
-        this.error = 'Failed to load zones'; 
-        console.error(err); 
-        this.loading = false; 
-      }
-    });
+  // Zones are represented as actifs with polygon geometries in this setup.
+  // We no longer load separate 'zones' from a ZoneService. Ensure UI state is consistent.
+  this.loading = false;
+  this.error = null;
+  this.zones = []; // will be populated from actifs after loadActifsData
   }
 
   private addZonesToMap(zones: any[]) {
-    const geoJsonFormat = new GeoJSON();
-    zones.forEach(zone => {
-      try {
-        if (zone.geometry) {
-          const features = geoJsonFormat.readFeatures(JSON.parse(zone.geometry), {
-            featureProjection: 'EPSG:3857'
-          });
-          features.forEach(feature => {
-            feature.setProperties({
-              id: zone.id,
-              type: 'zone',
-              data: zone
-            });
-            this.zoneSource.addFeature(feature);
-          });
-        }
-      } catch (error) {
-        console.error('Error parsing zone geometry:', error);
-      }
-    });
+  // Deprecated: zones are represented as actifs with polygon geometries.
+  // This function is intentionally left as a no-op to avoid double-loading features.
+  return;
   }
 
   // Improved cluster style with better zoom-based behavior
@@ -431,13 +722,42 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   private getZoneStyle(feature: FeatureLike): Style {
-    const data = feature.get('data');
-    const color = data?.color || '#ff0000';
-    const opacity = data?.opacity || 0.5;
-    const rgb = [parseInt(color.slice(1, 3), 16), parseInt(color.slice(3, 5), 16), parseInt(color.slice(5, 7), 16)];
+    // Unified actif styling - handles both points and polygons
+    const data = feature.get('data') || {};
+    const actifType = data?.type || 'unknown';
+    const status = data?.statutOperationnel || 'unknown';
+
+    // Color based on operational status
+    const statusColors: { [key: string]: string } = {
+      'operationnel': '#28a745',      // Green
+      'maintenance': '#ffc107',       // Yellow
+      'hors_service': '#dc3545',      // Red
+      'inactif': '#6c757d',           // Gray
+      'unknown': '#007bff'            // Blue default
+    };
+
+    // Use feature-specific color/opacity if provided, otherwise use status color and a default opacity
+    const baseColorHex: string = (data?.color && typeof data.color === 'string') ? data.color : (statusColors[status] || statusColors['unknown']);
+    const opacity: number = (typeof data?.opacity === 'number') ? data.opacity : 0.25;
+
+    // Convert hex to rgba string
+    const hex = baseColorHex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
+    const fillColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+
     return new Style({
-      fill: new Fill({ color: `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})` }),
-      stroke: new Stroke({ color: color, width: 2 })
+      fill: new Fill({ color: fillColor }),
+      stroke: new Stroke({ color: baseColorHex, width: 3 }),
+      text: new Text({
+        text: data?.nom || data?.code || '',
+        font: 'bold 14px Arial, sans-serif',
+        fill: new Fill({ color: '#000' }),
+        stroke: new Stroke({ color: '#fff', width: 3 }),
+        overflow: true,
+        placement: 'point'
+      })
     });
   }
 
@@ -503,22 +823,33 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  private onDrawEnd(feature: Feature<Geometry>) {
-    this.selectedFeature = feature;
+private onDrawEnd(feature: Feature<Geometry>) {
+  const geometry = feature.getGeometry();
+  if (!geometry) return;
 
-    // Add to appropriate source based on geometry type
-    const geometry = feature.getGeometry();
-    if (geometry instanceof Point) {
-      // Points go to actif source (for clustering)
-      this.actifSource.addFeature(feature);
-    } else {
-      // Polygons and LineStrings go to zone source (not clustered)
-      this.zoneSource.addFeature(feature);
-    }
+  // Convert OpenLayers geometry to GeoJSON IMMEDIATELY
+  const geoJsonFormat = new GeoJSON();
+  const geoJsonFeature = geoJsonFormat.writeFeatureObject(feature, {
+    featureProjection: 'EPSG:3857',
+    dataProjection: 'EPSG:4326'
+  });
+  
+  // Store the GeoJSON geometry
+  this.currentDrawnGeometry = geoJsonFeature.geometry;
+  
+  console.log('Stored geometry for form:', this.currentDrawnGeometry);
 
-    this.showActifFormForGeometry(feature);
+  this.selectedFeature = feature;
+
+  // Add to appropriate source based on geometry type
+  if (geometry instanceof Point) {
+    this.actifSource.addFeature(feature);
+  } else {
+    this.zoneSource.addFeature(feature);
   }
 
+  this.showActifFormForGeometry(feature);
+}
   private showActifFormForGeometry(feature: Feature<Geometry>) {
     const geometry = feature.getGeometry();
     if (!geometry) return;
@@ -529,11 +860,32 @@ export class MapComponent implements OnInit, OnDestroy {
       const coords = geometry.getCoordinates();
       const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
       coordinates = [lonLat[0], lonLat[1]];
+      // Clear any previously stored drawn geometry
+      this.currentDrawnGeometry = null;
     } else {
       const extent = geometry.getExtent();
       const centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
       const lonLat = transform(centerCoords, 'EPSG:3857', 'EPSG:4326');
       coordinates = [lonLat[0], lonLat[1]];
+      // Store the drawn geometry as GeoJSON (in EPSG:4326) so the form will send it
+      try {
+        const geoJsonFormat = new GeoJSON();
+        this.currentDrawnGeometry = geoJsonFormat.writeGeometryObject(geometry, {
+          featureProjection: 'EPSG:3857',
+          dataProjection: 'EPSG:4326'
+        });
+      } catch (e) {
+        console.error('Failed to serialize drawn geometry to GeoJSON', e);
+        this.currentDrawnGeometry = null;
+      }
+    }
+
+    // DEBUG: ensure the drawn geometry is captured before opening the form
+    try {
+      console.debug('[MapComponent] showActifFormForGeometry - clickCoordinates:', coordinates);
+      console.debug('[MapComponent] showActifFormForGeometry - currentDrawnGeometry:', JSON.stringify(this.currentDrawnGeometry));
+    } catch (e) {
+      console.debug('[MapComponent] showActifFormForGeometry - currentDrawnGeometry (non-serializable):', this.currentDrawnGeometry);
     }
 
     this.clickCoordinates = coordinates;
@@ -589,23 +941,15 @@ export class MapComponent implements OnInit, OnDestroy {
     const featureToRemove = this.selectedFeature;
     this.selectedFeature = null;
 
-    if (type === 'actif') {
-      this.actifService.deleteActif(data.id).subscribe({
-        next: () => {
-          source.removeFeature(featureToRemove);
-          this.actifs = this.actifs.filter(a => a.id !== data.id);
-        },
-        error: (err) => console.error('Error deleting actif:', err)
-      });
-    } else {
-      this.zoneService.deleteZone(data.id).subscribe({
-        next: () => {
-          source.removeFeature(featureToRemove);
-          this.zones = this.zones.filter(z => z.id !== data.id);
-        },
-        error: (err) => console.error('Error deleting zone:', err)
-      });
-    }
+    // Treat any polygon feature as an actif (delete via actifService)
+    this.actifService.deleteActif(data.id).subscribe({
+      next: () => {
+        source.removeFeature(featureToRemove);
+        this.actifs = this.actifs.filter(a => a.id !== data.id);
+        this.zones = this.zones.filter(z => z.id !== data.id);
+      },
+      error: (err) => console.error('Error deleting actif/zone:', err)
+    });
   }
 
   private resetForm() {
@@ -807,6 +1151,18 @@ export class MapComponent implements OnInit, OnDestroy {
         console.log(`Chargement de ${actifs.length} actifs sur la carte:`, actifs);
         this.actifs = actifs;
         this.addActifsToMap(actifs);
+        // Populate zones array from actifs that have polygon geometries
+        this.zones = actifs.filter(a => {
+          try {
+            if (a.geometry) {
+              const g = typeof a.geometry === 'string' ? JSON.parse(a.geometry) : a.geometry;
+              return g && g.type && (/polygon/i).test(g.type);
+            }
+            return false;
+          } catch (e) {
+            return false;
+          }
+        });
       },
       error: (err) => {
         console.error('Erreur lors du chargement des actifs:', err);
@@ -826,97 +1182,203 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Fixed addActifsToMap method to prevent duplication
-  private addActifsToMap(actifs: ActifPourCarte[]) {
-    // Clear ONLY the actifSource (for points) - don't clear zoneSource to preserve user zones
-    this.actifSource.clear();
-    
-    actifs.forEach(actif => {
-      if (actif.latitude != null && actif.longitude != null) {
-        // POINTS: Add to actifSource (will be automatically clustered)
-        const feature = new Feature({
-          geometry: new Point(fromLonLat([actif.longitude, actif.latitude])),
-        });
+// In your addActifsToMap method, replace the projection detection logic:
+
+// Add this method to your MapComponent class to fix polygon rendering issues
+
+private addActifsToMap(actifs: ActifPourCarte[]) {
+  this.actifSource.clear();
+  this.zoneSource.clear();
+
+  actifs.forEach(actif => {
+    try {
+      let feature: Feature<Geometry>;
+      
+      if (actif.geometry) {
+        const geoJsonFormat = new GeoJSON();
+        let geojson: any = typeof actif.geometry === 'string' ? JSON.parse(actif.geometry) : actif.geometry;
         
-        // Set properties properly
-        feature.setProperties({
-          id: actif.id,
-          type: 'actif',
-          data: actif
-        });
-        
-        this.actifSource.addFeature(feature);
-        
-      } else if (actif.geometry) {
-        // POLYGONS/LINESTRINGS: Add to zoneSource (not clustered)
+        // Remove crs property if present
+        geojson = this.stripCrsDeep(geojson);
+
+        // Type guard to ensure geojson has the expected structure
+        if (!geojson || typeof geojson !== 'object' || !geojson.type) {
+          console.warn('Invalid geometry format for actif:', actif.id, geojson);
+          return;
+        }
+
+        // FIXED: Always treat geometry as EPSG:4326 from backend
         try {
-          const geoJsonFormat = new GeoJSON();
-          const geojson = typeof actif.geometry === 'string' ? JSON.parse(actif.geometry) : actif.geometry;
-          const features = geoJsonFormat.readFeatures({
-            type: 'Feature',
-            geometry: geojson,
-            properties: {}
-          }, {
-            featureProjection: 'EPSG:3857'
+          // Detect whether the geometry's coordinates look like degrees (4326) or meters (3857)
+          let detected = this.detectGeoJSONProjection(geojson);
+          let features = geoJsonFormat.readFeatures(
+            { 
+              type: 'Feature' as const, 
+              geometry: geojson, 
+              properties: {} 
+            }, 
+            { dataProjection: detected, featureProjection: 'EPSG:3857' }
+          );
+
+          feature = features[0];
+          if (!feature) {
+            console.warn('No feature parsed from geometry:', geojson);
+            return;
+          }
+
+          // Validate geometry extent after parsing
+          let geometry = feature.getGeometry();
+          let extent = geometry?.getExtent();
+
+          // If extent invalid, try the alternate projection once
+          if (!extent || extent.some(val => !isFinite(val) || isNaN(val))) {
+            console.warn(`Detected projection ${detected} produced invalid extent for actif ${actif.id}:`, extent);
+            const alternate = detected === 'EPSG:4326' ? 'EPSG:3857' : 'EPSG:4326';
+            console.log(`Retrying parse with alternate projection ${alternate} for actif ${actif.id}`);
+            try {
+              features = geoJsonFormat.readFeatures(
+                { type: 'Feature' as const, geometry: geojson, properties: {} },
+                { dataProjection: alternate, featureProjection: 'EPSG:3857' }
+              );
+              feature = features[0];
+              geometry = feature?.getGeometry();
+              extent = geometry?.getExtent();
+            } catch (retryErr) {
+              console.error('Retry parsing with alternate projection failed:', retryErr);
+            }
+          }
+
+          // After one retry, if still invalid then fallback to lat/lng or drawn geometry
+          if (!extent || extent.some(val => !isFinite(val) || isNaN(val))) {
+            console.error(`Invalid extent for actif ${actif.id}:`, extent);
+            // FALLBACK: Try to reconstruct from lat/lng if available
+            if (actif.latitude != null && actif.longitude != null) {
+              console.log(`Falling back to lat/lng for actif ${actif.id}`);
+              feature = new Feature({ geometry: new Point(fromLonLat([actif.longitude, actif.latitude])) });
+            } else {
+              console.error(`Cannot render actif ${actif.id} - invalid geometry and no lat/lng`);
+              return;
+            }
+          } else {
+            // Valid extent - log for debugging
+            const center3857: [number, number] = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+            const center4326 = transform(center3857, 'EPSG:3857', 'EPSG:4326') as [number, number];
+            console.log(`Actif ${actif.id} (${actif.nom}) - Valid geometry:`, {
+              dbLat: actif.latitude,
+              dbLng: actif.longitude,
+              calculatedCenter: center4326,
+              geometryType: geojson.type,
+              extent: extent
+            });
+          }
+  } catch (parseError) {
+          console.error(`Failed to parse geometry for actif ${actif.id}:`, parseError);
+          
+          // FALLBACK: Use lat/lng if geometry parsing fails
+          if (actif.latitude != null && actif.longitude != null) {
+            console.log(`Using lat/lng fallback for actif ${actif.id}`);
+            feature = new Feature({
+              geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+            });
+          } else {
+            console.error(`Cannot render actif ${actif.id} - geometry parse failed and no lat/lng`);
+            return;
+          }
+        }
+        
+      } else if (actif.latitude != null && actif.longitude != null) {
+        // For point features without geometry field, use lat/lng
+        feature = new Feature({
+          geometry: new Point(fromLonLat([actif.longitude, actif.latitude]))
+        });
+      } else {
+        console.warn('Actif has no geometry or coordinates:', actif);
+        return;
+      }
+
+      feature.setId(actif.id);
+      const sanitizedData = { ...actif } as any;
+      
+      // Clean up geometry data to avoid circular references
+      try { 
+        sanitizedData.geometry = this.stripCrsDeep(sanitizedData.geometry ?? sanitizedData.geojson ?? null); 
+      } catch (e) {
+        console.warn('Failed to sanitize geometry for actif:', actif.id, e);
+      }
+      
+      feature.setProperties({ 
+        id: actif.id, 
+        type: 'actif', 
+        data: sanitizedData 
+      });
+
+      const geom = feature.getGeometry();
+      if (!geom) {
+        console.warn('Feature has no geometry after processing:', actif.id);
+        return;
+      }
+      
+      const geomType = geom.getType();
+
+      // Add to appropriate source based on geometry type
+      if (geomType === 'Point') {
+        this.actifSource.addFeature(feature);
+      } else {
+        // Polygons, LineStrings, etc. go to zone source
+        this.zoneSource.addFeature(feature);
+        
+        // ADDED: For debugging polygon placement
+        if (geomType === 'Polygon') {
+          const extent = geom.getExtent();
+          console.log(`Added polygon actif ${actif.id} to zone source:`, {
+            extent: extent,
+            isValidExtent: extent && extent.every(val => isFinite(val) && !isNaN(val))
           });
           
-          features.forEach(zoneFeature => {
-            zoneFeature.setId(actif.id);
-            zoneFeature.setProperties({
-              id: actif.id,
-              type: 'actif',
-              data: actif
-            });
-            this.zoneSource.addFeature(zoneFeature);
-          });
-        } catch (e) {
-          console.error('Erreur lors du parsing de la géométrie GeoJSON de l\'actif:', e, actif);
+          // Auto-zoom to polygon for debugging (remove this in production)
+          if (extent && extent.every(val => isFinite(val) && !isNaN(val))) {
+            setTimeout(() => {
+              this.map.getView().fit(extent, { 
+                padding: [50, 50, 50, 50], 
+                maxZoom: 16,
+                duration: 1000
+              });
+            }, 500);
+          }
         }
       }
-    });
-  }
 
-  private addAnomaliesToMap(anomalies: AnomaliePourCarte[]) {
-    this.anomalieSource.clear();
-    anomalies.forEach(anomalie => {
-      if (anomalie.latitude && anomalie.longitude) {
-        const feature = new Feature({
-          geometry: new Point(fromLonLat([anomalie.longitude, anomalie.latitude])),
-        });
-        
-        feature.setProperties({
-          id: anomalie.id,
-          type: 'anomalie',
-          data: anomalie
-        });
-        
-        this.anomalieSource.addFeature(feature);
-      }
-    });
-  }
+    } catch (e) {
+      console.error('Error adding actif to map:', e, actif);
+    }
+  });
 
-  // Fixed toggle methods to work with corrected layer structure
-  toggleActifsLayer() {
-    this.showActifs = !this.showActifs;
-    if (this.clusterLayer) {
-      this.clusterLayer.setVisible(this.showActifs);
-    }
-    // Update project legend control if present
-    if (this.legendControl) {
-  this.legendControl.setItemVisibility('Actifs', this.showActifs);
-  this.legendControl.setItemVisibility("Groupes d'Actifs", this.showActifs);
-    }
-  }
+  // Ensure both layers are visible
+  if (this.clusterLayer) this.clusterLayer.setVisible(true);
+  if (this.zoneLayer) this.zoneLayer.setVisible(true);
 
-  toggleAnomaliesLayer() {
-    this.showAnomalies = !this.showAnomalies;
-    if (this.anomalieLayer) {
-      this.anomalieLayer.setVisible(this.showAnomalies);
-    }
-    if (this.legendControl) {
-      this.legendControl.setItemVisibility('Anomalies', this.showAnomalies);
-    }
+  // Force refresh to trigger re-rendering
+  this.actifSource.changed();
+  this.zoneSource.changed();
+  
+  console.log(`Loaded ${this.actifSource.getFeatures().length} point actifs and ${this.zoneSource.getFeatures().length} polygon/line actifs`);
+
+  // Debug polygon features with more detail
+  const polygonFeatures = this.zoneSource.getFeatures().filter(f => f.getGeometry()?.getType() === 'Polygon');
+  if (polygonFeatures.length > 0) {
+    console.log('Polygon features loaded:', polygonFeatures.map(f => {
+      const geom = f.getGeometry();
+      const extent = geom?.getExtent();
+      return {
+        id: f.get('id'),
+        nom: f.get('data')?.nom,
+        extent: extent,
+        isValidExtent: extent && extent.every(val => isFinite(val) && !isNaN(val)),
+        geometryType: geom?.getType()
+      };
+    }));
   }
+}
 
   // Initialize project legend control (ol_control_Legend)
   private initializeLegendControl() {
@@ -1131,4 +1593,73 @@ export class MapComponent implements OnInit, OnDestroy {
       featureCount: this.actifSource?.getFeatures().length,
       clusterCount: this.clusterSource?.getFeatures().length
     };
+  }
+
+  // Toggle visibility for actifs (cluster) layer
+  toggleActifsLayer() {
+    this.showActifs = !this.showActifs;
+    try {
+      if (this.clusterLayer && typeof this.clusterLayer.setVisible === 'function') {
+        this.clusterLayer.setVisible(this.showActifs);
+      }
+      // Keep zone layer visibility in sync only when hiding all actifs
+      if (this.zoneLayer && typeof this.zoneLayer.setVisible === 'function') {
+        this.zoneLayer.setVisible(this.showActifs || this.zoneLayer.getVisible());
+      }
+    } catch (e) {
+      console.warn('Failed to toggle actifs layer visibility', e);
+    }
+  }
+
+  // Toggle visibility for anomalies layer
+  toggleAnomaliesLayer() {
+    this.showAnomalies = !this.showAnomalies;
+    try {
+      if (this.anomalieLayer && typeof this.anomalieLayer.setVisible === 'function') {
+        this.anomalieLayer.setVisible(this.showAnomalies);
+      }
+    } catch (e) {
+      console.warn('Failed to toggle anomalies layer visibility', e);
+    }
+  }
+
+  // Add anomalies to anomaly source (assumes backend returns geometry in EPSG:4326)
+  private addAnomaliesToMap(anomalies: AnomaliePourCarte[]) {
+    try {
+      this.anomalieSource.clear();
+      const geoJson = new GeoJSON();
+      anomalies.forEach(a => {
+        try {
+          const an = a as any;
+          if (an.geometry) {
+            let geojson: any = typeof an.geometry === 'string' ? JSON.parse(an.geometry) : an.geometry;
+            geojson = this.stripCrsDeep(geojson);
+            // Backend contract: geometry is EPSG:4326
+            const features = geoJson.readFeatures(
+              { type: 'Feature' as const, geometry: geojson, properties: {} },
+              { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' }
+            );
+            const f = features && features[0];
+            if (f) {
+              f.setId(an.id);
+              f.setProperties({ id: an.id, type: 'anomalie', data: an });
+              this.anomalieSource.addFeature(f);
+            }
+          } else if (an.latitude != null && an.longitude != null) {
+            const f = new Feature({ geometry: new Point(fromLonLat([an.longitude, an.latitude])) });
+            f.setId(an.id);
+            f.setProperties({ id: an.id, type: 'anomalie', data: an });
+            this.anomalieSource.addFeature(f);
+          }
+        } catch (e) {
+          console.warn('Error adding anomaly to map', e, a);
+        }
+      });
+      if (this.anomalieLayer && typeof this.anomalieLayer.setVisible === 'function') {
+        this.anomalieLayer.setVisible(this.showAnomalies);
+      }
+      this.anomalieSource.changed();
+    } catch (e) {
+      console.error('Failed to add anomalies to map', e);
+    }
   }}

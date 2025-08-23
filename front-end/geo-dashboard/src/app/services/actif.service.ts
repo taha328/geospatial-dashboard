@@ -77,15 +77,20 @@ export interface HierarchyNode {
   longitude?: number;
   code?: string;
 
+  // Allow arbitrary additional properties returned by backend (e.g. actif fields)
+  [key: string]: any;
+
   children?: HierarchyNode[];
 }
 
 export interface StatistiquesActifs {
   total: number;
-  operationnels: number;
-  enMaintenance: number;
-  horsService: number;
-  tauxDisponibilite: number;
+  operationnels: number; // number of assets operational
+  enMaintenance: number; // number in maintenance
+  horsService: number;   // number out of service
+  tauxDisponibilite: number; // availability percentage (0-100)
+  // Allow additional KPI fields
+  [key: string]: any;
 }
 
 @Injectable({
