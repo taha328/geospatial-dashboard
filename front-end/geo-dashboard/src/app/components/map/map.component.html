@@ -228,7 +228,7 @@
           </div>
           
           <div class="data-actions">
-            <button (click)="refreshData()" class="btn btn-info btn-with-icon btn-full">
+            <button (click)="refreshData(true)" class="btn btn-info btn-with-icon btn-full">
               <span class="btn-icon">🔄</span>
               Actualiser
             </button>
@@ -299,7 +299,7 @@
           <div class="status-content">
             <div class="error-icon">⚠️</div>
             <p>{{ error }}</p>
-            <button (click)="refreshData()" class="btn btn-secondary btn-with-icon">
+              <button (click)="refreshData(true)" class="btn btn-secondary btn-with-icon">
               <span class="btn-icon">🔄</span>
               Réessayer
             </button>

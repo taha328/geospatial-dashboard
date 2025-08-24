@@ -114,6 +114,41 @@ export class MapComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute
   ) {}
 
+      /**
+       * Returns the OpenLayers map canvas element (if present).
+       */
+      getMapCanvasElement(): HTMLCanvasElement | null {
+        if (!this.map) return null;
+        // OL map viewport contains the canvas
+        const viewport = this.map.getViewport();
+        return viewport.querySelector('canvas');
+      }
+
+      /**
+       * Gets the 2D context with willReadFrequently option, with fallback.
+       */
+      getMapCanvasContext2D(): CanvasRenderingContext2D | null {
+        const canvas = this.getMapCanvasElement();
+        if (!canvas) return null;
+        // TypeScript-safe: cast options as any if needed
+        return (
+          canvas.getContext('2d', { willReadFrequently: true } as any) as CanvasRenderingContext2D
+        ) || canvas.getContext('2d');
+      }
+
+      /**
+       * Example usage: read pixel data after map render
+       */
+      readMapPixelDataExample() {
+        const ctx = this.getMapCanvasContext2D();
+        if (!ctx) {
+          console.warn('Map canvas context not available');
+          return;
+        }
+        // Example: get pixel at (x, y)
+        const imageData = ctx.getImageData(0, 0, 1, 1);
+        console.log('Pixel RGBA:', imageData.data);
+      }
   ngOnInit() {
     this.initializeMap();
     // Subscribe to data change notifications so the map can refresh automatically
@@ -982,13 +1017,64 @@ private onDrawEnd(feature: Feature<Geometry>) {
     this.newGeometry = { name: '', color: '#ff0000', opacity: 0.5 };
   }
 
-  refreshData() {
+  refreshData(forceRefresh = false) {
+    // Clear current features immediately for better perceived performance
     this.actifSource.clear();
     this.zoneSource.clear();
     this.anomalieSource.clear();
-    this.loadMapData();
-    this.loadActifsData();
-    this.loadAnomaliesData();
+
+    // Optionally force server refresh by clearing caches in service
+    if (forceRefresh) {
+      try {
+        (this.carteIntegrationService as any).clearActifsCache?.();
+        (this.carteIntegrationService as any).clearAnomaliesCache?.();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Load both datasets in parallel and show spinner only while waiting
+    this.loading = true;
+    this.error = null;
+
+    // Use forkJoin to load both datasets together
+    import('rxjs').then(rx => {
+      const { forkJoin } = rx;
+      forkJoin({
+        actifs: this.carteIntegrationService.getActifsForMap(forceRefresh),
+        anomalies: this.carteIntegrationService.getAnomaliesForMap(forceRefresh)
+      }).subscribe({
+        next: ({ actifs, anomalies }) => {
+          try {
+            this.actifs = actifs;
+            this.anomalies = anomalies;
+            this.addActifsToMap(actifs);
+            this.addAnomaliesToMap(anomalies);
+            this.zones = actifs.filter(a => {
+              try {
+                if (a.geometry) {
+                  const g = typeof a.geometry === 'string' ? JSON.parse(a.geometry) : a.geometry;
+                  return g && g.type && (/polygon/i).test(g.type);
+                }
+                return false;
+              } catch (e) {
+                return false;
+              }
+            });
+          } catch (err) {
+            console.error('Error processing loaded data:', err);
+            this.error = 'Erreur de traitement des données de la carte.';
+          } finally {
+            this.loading = false;
+          }
+        },
+        error: (err) => {
+          console.error('Erreur lors du chargement des données de la carte:', err);
+          this.error = 'Erreur lors du chargement des données de la carte.';
+          this.loading = false;
+        }
+      });
+    });
   }
 
   getDrawingStatusText(): string {

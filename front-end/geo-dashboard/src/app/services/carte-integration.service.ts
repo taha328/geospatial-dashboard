@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { shareReplay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface ActifPourCarte {
@@ -57,17 +58,39 @@ export interface SignalementAnomalie {
 })
 export class CarteIntegrationService {
   private baseUrl = `${environment.apiUrl}/carte`;
+  // Simple in-memory caches to avoid re-fetching the same large payload repeatedly.
+  private actifsCache$: Observable<ActifPourCarte[]> | null = null;
+  private anomaliesCache$: Observable<AnomaliePourCarte[]> | null = null;
 
   constructor(private http: HttpClient) {}
 
   // Récupérer tous les actifs pour la carte
-  getActifsForMap(): Observable<ActifPourCarte[]> {
-    return this.http.get<ActifPourCarte[]>(`${this.baseUrl}/actifs`);
+  getActifsForMap(forceRefresh = false): Observable<ActifPourCarte[]> {
+    if (forceRefresh || !this.actifsCache$) {
+      this.actifsCache$ = this.http.get<ActifPourCarte[]>(`${this.baseUrl}/actifs`).pipe(
+        // keep the latest successful response in-memory for subsequent subscribers
+        shareReplay({ bufferSize: 1, refCount: true })
+      );
+    }
+    return this.actifsCache$;
+  }
+
+  clearActifsCache() {
+    this.actifsCache$ = null;
   }
 
   // Récupérer toutes les anomalies pour la carte
-  getAnomaliesForMap(): Observable<AnomaliePourCarte[]> {
-    return this.http.get<AnomaliePourCarte[]>(`${this.baseUrl}/anomalies`);
+  getAnomaliesForMap(forceRefresh = false): Observable<AnomaliePourCarte[]> {
+    if (forceRefresh || !this.anomaliesCache$) {
+      this.anomaliesCache$ = this.http.get<AnomaliePourCarte[]>(`${this.baseUrl}/anomalies`).pipe(
+        shareReplay({ bufferSize: 1, refCount: true })
+      );
+    }
+    return this.anomaliesCache$;
+  }
+
+  clearAnomaliesCache() {
+    this.anomaliesCache$ = null;
   }
 
   // Récupérer le dashboard complet de la carte
