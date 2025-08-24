@@ -512,26 +512,52 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
   // Heuristic to detect whether a GeoJSON geometry is already in WebMercator (EPSG:3857)
   // or in geographic coordinates (EPSG:4326). Scans numeric coordinates and returns
   // the most likely dataProjection to use when reading with ol/format/GeoJSON.
-  private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
-    if (!geojson) return 'EPSG:4326';
-    let maxAbs = 0;
-    const scan = (v: any) => {
-      if (v == null) return;
-      if (Array.isArray(v)) {
-        if (v.length >= 2 && typeof v[0] === 'number' && typeof v[1] === 'number') {
-          maxAbs = Math.max(maxAbs, Math.abs(v[0]), Math.abs(v[1]));
-        } else {
-          v.forEach(scan);
+private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
+  if (!geojson) return 'EPSG:4326';
+  
+  let maxAbs = 0;
+  let coordinateCount = 0;
+  let validCoordPairs = 0;
+  
+  const scan = (v: any) => {
+    if (v == null) return;
+    if (Array.isArray(v)) {
+      if (v.length >= 2 && typeof v[0] === 'number' && typeof v[1] === 'number') {
+        const x = Math.abs(v[0]);
+        const y = Math.abs(v[1]);
+        maxAbs = Math.max(maxAbs, x, y);
+        coordinateCount += 2;
+        
+        // Check if coordinates are in reasonable lat/lng range
+        if (x <= 180 && y <= 90) {
+          validCoordPairs++;
         }
-      } else if (typeof v === 'object') {
-        Object.values(v).forEach(scan);
+      } else {
+        v.forEach(scan);
       }
-    };
-    // Prefer scanning coordinates array if present
-    scan(geojson.coordinates ?? geojson);
-    // Threshold: coordinates with absolute values > 1e6 are almost certainly meters (EPSG:3857)
-    return maxAbs > 1e6 ? 'EPSG:3857' : 'EPSG:4326';
+    } else if (typeof v === 'object') {
+      Object.values(v).forEach(scan);
+    }
+  };
+  
+  scan(geojson.coordinates ?? geojson);
+  
+  // Enhanced heuristics:
+  // 1. If max absolute value > 1e6, definitely meters (EPSG:3857)
+  // 2. If all coordinates are within lat/lng bounds and max < 1000, likely EPSG:4326
+  // 3. For Morocco specifically, longitude should be around -5 to -10, latitude around 30-36
+  if (maxAbs > 1e6) {
+    return 'EPSG:3857';
   }
+  
+  if (maxAbs < 1000 && validCoordPairs > 0) {
+    return 'EPSG:4326';
+  }
+  
+  // Default to 4326 for ambiguous cases since backend now stores in 4326
+  return 'EPSG:4326';
+}
+
 
   // Recursively swap coordinate pairs [x,y] -> [y,x] where found in arrays of numbers of length 2
   private swapCoordsDeep<T = any>(obj: T): T {
@@ -1198,26 +1224,25 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
         const geoJsonFormat = new GeoJSON();
         let geojson: any = typeof actif.geometry === 'string' ? JSON.parse(actif.geometry) : actif.geometry;
         
-        // Remove crs property if present
         geojson = this.stripCrsDeep(geojson);
 
-        // Type guard to ensure geojson has the expected structure
         if (!geojson || typeof geojson !== 'object' || !geojson.type) {
           console.warn('Invalid geometry format for actif:', actif.id, geojson);
           return;
         }
 
-        // FIXED: Always treat geometry as EPSG:4326 from backend
         try {
-          // Detect whether the geometry's coordinates look like degrees (4326) or meters (3857)
-          let detected = this.detectGeoJSONProjection(geojson);
-          let features = geoJsonFormat.readFeatures(
+          // Since backend now stores in EPSG:4326, we can safely assume that's the format
+          const features = geoJsonFormat.readFeatures(
             { 
               type: 'Feature' as const, 
               geometry: geojson, 
               properties: {} 
             }, 
-            { dataProjection: detected, featureProjection: 'EPSG:3857' }
+            { 
+              dataProjection: 'EPSG:4326',    // Backend now stores in EPSG:4326
+              featureProjection: 'EPSG:3857'  // OpenLayers uses EPSG:3857
+            }
           );
 
           feature = features[0];
@@ -1227,33 +1252,16 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
           }
 
           // Validate geometry extent after parsing
-          let geometry = feature.getGeometry();
-          let extent = geometry?.getExtent();
+          const geometry = feature.getGeometry();
+          const extent = geometry?.getExtent();
 
-          // If extent invalid, try the alternate projection once
+          // Check for invalid extent
           if (!extent || extent.some(val => !isFinite(val) || isNaN(val))) {
-            console.warn(`Detected projection ${detected} produced invalid extent for actif ${actif.id}:`, extent);
-            const alternate = detected === 'EPSG:4326' ? 'EPSG:3857' : 'EPSG:4326';
-            console.log(`Retrying parse with alternate projection ${alternate} for actif ${actif.id}`);
-            try {
-              features = geoJsonFormat.readFeatures(
-                { type: 'Feature' as const, geometry: geojson, properties: {} },
-                { dataProjection: alternate, featureProjection: 'EPSG:3857' }
-              );
-              feature = features[0];
-              geometry = feature?.getGeometry();
-              extent = geometry?.getExtent();
-            } catch (retryErr) {
-              console.error('Retry parsing with alternate projection failed:', retryErr);
-            }
-          }
-
-          // After one retry, if still invalid then fallback to lat/lng or drawn geometry
-          if (!extent || extent.some(val => !isFinite(val) || isNaN(val))) {
-            console.error(`Invalid extent for actif ${actif.id}:`, extent);
-            // FALLBACK: Try to reconstruct from lat/lng if available
+            console.error('Invalid extent after parsing:', extent);
+            
+            // Fallback to lat/lng if available
             if (actif.latitude != null && actif.longitude != null) {
-              console.log(`Falling back to lat/lng for actif ${actif.id}`);
+              console.log(`Using lat/lng fallback for actif ${actif.id}`);
               feature = new Feature({ geometry: new Point(fromLonLat([actif.longitude, actif.latitude])) });
             } else {
               console.error(`Cannot render actif ${actif.id} - invalid geometry and no lat/lng`);
@@ -1263,6 +1271,7 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
             // Valid extent - log for debugging
             const center3857: [number, number] = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
             const center4326 = transform(center3857, 'EPSG:3857', 'EPSG:4326') as [number, number];
+            
             console.log(`Actif ${actif.id} (${actif.nom}) - Valid geometry:`, {
               dbLat: actif.latitude,
               dbLng: actif.longitude,
@@ -1271,10 +1280,11 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
               extent: extent
             });
           }
-  } catch (parseError) {
+          
+        } catch (parseError) {
           console.error(`Failed to parse geometry for actif ${actif.id}:`, parseError);
           
-          // FALLBACK: Use lat/lng if geometry parsing fails
+          // Fallback to lat/lng
           if (actif.latitude != null && actif.longitude != null) {
             console.log(`Using lat/lng fallback for actif ${actif.id}`);
             feature = new Feature({
@@ -1327,24 +1337,12 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
         // Polygons, LineStrings, etc. go to zone source
         this.zoneSource.addFeature(feature);
         
-        // ADDED: For debugging polygon placement
         if (geomType === 'Polygon') {
           const extent = geom.getExtent();
           console.log(`Added polygon actif ${actif.id} to zone source:`, {
             extent: extent,
             isValidExtent: extent && extent.every(val => isFinite(val) && !isNaN(val))
           });
-          
-          // Auto-zoom to polygon for debugging (remove this in production)
-          if (extent && extent.every(val => isFinite(val) && !isNaN(val))) {
-            setTimeout(() => {
-              this.map.getView().fit(extent, { 
-                padding: [50, 50, 50, 50], 
-                maxZoom: 16,
-                duration: 1000
-              });
-            }, 500);
-          }
         }
       }
 
@@ -1362,22 +1360,6 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
   this.zoneSource.changed();
   
   console.log(`Loaded ${this.actifSource.getFeatures().length} point actifs and ${this.zoneSource.getFeatures().length} polygon/line actifs`);
-
-  // Debug polygon features with more detail
-  const polygonFeatures = this.zoneSource.getFeatures().filter(f => f.getGeometry()?.getType() === 'Polygon');
-  if (polygonFeatures.length > 0) {
-    console.log('Polygon features loaded:', polygonFeatures.map(f => {
-      const geom = f.getGeometry();
-      const extent = geom?.getExtent();
-      return {
-        id: f.get('id'),
-        nom: f.get('data')?.nom,
-        extent: extent,
-        isValidExtent: extent && extent.every(val => isFinite(val) && !isNaN(val)),
-        geometryType: geom?.getType()
-      };
-    }));
-  }
 }
 
   // Initialize project legend control (ol_control_Legend)

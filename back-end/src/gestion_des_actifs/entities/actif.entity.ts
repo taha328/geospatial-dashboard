@@ -36,7 +36,7 @@ export class Actif {
   @Column({
     type: 'geometry',
     spatialFeatureType: 'Geometry',
-    srid: 26191, // Merchich / Nord Maroc SRID
+    srid: 4326, // Merchich / Nord Maroc SRID
     nullable: true 
   })
   geometry: any; // PostGIS geometry for polygon/linestring actifs
