@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterOutlet, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NotificationService, Notification } from './services/notification.service';
+import { AuthService } from './services/auth.service';
+import { Subscription } from 'rxjs';
 import { NotificationPanelComponent } from './components/notification-panel/notification-panel.component';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -11,22 +15,63 @@ import { NotificationPanelComponent } from './components/notification-panel/noti
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'geo-dashboard';
   mobileMenuOpen = false;
   notificationPanelOpen = false;
   notifications: Notification[] = [];
   unreadNotificationCount = 0;
+  
+  // Add the missing isLoggedIn property
+  isLoggedIn = false;
+  isAdmin = false;
+  
+  private authSub?: Subscription;
+  private profileSub?: Subscription;
 
   constructor(
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private auth: AuthService
+    , private http: HttpClient
   ) {}
 
   ngOnInit() {
     this.loadNotifications();
     this.notificationService.refresh$.subscribe(() => {
       this.loadNotifications();
+    });
+    
+    // Subscribe to local immediate notifications
+    this.notificationService.localNotifications$.subscribe(n => {
+      // prepend and update counts
+      this.notifications.unshift(n);
+      this.unreadNotificationCount = this.notifications.filter(x => !x.read).length;
+    });
+
+    // Subscribe to auth state and redirect to login if logged out
+    this.authSub = this.auth.authState$.subscribe(isLoggedIn => {
+      this.isLoggedIn = isLoggedIn; // Update the component property
+      if (!isLoggedIn) {
+        this.router.navigate(['/login']);
+        this.isAdmin = false; // Reset admin status when logged out
+      } else {
+        // Load profile only when logged in to determine admin visibility
+        console.log('Loading user profile for admin check...');
+        this.profileSub = this.http.get<any>(`${environment.apiUrl}/auth/me`).subscribe({
+          next: profile => {
+            console.log('Profile received:', profile);
+            const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.role;
+            console.log('Extracted role:', role);
+            this.isAdmin = role === 'administrateur';
+            console.log('Is admin:', this.isAdmin);
+          },
+          error: (error) => {
+            console.error('Error loading profile:', error);
+            this.isAdmin = false;
+          }
+        });
+      }
     });
   }
 
@@ -47,6 +92,10 @@ export class AppComponent implements OnInit {
 
   toggleNotificationPanel() {
     this.notificationPanelOpen = !this.notificationPanelOpen;
+    // If opening, ensure the latest notifications are loaded
+    if (this.notificationPanelOpen) {
+      this.loadNotifications();
+    }
   }
 
   closeNotificationPanel() {
@@ -57,7 +106,7 @@ export class AppComponent implements OnInit {
     // Mark as read and navigate
     notification.read = true;
     this.unreadNotificationCount = this.notifications.filter(n => !n.read).length;
-    
+        
     if (notification.link) {
       this.router.navigate([notification.link]);
     }
@@ -66,5 +115,14 @@ export class AppComponent implements OnInit {
   markAllNotificationsAsRead() {
     this.notifications.forEach(n => n.read = true);
     this.unreadNotificationCount = 0;
+  }
+
+  logout() {
+    this.auth.logout();
+  }
+
+  ngOnDestroy() {
+    this.authSub?.unsubscribe();
+    this.profileSub?.unsubscribe();
   }
 }

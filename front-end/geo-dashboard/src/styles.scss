@@ -1,4 +1,9 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles — use prebuilt Angular Material theme to avoid Sass theming functions */
+
+/* Import a prebuilt Angular Material theme (avoids using the Sass theming API) */
+@import "@angular/material/prebuilt-themes/indigo-pink.css";
+
+/* OpenLayers and ol-ext styles */
 @import 'ol/ol.css';
 @import "../node_modules/ol-ext/dist/ol-ext.css";
 

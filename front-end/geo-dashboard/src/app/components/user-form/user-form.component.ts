@@ -15,7 +15,7 @@ export class UserFormComponent implements OnInit {
   user: User = {
     name: '',
     email: '',
-    role: 'user'
+  role: 'utilisateur'
   };
   
   isEditMode = false;
@@ -23,7 +23,8 @@ export class UserFormComponent implements OnInit {
   loading = false;
   error: string | null = null;
   
-  roles = ['user', 'admin', 'moderator'];
+  // Simplified roles for this application: administrateur and utilisateur
+  roles = ['administrateur', 'utilisateur'];
 
   constructor(
     private userService: UserService,
@@ -69,7 +70,7 @@ export class UserFormComponent implements OnInit {
 
     const operation = this.isEditMode
       ? this.userService.updateUser(this.userId!, this.user)
-      : this.userService.createUser(this.user);
+      : this.userService.inviteUser(this.user);
 
     operation.subscribe({
       next: () => {
@@ -89,18 +90,16 @@ export class UserFormComponent implements OnInit {
 
   getRoleDisplayName(role: string): string {
     const roleNames: { [key: string]: string } = {
-      'admin': '👑 Administrateur',
-      'moderator': '⚖️ Modérateur',
-      'user': '👤 Utilisateur Standard'
+      'administrateur': '👑 Administrateur',
+      'utilisateur': '👤 Utilisateur'
     };
     return roleNames[role] || role;
   }
 
   getRoleDescription(role: string): string {
     const descriptions: { [key: string]: string } = {
-      'admin': 'Accès complet au système, gestion des utilisateurs et configuration',
-      'moderator': 'Gestion du contenu, supervision des activités et support utilisateur',
-      'user': 'Accès aux fonctionnalités standard, consultation et saisie de données'
+      'administrateur': 'Accès complet au système, gestion des utilisateurs et configuration',
+      'utilisateur': 'Accès aux fonctionnalités standard, consultation et saisie de données'
     };
     return descriptions[role] || 'Rôle personnalisé';
   }

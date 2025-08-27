@@ -20,8 +20,8 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200',
-      'https://integrated-hawk-466115-q5.firebaseapp.com',
-      'https://integrated-hawk-466115-q5.web.app'
+      'https://integrated-hawk-466115-q5.web.app',
+      'https://geodashboard.site'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

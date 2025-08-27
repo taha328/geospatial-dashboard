@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { GestionDesActifsModule } from './gestion_des_actifs/gestion_des_actifs.module';
 import { SeedModule } from './seed/seed.module';
 import { CarteIntegrationModule } from './modules/carte-integration.module';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
@@ -34,6 +35,7 @@ import { CarteIntegrationModule } from './modules/carte-integration.module';
     ZonesModule,
     NetworksModule,
     UserModule,
+  AuthModule,
     GestionDesActifsModule,
     SeedModule,
     CarteIntegrationModule,

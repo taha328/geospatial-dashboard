@@ -27,7 +27,15 @@ export class UserService {
   }
 
   createUser(user: User): Observable<User> {
-    return this.http.post<User>(`${this.baseUrl}/create`, user);
+    return this.http.post<User>(this.baseUrl, user);
+  }
+
+  /**
+   * Invite a user: creates a user record and triggers an invite flow
+   * (backend should generate an invite token / email so the user can set their password).
+   */
+  inviteUser(user: User): Observable<User> {
+    return this.http.post<User>(`${this.baseUrl}/invite`, user);
   }
 
   updateUser(id: number, user: Partial<User>): Observable<User> {

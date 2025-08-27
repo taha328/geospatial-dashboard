@@ -153,8 +153,9 @@ export class MapComponent implements OnInit, OnDestroy {
     this.initializeMap();
     // Subscribe to data change notifications so the map can refresh automatically
     this.dataRefreshService.dataChanged$.subscribe(() => {
-      console.log('DataRefreshService: data changed - refreshing map data');
-      this.refreshData();
+      console.log('DataRefreshService: data changed - refreshing map data (forced)');
+      // Force refresh to clear caches and fetch latest data from the server
+      this.refreshData(true);
     });
     // Subscribe to single-actif creation events to add the new feature immediately
 // Replace your actifCreated subscription in ngOnInit with this fixed version:
@@ -1558,7 +1559,7 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
 
   onActifCreated(actifData: any) {
     console.log('Actif créé avec succès:', actifData);
-    if (this.currentDrawnFeature) {
+  if (this.currentDrawnFeature) {
       this.currentDrawnFeature.setProperties({
         id: actifData.id,
         type: 'actif',
@@ -1579,7 +1580,43 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
 
       this.currentDrawnFeature = null;
     }
-    this.loadActifsData();
+    else {
+      // No drawn feature: construct a feature from the returned actif payload and add it
+      try {
+        const geoJsonFormat = new GeoJSON();
+        let feature: Feature<Geometry> | null = null;
+
+        if (actifData.geometry) {
+          const geojson = typeof actifData.geometry === 'string' ? JSON.parse(actifData.geometry) : actifData.geometry;
+          const features = geoJsonFormat.readFeatures({ type: 'Feature', geometry: geojson, properties: {} }, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
+          if (features && features.length > 0) {
+            feature = features[0] as Feature<Geometry>;
+          }
+        } else if (actifData.latitude != null && actifData.longitude != null) {
+          feature = new Feature({ geometry: new Point(fromLonLat([actifData.longitude, actifData.latitude])) });
+        }
+
+        if (feature) {
+          feature.setId(actifData.id);
+          feature.setProperties({ id: actifData.id, type: 'actif', data: actifData });
+          const geom = feature.getGeometry();
+          if (geom && geom.getType && geom.getType().toLowerCase().includes('polygon')) {
+            this.zoneSource.addFeature(feature);
+          } else {
+            this.actifSource.addFeature(feature);
+          }
+          // notify sources changed so layers refresh
+          this.actifSource.changed();
+          this.zoneSource.changed();
+        } else {
+          // If we couldn't build a feature, fallback to reloading list
+          this.loadActifsData();
+        }
+      } catch (e) {
+        console.error('Failed to create feature from created actif payload, falling back to reload', e);
+        this.loadActifsData();
+      }
+    }
     this.showActifForm = false;
     this.clickCoordinates = null;
     this.currentDrawnGeometry = null;

@@ -398,6 +398,16 @@
   background: #f8f9fa;
 }
 
+// Login Content (for unauthenticated users)
+.login-content {
+  min-height: 100vh;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
 // Animations
 @keyframes pulse {
   0% { transform: scale(1); }

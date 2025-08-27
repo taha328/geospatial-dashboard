@@ -311,6 +311,8 @@ export class ActifFormComponent implements OnInit {
         // Also notify a single-actif creation so the map can add the feature immediately
         try {
           this.dataRefreshService.notifyActifCreated(response);
+          // Clear carteIntegrationService cache if available so list endpoints return fresh data
+          try { (this.carteIntegrationService as any).clearActifsCache?.(); } catch (e) { /* ignore */ }
         } catch (e) {
           console.warn('notifyActifCreated failed', e);
         }

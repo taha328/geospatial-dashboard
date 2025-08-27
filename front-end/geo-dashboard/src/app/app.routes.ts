@@ -1,16 +1,25 @@
 import { Routes } from '@angular/router';
+import { LoginComponent } from './components/login/login.component';
+import { RoleGuard } from './services/role.guard';
 
 export const routes: Routes = [
+  {
+     path: '',
+     redirectTo: '/assets',
+     pathMatch: 'full'
+   },
+  {
+     path: 'dashboard',
+     redirectTo: '/assets',
+     pathMatch: 'full'
+   },
+  
+  // Add the missing login route
   { 
-    path: '', 
-    redirectTo: '/assets', 
-    pathMatch: 'full' 
+    path: 'login', 
+    component: LoginComponent 
   },
-  { 
-    path: 'dashboard', 
-    redirectTo: '/assets', 
-    pathMatch: 'full' 
-  },
+  
   {
     path: 'map',
     loadChildren: () => import('./features/map/map.module').then(m => m.MapModule)
@@ -21,7 +30,9 @@ export const routes: Routes = [
   },
   {
     path: 'users',
-    loadChildren: () => import('./features/user-management/user-management.module').then(m => m.UserManagementModule)
+    loadChildren: () => import('./features/user-management/user-management.module').then(m => m.UserManagementModule),
+    canActivate: [RoleGuard],
+    data: { roles: ['administrateur'] }
   },
   {
     path: 'vessels',

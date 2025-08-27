@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin, Subject } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface Notification {
   id: number;
-  type: 'anomalie' | 'maintenance';
+  // include 'actif' so created actifs can be shown as notifications
+  type: 'anomalie' | 'maintenance' | 'actif';
   message: string;
   date: Date;
   read: boolean;
@@ -21,9 +23,20 @@ export class NotificationService {
   triggerRefresh() {
     this.refreshSubject.next();
   }
-  // You may need to adjust these endpoints to match your backend
-  private anomaliesUrl = 'http://localhost:3000/api/anomalies';
-  private maintenancesUrl = 'http://localhost:3000/api/maintenances';
+  // Local in-memory notifications for immediate UI updates (created actifs, reported anomalies)
+  private localNotificationsSource = new Subject<Notification>();
+  localNotifications$ = this.localNotificationsSource.asObservable();
+
+  pushLocalNotification(n: Notification) {
+    try {
+      this.localNotificationsSource.next(n);
+    } catch (e) {
+      // ignore
+    }
+  }
+  // Use API URL from environment so deployed frontend calls the correct backend
+  private anomaliesUrl = `${environment.apiUrl}/anomalies`;
+  private maintenancesUrl = `${environment.apiUrl}/maintenances`;
 
   constructor(private http: HttpClient) { }
 
