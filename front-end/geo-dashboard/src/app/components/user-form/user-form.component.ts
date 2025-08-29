@@ -4,10 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UserService, User } from '../../services/user.service';
 
+// Import ZardUI components
+import { ZardButtonComponent } from '../../shared/components/button/index';
+import { ZardCardComponent } from '../../shared/components/card/index';
+
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    // ZardUI Components
+    ZardButtonComponent,
+    ZardCardComponent
+  ],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.scss']
 })

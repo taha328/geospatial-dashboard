@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Global styles — use prebuilt Angular Material theme to avoid Sass theming functions */
 
 /* Import a prebuilt Angular Material theme (avoids using the Sass theming API) */
@@ -48,3 +52,20 @@ html, body {
 }
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* Reduce overall UI scale more aggressively:
+   - Lower root font-size so rem-based components shrink across the app.
+   - Further reduce OpenLayers controls and large buttons to match visual scale.
+   Change values here if you want slightly different sizing. */
+:root {
+  font-size: 65%; /* approx 11.5px if browser default is 16px */
+}
+
+/* Scale down map controls and UI chrome */
+.ol-control, .ol-zoom, .ol-scale-line, .ol-attribution {
+  transform: scale(0.80);
+}
+
+.primary-button, .secondary-button {
+  transform: scale(0.88);
+}

@@ -21,7 +21,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:4200',
       'https://integrated-hawk-466115-q5.web.app',
-      'https://geodashboard.site'
+      'https://geodashboard.site',
+      'https://geodashboard.online'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

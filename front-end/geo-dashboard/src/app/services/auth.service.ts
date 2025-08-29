@@ -18,9 +18,13 @@ export class AuthService {
   public authState$ = new BehaviorSubject<boolean>(this.isLoggedIn());
 
   constructor(private http: HttpClient, private router: Router) {
-    // restore token if present (optional)
-    const t = localStorage.getItem(this.storageKey);
-    if (t) this.accessToken = t;
+    // Initialize auth state based on token presence
+    const token = this.getToken();
+    if (token) {
+      this.accessToken = token;
+    }
+    // Emit initial state without causing immediate redirects
+    this.authState$.next(!!this.accessToken);
   }
 
   login(email: string, password: string): Observable<LoginResponse> {

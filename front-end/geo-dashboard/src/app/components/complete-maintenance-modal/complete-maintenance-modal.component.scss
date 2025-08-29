@@ -1,3 +1,4 @@
+// Main modal container - FULLSCREEN OVERLAY
 .modal {
   position: fixed !important;
   top: 0 !important;
@@ -5,16 +6,26 @@
   width: 100% !important;
   height: 100% !important;
   z-index: 1055 !important;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
 }
 
+// Modal dialog - CENTERED CONTAINER
 .modal-dialog {
   position: relative !important;
   width: auto !important;
-  margin: 0.5rem !important;
+  margin: 0 auto !important;
   max-width: 900px !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: calc(100vh - 2rem) !important;
 }
 
+// Modal content - ACTUAL MODAL BOX
 .modal-content {
   position: relative !important;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
@@ -23,6 +34,9 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1) !important;
   overflow: hidden !important;
   animation: slideIn 0.4s ease-out !important;
+  width: 100% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
 }
 
 .modal-header {
@@ -68,11 +82,11 @@
 .modal-body {
   padding: 32px !important;
   background: #ffffff !important;
-  max-height: 70vh !important;
   overflow-y: auto !important;
   position: relative !important;
   padding-right: 40px !important;
   scroll-behavior: smooth !important;
+  flex: 1 !important;
 }
 
 .form-section {
@@ -413,52 +427,63 @@ textarea.form-control {
   opacity: 0.3 !important;
 }
 
-// Responsive design
+// Responsive design for modal
 @media (max-width: 768px) {
-  .vertical-nav-slider {
-    right: 10px !important;
-    padding: 10px 6px !important;
-    border-radius: 20px !important;
-  }
-  
-  .nav-slider-track {
-    height: 150px !important;
+  .modal {
+    padding: 0.5rem !important;
   }
 
-  .nav-dots {
-    right: 20px !important;
-    gap: 6px !important;
+  .modal-dialog {
+    min-height: calc(100vh - 1rem) !important;
   }
 
-  .nav-dot {
-    width: 6px !important;
-    height: 6px !important;
-
-    &::before {
-      display: none !important;
-    }
+  .modal-content {
+    max-height: 95vh !important;
   }
 
   .modal-body {
-    padding-right: 32px !important;
+    padding: 20px !important;
+    padding-right: 30px !important;
+  }
+
+  .modal-header {
+    padding: 20px !important;
+  }
+
+  .modal-footer {
+    padding: 16px 20px !important;
   }
 }
 
 @media (max-width: 480px) {
-  .vertical-nav-slider {
-    right: 5px !important;
-    padding: 8px 4px !important;
+  .modal {
+    padding: 0.25rem !important;
   }
 
-  .nav-slider-track {
-    width: 3px !important;
-    height: 120px !important;
+  .modal-dialog {
+    min-height: calc(100vh - 0.5rem) !important;
   }
 
-  .nav-slider-thumb {
-    width: 10px !important;
-    height: 16px !important;
-    left: -3.5px !important;
+  .modal-content {
+    max-height: 98vh !important;
+  }
+
+  .modal-body {
+    padding: 16px !important;
+    padding-right: 24px !important;
+  }
+
+  .modal-header {
+    padding: 16px !important;
+  }
+
+  .modal-footer {
+    padding: 12px 16px !important;
+  }
+
+  .btn {
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
   }
 }
 

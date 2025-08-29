@@ -305,6 +305,11 @@
             </div>
             <div class="details-actions" *ngIf="selectedActif">
               <button class="btn btn-warning btn-sm" 
+                      (click)="createAnomalieForActif(selectedActif, $event)"
+                      title="Signaler une anomalie pour cet actif">
+                ⚠️ Signaler Anomalie
+              </button>
+              <button class="btn btn-warning btn-sm" 
                       (click)="updateActifStatut(selectedActif.id, 'maintenance')">
                 🔧 Maintenance
               </button>

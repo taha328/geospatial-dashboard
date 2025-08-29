@@ -3,191 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-
-// Angular Material imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+// Remove ZardCardComponent import since we're using regular div now
+// import { ZardCardComponent } from '@shared/components/card';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule,
-    MatSnackBarModule
+    FormsModule
+    // Remove ZardCardComponent from imports
   ],
-  template: `
-    <div class="login-wrapper">
-      <mat-card class="login-card">
-        <mat-card-header class="login-header">
-          <div class="logo-section">
-            <mat-icon class="logo-icon">map</mat-icon>
-            <div class="title-section">
-              <mat-card-title>Geo Dashboard</mat-card-title>
-              <mat-card-subtitle>Système Géospatial</mat-card-subtitle>
-            </div>
-          </div>
-        </mat-card-header>
-
-        <mat-card-content class="login-content">
-          <h2>{{ mode === 'login' ? 'Connexion' : 'Définir le mot de passe' }}</h2>
-
-          <!-- Login Form -->
-          <form *ngIf="mode === 'login'" (ngSubmit)="submitLogin()" class="login-form" novalidate>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Adresse email</mat-label>
-              <input
-                matInput
-                type="email"
-                [(ngModel)]="email"
-                name="email"
-                placeholder="votre.email@exemple.com"
-                required
-                autocomplete="email"
-                email
-              />
-              <mat-icon matPrefix>email</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Mot de passe</mat-label>
-              <input
-                matInput
-                type="password"
-                [(ngModel)]="password"
-                name="password"
-                placeholder="Votre mot de passe"
-                required
-                autocomplete="current-password"
-              />
-              <mat-icon matPrefix>lock</mat-icon>
-            </mat-form-field>
-
-            <button
-              mat-raised-button
-              color="primary"
-              type="submit"
-              class="login-button"
-              [disabled]="!email || !password || isLoading"
-            >
-              <mat-icon *ngIf="isLoading">hourglass_empty</mat-icon>
-              <mat-icon *ngIf="!isLoading">login</mat-icon>
-              {{ isLoading ? 'Connexion...' : 'Se connecter' }}
-            </button>
-
-            <mat-divider class="divider"></mat-divider>
-
-            <div class="form-footer">
-              <p class="help-text">
-                Si vous avez reçu une invitation, utilisez le lien ci-dessous pour définir votre mot de passe.
-              </p>
-              <button
-                mat-stroked-button
-                color="accent"
-                type="button"
-                (click)="mode = 'set'"
-                class="mode-link"
-              >
-                <mat-icon>settings</mat-icon>
-                Définir mon mot de passe
-              </button>
-            </div>
-          </form>
-
-          <!-- Set Password Form -->
-          <form *ngIf="mode === 'set'" (ngSubmit)="submitSetPassword()" class="set-password-form" novalidate>
-            <div class="form-header">
-              <h3>Créer votre mot de passe</h3>
-              <p class="form-description">
-                Utilisez l'adresse email exacte de votre invitation
-              </p>
-            </div>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Adresse email</mat-label>
-              <input
-                matInput
-                type="email"
-                [(ngModel)]="email"
-                name="setEmail"
-                placeholder="votre.email@exemple.com"
-                required
-                autocomplete="email"
-                email
-              />
-              <mat-icon matPrefix>email</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nouveau mot de passe</mat-label>
-              <input
-                matInput
-                type="password"
-                [(ngModel)]="password"
-                name="setPassword"
-                placeholder="Minimum 8 caractères"
-                required
-                minlength="8"
-                autocomplete="new-password"
-              />
-              <mat-icon matPrefix>security</mat-icon>
-              <mat-hint>Le mot de passe doit contenir au moins 8 caractères</mat-hint>
-            </mat-form-field>
-
-            <button
-              mat-raised-button
-              color="primary"
-              type="submit"
-              class="login-button"
-              [disabled]="!email || !password || password.length < 8 || isLoading"
-            >
-              <mat-icon *ngIf="isLoading">save</mat-icon>
-              <mat-icon *ngIf="!isLoading">check</mat-icon>
-              {{ isLoading ? 'Création...' : 'Créer le mot de passe' }}
-            </button>
-
-            <mat-divider class="divider"></mat-divider>
-
-            <div class="form-footer">
-              <button
-                mat-stroked-button
-                color="accent"
-                type="button"
-                (click)="mode = 'login'"
-                class="mode-link"
-              >
-                <mat-icon>arrow_back</mat-icon>
-                Retour à la connexion
-              </button>
-            </div>
-          </form>
-
-          <!-- Error Display -->
-          <div *ngIf="error" class="error-message">
-            <mat-icon color="warn">error</mat-icon>
-            <span>{{ error }}</span>
-          </div>
-
-          <!-- Success Display -->
-          <div *ngIf="successMessage" class="success-message">
-            <mat-icon color="primary">check_circle</mat-icon>
-            <span>{{ successMessage }}</span>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  `
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
   email = '';
@@ -197,45 +25,154 @@ export class LoginComponent {
   mode: 'login' | 'set' = 'login';
   isLoading = false;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(
+    private auth: AuthService, 
+    private router: Router
+  ) {
+    console.log('LoginComponent initialized');
+    console.log('Initial mode:', this.mode);
+  }
 
-  submitLogin() {
-    if (!this.email || !this.password) return;
+  ngOnInit() {
+    console.log('LoginComponent ngOnInit called');
+    // Clear any existing messages on init
+    this.clearMessages();
+  }
 
-    this.error = null;
-    this.successMessage = null;
+  submitLogin(): void {
+    console.log('submitLogin called', { email: this.email, passwordLength: this.password.length });
+    
+    if (!this.email || !this.password) {
+      this.error = 'Veuillez remplir tous les champs.';
+      console.log('Form validation failed');
+      return;
+    }
+
+    this.clearMessages();
     this.isLoading = true;
+    console.log('Starting login process...');
+
+    // If AuthService is not available, simulate for testing
+    if (!this.auth) {
+      console.log('AuthService not available, simulating login...');
+      setTimeout(() => {
+        this.isLoading = false;
+        if (this.email === 'test@test.com' && this.password === 'password') {
+          this.successMessage = 'Connexion réussie !';
+          setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+        } else {
+          this.error = 'Email ou mot de passe incorrect.';
+        }
+      }, 1500);
+      return;
+    }
 
     this.auth.login(this.email, this.password).subscribe({
-      next: () => {
+      next: (response: any) => {
         this.isLoading = false;
-        this.router.navigate(['/']);
+        console.log('Login successful:', response);
+        this.successMessage = 'Connexion réussie !';
+        
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 1000);
       },
-      error: (e) => {
+      error: (error: any) => {
         this.isLoading = false;
-        this.error = e?.error?.message || 'Échec de la connexion';
+        console.error('Login error:', error);
+        
+        if (error.status === 0) {
+          this.error = 'Impossible de contacter le serveur. Vérifiez votre connexion internet.';
+        } else if (error.status === 401) {
+          this.error = 'Email ou mot de passe incorrect.';
+        } else if (error.status === 403) {
+          this.error = 'Accès refusé. Contactez l\'administrateur.';
+        } else if (error.status === 422) {
+          this.error = 'Données invalides. Vérifiez votre email et mot de passe.';
+        } else {
+          this.error = error?.error?.message || 'Échec de la connexion. Veuillez réessayer.';
+        }
       }
     });
   }
 
-  submitSetPassword() {
-    if (!this.email || !this.password || this.password.length < 8) return;
+  submitSetPassword(): void {
+    console.log('submitSetPassword called', { email: this.email, passwordLength: this.password.length });
+    
+    if (!this.email || !this.password || this.password.length < 8) {
+      this.error = 'Veuillez remplir tous les champs. Le mot de passe doit contenir au moins 8 caractères.';
+      return;
+    }
 
-    this.error = null;
-    this.successMessage = null;
+    this.clearMessages();
     this.isLoading = true;
 
-    this.auth.setPassword(this.email, this.password).subscribe({
-      next: () => {
+    // If AuthService is not available, simulate for testing
+    if (!this.auth) {
+      console.log('AuthService not available, simulating set password...');
+      setTimeout(() => {
         this.isLoading = false;
-        this.mode = 'login';
+        this.switchToLogin();
         this.successMessage = 'Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.';
-        this.error = null;
-      },
-      error: (e) => {
+      }, 1500);
+      return;
+    }
+
+    this.auth.setPassword(this.email, this.password).subscribe({
+      next: (response: any) => {
         this.isLoading = false;
-        this.error = e?.error?.message || 'Échec de la définition du mot de passe';
+        console.log('Set password successful:', response);
+        this.switchToLogin();
+        this.successMessage = 'Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.';
+      },
+      error: (error: any) => {
+        this.isLoading = false;
+        console.error('Set password error:', error);
+        this.error = error?.error?.message || 'Échec de la définition du mot de passe. Veuillez réessayer.';
       }
     });
   }
+
+  switchMode(newMode: 'login' | 'set'): void {
+    console.log('Switching mode from', this.mode, 'to', newMode);
+    this.mode = newMode;
+    this.clearMessages();
+    this.resetForm();
+  }
+
+  switchToLogin(): void {
+    this.switchMode('login');
+  }
+
+  switchToSetPassword(): void {
+    this.switchMode('set');
+  }
+
+  private clearMessages(): void {
+    this.error = null;
+    this.successMessage = null;
+  }
+
+  private resetForm(): void {
+    this.email = '';
+    this.password = '';
+  }
+
+  get isFormValid(): boolean {
+    return !!(this.email && this.password);
+  }
+
+  get isSetPasswordFormValid(): boolean {
+    return !!(this.email && this.password && this.password.length >= 8);
+  }
+
+  get isLoginDisabled(): boolean {
+    return !this.isFormValid || this.isLoading;
+  }
+
+  get isSetPasswordDisabled(): boolean {
+    return !this.isSetPasswordFormValid || this.isLoading;
+  }
 }
+
+// (removed mock AuthService interface to allow real DI injection)

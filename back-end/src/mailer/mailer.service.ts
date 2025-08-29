@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 // Use SendGrid only in this project. We require it at runtime to avoid build-time type issues.
 const sgMail = require('@sendgrid/mail');
@@ -12,22 +13,55 @@ export interface MailOptions {
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
+  private sendGridApiKey: string | null = null;
 
   constructor() {
-    const key = process.env.SENDGRID_API_KEY;
-    if (key) {
-      sgMail.setApiKey(key);
-      this.logger.log('SendGrid API key detected; MailerService initialized for SendGrid.');
-    } else {
-      this.logger.error('SENDGRID_API_KEY not configured. MailerService will fail on sendMail calls.');
+    this.initializeSendGrid();
+  }
+
+  private async initializeSendGrid() {
+    try {
+      const secretName = process.env.SENDGRID_API_KEY;
+
+      if (!secretName) {
+        this.logger.error('SENDGRID_API_KEY environment variable not set');
+        return;
+      }
+
+      // Check if it's a Secret Manager resource path
+      if (secretName.startsWith('projects/')) {
+        this.logger.log('Fetching SendGrid API key from Secret Manager...');
+        const client = new SecretManagerServiceClient();
+
+        const [version] = await client.accessSecretVersion({
+          name: secretName,
+        });
+
+        const payload = version?.payload?.data?.toString();
+        if (!payload) {
+          throw new Error('Secret Manager returned empty payload for SendGrid API key');
+        }
+
+        this.sendGridApiKey = payload;
+        sgMail.setApiKey(this.sendGridApiKey);
+        this.logger.log('SendGrid API key loaded from Secret Manager successfully');
+      } else {
+        // Fallback to direct API key (for local development)
+        this.sendGridApiKey = secretName;
+        sgMail.setApiKey(this.sendGridApiKey);
+        this.logger.log('SendGrid API key set from environment variable');
+      }
+    } catch (error) {
+      this.logger.error('Failed to initialize SendGrid:', error);
     }
   }
 
   async sendMail(opts: MailOptions) {
-    const key = process.env.SENDGRID_API_KEY;
-    if (!key) throw new Error('SENDGRID_API_KEY not configured');
+    if (!this.sendGridApiKey) {
+      throw new Error('SendGrid API key not configured');
+    }
 
-    const from = process.env.MAIL_FROM || 'no-reply@example.com';
+    const from = process.env.MAIL_FROM || 'no-reply@geodashboard.online';
     const msg = {
       to: opts.to,
       from,
@@ -35,8 +69,13 @@ export class MailerService {
       html: opts.html,
     };
 
-    const res = await sgMail.send(msg);
-    this.logger.log(`Sent email to ${opts.to}`);
-    return res;
+    try {
+      const res = await sgMail.send(msg);
+      this.logger.log(`Email sent successfully to ${opts.to}`);
+      return res;
+    } catch (error) {
+      this.logger.error(`Failed to send email to ${opts.to}:`, error);
+      throw error;
+    }
   }
 }

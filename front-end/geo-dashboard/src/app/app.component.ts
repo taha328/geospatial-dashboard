@@ -8,10 +8,24 @@ import { NotificationPanelComponent } from './components/notification-panel/noti
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 
+// Import ZardUI components
+import { ZardButtonComponent } from './shared/components/button/index';
+import { ZardCardComponent } from './shared/components/card/index';
+import { ZardNavbarComponent } from './shared/components/navbar/index';
+
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterModule, CommonModule, NotificationPanelComponent],
+  imports: [
+    RouterOutlet,
+    RouterModule,
+    CommonModule,
+    NotificationPanelComponent,
+    // ZardUI Components
+    ZardButtonComponent,
+    ZardCardComponent,
+    ZardNavbarComponent
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

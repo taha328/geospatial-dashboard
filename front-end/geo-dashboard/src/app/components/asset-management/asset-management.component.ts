@@ -37,10 +37,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   // UI state
   loading = false;
   error: string | null = null;
-  // Per-request completion flags to avoid spinner sticking when arrays are empty
-  private dashboardLoaded = false;
-  private actifsLoaded = false;
-  private hierarchyLoaded = false;
   activeTab = 'dashboard';
   expandedNodes = new Set<string>();
   selectedNode: HierarchyNode | null = null;
@@ -233,12 +229,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   // Data loading methods
   loadDashboardData() {
-  // reset per-request flags and show loader
-  this.dashboardLoaded = false;
-  this.actifsLoaded = false;
-  this.hierarchyLoaded = false;
-  this.loading = true;
-  this.error = null;
+    this.loading = true;
+    this.error = null;
 
     console.log('🔄 Loading dashboard data with map synchronization...');
 
@@ -247,13 +239,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       next: (carteData) => {
         console.log('✅ Carte dashboard data loaded:', carteData);
         this.carteDashboard = carteData;
-  this.dashboardLoaded = true;
-  this.checkLoadingComplete();
+        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('❌ Error loading carte dashboard data:', error);
-  this.dashboardLoaded = true;
-  this.checkLoadingComplete();
+        this.checkLoadingComplete();
       }
     });
 
@@ -262,21 +252,18 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       next: (actifsFromMap) => {
         console.log('✅ Assets from map loaded:', actifsFromMap);
         this.actifsPourCarte = this.convertMapActifsToCardActifs(actifsFromMap);
-    this.actifsLoaded = true;
-    this.checkLoadingComplete();
+        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('❌ Error loading assets from map:', error);
         this.actifService.getActifsPourCarte().subscribe({
           next: (actifsPourCarte) => {
             this.actifsPourCarte = actifsPourCarte;
-      this.actifsLoaded = true;
-      this.checkLoadingComplete();
+            this.checkLoadingComplete();
           },
           error: (fallbackError) => {
             console.error('❌ Fallback error loading actifs:', fallbackError);
-      this.actifsLoaded = true;
-      this.checkLoadingComplete();
+            this.checkLoadingComplete();
           }
         });
       }
@@ -624,6 +611,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.selectedNode = node;
     if (node.type === 'actif') {
       this.loadActifDetails(node.id);
+      // Also set selectedActif for button actions
+      this.selectedActif = this.actifsPourCarte.find(actif => actif.id === node.id) || null;
     }
   }
 
@@ -736,13 +725,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.actifService.getHierarchy().subscribe({
       next: (hierarchyData) => {
         this.hierarchyData = hierarchyData;
-  this.hierarchyLoaded = true;
-  this.checkLoadingComplete();
+        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('Erreur lors du chargement de la hiérarchie:', error);
-  this.hierarchyLoaded = true;
-  this.checkLoadingComplete();
+        this.checkLoadingComplete();
       }
     });
   }
@@ -779,10 +766,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   private checkLoadingComplete() {
-    // When all the main requests (dashboard, actifs, hierarchy) have completed
-    // (success or error), stop the loading spinner. This avoids the spinner
-    // sticking when an endpoint returns an empty array.
-    if (this.dashboardLoaded && this.actifsLoaded && this.hierarchyLoaded) {
+    if (this.statistiquesActifs && this.hierarchyData.length > 0 && this.actifsPourCarte.length > 0) {
       this.loading = false;
     }
   }
