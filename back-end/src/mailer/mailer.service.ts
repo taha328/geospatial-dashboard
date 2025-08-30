@@ -42,7 +42,10 @@ export class MailerService {
           throw new Error('Secret Manager returned empty payload for SendGrid API key');
         }
 
-        this.sendGridApiKey = payload;
+        this.sendGridApiKey = payload.trim(); // Trim any whitespace
+        this.logger.log(`SendGrid API key loaded, length: ${this.sendGridApiKey.length}`);
+        this.logger.log(`SendGrid API key preview: ${this.sendGridApiKey.substring(0, 15)}...`);
+        
         sgMail.setApiKey(this.sendGridApiKey);
         this.logger.log('SendGrid API key loaded from Secret Manager successfully');
       } else {
@@ -61,6 +64,10 @@ export class MailerService {
       throw new Error('SendGrid API key not configured');
     }
 
+    // Debug: Log API key length and first few characters (safely)
+    this.logger.log(`SendGrid API key length: ${this.sendGridApiKey.length}`);
+    this.logger.log(`SendGrid API key starts with: ${this.sendGridApiKey.substring(0, 10)}...`);
+
     const from = process.env.MAIL_FROM || 'no-reply@geodashboard.online';
     const msg = {
       to: opts.to,
@@ -75,6 +82,12 @@ export class MailerService {
       return res;
     } catch (error) {
       this.logger.error(`Failed to send email to ${opts.to}:`, error);
+      // Log more details about the error
+      this.logger.error('SendGrid error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.body
+      });
       throw error;
     }
   }

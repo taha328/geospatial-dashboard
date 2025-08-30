@@ -67,7 +67,18 @@ export class AppComponent implements OnInit, OnDestroy {
     this.authSub = this.auth.authState$.subscribe(isLoggedIn => {
       this.isLoggedIn = isLoggedIn; // Update the component property
       if (!isLoggedIn) {
-        this.router.navigate(['/login']);
+        // Don't redirect to login if user is on public routes (invitation flow)
+        // Use setTimeout to ensure route is resolved
+        setTimeout(() => {
+          const currentUrl = this.router.url;
+          const publicRoutes = ['/set-password', '/login'];
+          const isOnPublicRoute = publicRoutes.some(route => currentUrl.includes(route));
+
+          if (!isOnPublicRoute) {
+            this.router.navigate(['/login']);
+          }
+        }, 50);
+
         this.isAdmin = false; // Reset admin status when logged out
       } else {
         // Load profile only when logged in to determine admin visibility

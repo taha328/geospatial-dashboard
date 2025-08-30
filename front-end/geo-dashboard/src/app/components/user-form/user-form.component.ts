@@ -5,7 +5,6 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { UserService, User } from '../../services/user.service';
 
 // Import ZardUI components
-import { ZardButtonComponent } from '../../shared/components/button/index';
 import { ZardCardComponent } from '../../shared/components/card/index';
 
 @Component({
@@ -15,7 +14,6 @@ import { ZardCardComponent } from '../../shared/components/card/index';
     CommonModule,
     FormsModule,
     // ZardUI Components
-    ZardButtonComponent,
     ZardCardComponent
   ],
   templateUrl: './user-form.component.html',
@@ -70,8 +68,26 @@ export class UserFormComponent implements OnInit {
   }
 
   onSubmit() {
-    if (!this.user.name || !this.user.email || !this.user.role) {
-      this.error = 'Please fill in all required fields';
+    // Enhanced validation
+    if (!this.user.name?.trim()) {
+      this.error = 'Le nom complet est obligatoire';
+      return;
+    }
+
+    if (!this.user.email?.trim()) {
+      this.error = 'L\'adresse email est obligatoire';
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.user.email)) {
+      this.error = 'Veuillez saisir une adresse email valide';
+      return;
+    }
+
+    if (!this.user.role) {
+      this.error = 'Veuillez sélectionner un rôle';
       return;
     }
 
@@ -83,13 +99,31 @@ export class UserFormComponent implements OnInit {
       : this.userService.inviteUser(this.user);
 
     operation.subscribe({
-      next: () => {
+      next: (response) => {
+        this.loading = false;
+        // Success message
+        const successMessage = this.isEditMode
+          ? 'Utilisateur mis à jour avec succès'
+          : 'Invitation envoyée avec succès. L\'utilisateur recevra un email pour définir son mot de passe.';
+        alert(successMessage); // Temporary success feedback
         this.router.navigate(['/users']);
       },
       error: (error: any) => {
-        this.error = this.isEditMode ? 'Failed to update user' : 'Failed to create user';
         this.loading = false;
         console.error('Error saving user:', error);
+
+        // Better error handling
+        if (error.status === 400) {
+          this.error = error.error?.message || 'Données invalides. Vérifiez les informations saisies.';
+        } else if (error.status === 403) {
+          this.error = 'Vous n\'avez pas les permissions pour effectuer cette action.';
+        } else if (error.status === 409) {
+          this.error = 'Un utilisateur avec cette adresse email existe déjà.';
+        } else {
+          this.error = this.isEditMode
+            ? 'Erreur lors de la mise à jour de l\'utilisateur'
+            : 'Erreur lors de l\'envoi de l\'invitation';
+        }
       }
     });
   }

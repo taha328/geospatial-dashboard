@@ -40,8 +40,20 @@ export class AuthService {
    * First-time set password for invited users. Backend should verify that the
    * email exists and is allowed to set a password (invited and no password yet)
    */
-  setPassword(email: string, password: string): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/auth/set-password`, { email, password });
+  setPassword(email: string, password: string, token?: string): Observable<any> {
+    const payload: any = { email, password };
+    if (token && token.trim()) {
+      payload.token = token.trim();
+    }
+
+    console.log('🔍 AuthService.setPassword - Sending payload:', {
+      email: payload.email,
+      hasToken: !!payload.token,
+      tokenLength: payload.token?.length,
+      apiUrl: environment.apiUrl
+    });
+
+    return this.http.post<any>(`${environment.apiUrl}/auth/set-password`, payload);
   }
 logout() {
   // Clear in-memory token and any token keys that might have been used

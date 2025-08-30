@@ -25,7 +25,7 @@
   </z-card>
 
   <!-- User Form -->
-  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="space-y-6" novalidate>
+  <form *ngIf="!loading" (ngSubmit)="onSubmit()" #userForm="ngForm" class="space-y-6" novalidate>
 
     <!-- Personal Information Section -->
     <z-card zTitle="Informations Personnelles" zDescription="Saisissez les informations de base de l'utilisateur">
@@ -40,13 +40,16 @@
             id="name"
             name="name"
             [(ngModel)]="user.name"
+            #name="ngModel"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            [class.ng-invalid]="name.invalid && name.touched"
+            [class.ng-valid]="name.valid && name.touched"
             placeholder="Nom complet"
             autocomplete="name"
           />
-          <p class="text-xs text-gray-500 mt-1">
-            Le nom complet tel qu'il apparaîtra dans le système
+          <p class="text-xs text-red-500 mt-1" *ngIf="name.invalid && name.touched">
+            Le nom complet est obligatoire
           </p>
         </div>
 
@@ -60,13 +63,18 @@
             id="email"
             name="email"
             [(ngModel)]="user.email"
+            #email="ngModel"
             required
+            email
             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            [class.ng-invalid]="email.invalid && email.touched"
+            [class.ng-valid]="email.valid && email.touched"
             placeholder="exemple@societe.com"
             autocomplete="email"
           />
-          <p class="text-xs text-gray-500 mt-1">
-            Utilisée pour la connexion et les notifications
+          <p class="text-xs text-red-500 mt-1" *ngIf="email.invalid && email.touched">
+            <span *ngIf="email.errors?.['required']">L'adresse email est obligatoire</span>
+            <span *ngIf="email.errors?.['email']">Veuillez saisir une adresse email valide</span>
           </p>
         </div>
       </div>
@@ -84,16 +92,19 @@
             id="role"
             name="role"
             [(ngModel)]="user.role"
+            #role="ngModel"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            [class.ng-invalid]="role.invalid && role.touched"
+            [class.ng-valid]="role.valid && role.touched"
           >
             <option value="" disabled>Sélectionner un rôle</option>
             <option *ngFor="let role of roles" [value]="role">
               {{ getRoleDisplayName(role) }}
             </option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">
-            Le rôle détermine les fonctionnalités accessibles à l'utilisateur
+          <p class="text-xs text-red-500 mt-1" *ngIf="role.invalid && role.touched">
+            Veuillez sélectionner un rôle
           </p>
         </div>
 
@@ -111,23 +122,26 @@
     </z-card>
 
     <!-- Form Actions -->
-    <div class="flex justify-end space-x-4 pt-6">
-      <z-button zType="outline" type="button" (click)="onCancel()">
+    <div class="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-gray-200">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="w-full sm:w-auto order-2 sm:order-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors duration-200 font-medium"
+        [disabled]="loading"
+      >
         <span class="mr-2">❌</span>
         Annuler
-      </z-button>
-      <z-button
-        zType="default"
+      </button>
+      <button
         type="submit"
-        [zLoading]="loading"
-        [class.opacity-50]="loading"
-        [class.cursor-not-allowed]="loading"
-        (click)="loading ? null : null"
+        class="w-full sm:w-auto order-1 sm:order-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 font-medium flex items-center justify-center"
+        [disabled]="loading || !user.name.trim() || !user.email.trim() || !user.role"
       >
+        <span *ngIf="loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
         <span *ngIf="!isEditMode" class="mr-2">🆕</span>
         <span *ngIf="isEditMode" class="mr-2">💾</span>
-        {{ isEditMode ? 'Mettre à Jour' : 'Créer l\'Utilisateur' }}
-      </z-button>
+        {{ loading ? 'Enregistrement...' : (isEditMode ? 'Mettre à Jour' : 'Créer l\'Utilisateur') }}
+      </button>
     </div>
   </form>
 </div>

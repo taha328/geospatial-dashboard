@@ -40,23 +40,60 @@ export class AuthService {
   }
 
   async setPassword(dto: SetPasswordDto) {
+    console.log('🔍 AuthService.setPassword - Received DTO:', {
+      email: dto.email,
+      hasToken: !!dto.token,
+      tokenLength: dto.token?.length,
+      tokenValue: dto.token ? dto.token.substring(0, 10) + '...' : 'undefined'
+    });
+
     const user = await this.userRepo.findOneBy({ email: dto.email });
-    if (!user) throw new BadRequestException('Invalid email');
+    if (!user) {
+      console.log('❌ AuthService.setPassword - User not found for email:', dto.email);
+      throw new BadRequestException('Invalid email');
+    }
+
+    console.log('🔍 AuthService.setPassword - User found:', {
+      id: user.id,
+      email: user.email,
+      hasInviteTokenHash: !!user.inviteTokenHash,
+      inviteTokenExpiresAt: user.inviteTokenExpiresAt,
+      mustResetPassword: user.mustResetPassword
+    });
+
     // If a token is configured, require and validate it
     if (user.inviteTokenHash) {
-      if (!dto.token) throw new BadRequestException('Invite token required');
+      console.log('🔍 AuthService.setPassword - User has invite token hash');
+      if (!dto.token) {
+        console.log('❌ AuthService.setPassword - No token provided in request');
+        throw new BadRequestException('Invite token required');
+      }
+
+      console.log('🔍 AuthService.setPassword - Validating token...');
       const ok = await bcrypt.compare(dto.token, user.inviteTokenHash);
-      if (!ok) throw new BadRequestException('Invalid or expired invite token');
+      console.log('🔍 AuthService.setPassword - Token validation result:', ok);
+
+      if (!ok) {
+        console.log('❌ AuthService.setPassword - Token validation failed');
+        throw new BadRequestException('Invalid or expired invite token');
+      }
+
       if (user.inviteTokenExpiresAt && user.inviteTokenExpiresAt.getTime() < Date.now()) {
+        console.log('❌ AuthService.setPassword - Token expired');
         throw new BadRequestException('Invite token expired');
       }
+
+      console.log('✅ AuthService.setPassword - Token validation successful');
     } else {
+      console.log('🔍 AuthService.setPassword - No invite token hash found for user');
       // No invite token present -> only allow if no password yet or mustResetPassword is true
       if (user.passwordHash && !user.mustResetPassword) {
+        console.log('❌ AuthService.setPassword - Password already set and no reset required');
         throw new BadRequestException('Password already set');
       }
     }
 
+    console.log('🔍 AuthService.setPassword - Proceeding to set password...');
     const hash = await bcrypt.hash(dto.password, 12);
     user.passwordHash = hash;
     user.isActive = true;
@@ -64,6 +101,8 @@ export class AuthService {
     user.inviteTokenHash = null;
     user.inviteTokenExpiresAt = null;
     await this.userRepo.save(user);
+
+    console.log('✅ AuthService.setPassword - Password set successfully for user:', user.email);
     return { ok: true };
   }
 
@@ -79,11 +118,11 @@ export class AuthService {
 
     const token = randomBytes(32).toString('hex');
     const tokenHash = await bcrypt.hash(token, 12);
-  user.inviteTokenHash = tokenHash;
-  user.inviteTokenExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24h
-  // Mark account as requiring password setup
-  user.mustResetPassword = true;
-  user.isActive = false;
+    user.inviteTokenHash = tokenHash;
+    user.inviteTokenExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24h
+    // Mark account as requiring password setup
+    user.mustResetPassword = true;
+    user.isActive = false;
     await this.userRepo.save(user);
 
     // Compose set-password link for frontend
@@ -96,7 +135,8 @@ export class AuthService {
         <p>Bonjour ${user.name || 'utilisateur'},</p>
         <p>Vous avez été invité à rejoindre l'application. Cliquez sur le bouton ci-dessous pour définir votre mot de passe (valable 24h):</p>
         <p><a href="${setPasswordUrl}" style="display:inline-block;padding:8px 12px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none">Définir mon mot de passe</a></p>
-        <p>Ou copiez ce code si nécessaire: <code>${token}</code></p>
+        <p>Si vous n'arrivez pas à cliquer sur le bouton, copiez et collez ce lien dans votre navigateur :</p>
+        <p><small style="color:#666;">${setPasswordUrl}</small></p>
         <p>Si vous n'attendiez pas cette invitation, ignorez ce message.</p>
       `;
 
