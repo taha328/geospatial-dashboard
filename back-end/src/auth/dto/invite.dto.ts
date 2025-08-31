@@ -8,6 +8,6 @@ export class InviteDto {
   @IsEmail()
   email: string;
 
-  @IsIn(['administrateur', 'utilisateur'])
-  role: 'administrateur' | 'utilisateur';
+  @IsIn(['administrateur', 'maitre_d_ouvrage', 'operateur'])
+  role: 'administrateur' | 'maitre_d_ouvrage' | 'operateur';
 }

@@ -2,13 +2,6 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { RouterModule } from '@angular/router';
-
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
-
-// Import non-standalone dashboard component following project structure
-import { DashboardIntegreComponent } from './components/dashboard-integre/dashboard-integre.component';
 
 // Services following monorepo patterns from Copilot instructions
 import { KpiService } from './services/kpi.service';
@@ -22,25 +15,22 @@ import { AuthInterceptor } from './services/auth.interceptor';
 
 @NgModule({
   declarations: [
-
-    DashboardIntegreComponent // This one is NOT standalone
+    // All components are now standalone - no declarations needed
   ],
   imports: [
     BrowserModule,
     CommonModule,
     HttpClientModule,
-    RouterModule,
-    AppRoutingModule,
     MaterialModule
-    // Remove AppComponent from imports - standalone components should not be imported in NgModule
+    // Routing is handled by standalone app.config.ts
   ],
   providers: [
     KpiService,
     UserService,
-    VesselService
-  ,{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    VesselService,
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
     // Add other services following geospatial dashboard patterns
-  ],
+  ]
   // AppComponent is standalone and the app is bootstrapped via `bootstrapApplication` in main.ts
 })
 export class AppModule { }

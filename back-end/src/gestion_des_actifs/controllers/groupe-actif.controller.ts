@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { GroupeActifService } from '../services/groupe-actif.service';
 import { GroupeActif } from '../entities/groupe-actif.entity';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('groupes')
+@UseGuards(JwtAuthGuard)
 export class GroupeActifController {
   constructor(private readonly groupeActifService: GroupeActifService) {}
 

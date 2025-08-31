@@ -8,7 +8,7 @@ export class AddAuthFieldsToUser1749999999999 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "invite_token_expires_at" timestamptz`);
     await queryRunner.query(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "must_reset_password" boolean DEFAULT false`);
     await queryRunner.query(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "created_at" timestamptz DEFAULT now()`);
-    await queryRunner.query(`ALTER TABLE "user" ALTER COLUMN "role" SET DEFAULT 'utilisateur'`);
+    await queryRunner.query(`ALTER TABLE "user" ALTER COLUMN "role" SET DEFAULT 'operateur'`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -50,6 +50,11 @@
               ]
             },
             "scripts": [],
+            "allowedCommonJsDependencies": [
+              "geotiff",
+              "lerc",
+              "xml-utils"
+            ],
             "budgets": [
               {
                 "type": "initial",
@@ -58,8 +63,8 @@
               },
               {
                 "type": "anyComponentStyle",
-                "maximumWarning": "50kB",
-                "maximumError": "100kB"
+                "maximumWarning": "100kB",
+                "maximumError": "150kB"
               }
             ]
           },
@@ -84,8 +89,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "50kB",
-                  "maximumError": "100kB"
+                  "maximumWarning": "100kB",
+                  "maximumError": "150kB"
                 }
               ]
             },

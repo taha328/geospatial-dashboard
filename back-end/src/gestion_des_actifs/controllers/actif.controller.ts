@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, NotFoundException, InternalServerErrorException, UseGuards } from '@nestjs/common';
 import { ActifService } from '../services/actif.service';
 import { Actif } from '../entities/actif.entity';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('carte/actifs')
+@UseGuards(JwtAuthGuard)
 export class ActifController {
   constructor(private readonly actifService: ActifService) {}
 
@@ -44,11 +46,11 @@ export class ActifController {
     try {
       const includeRelations = relations === 'true';
       const actif = await this.actifService.findOne(id, includeRelations);
-      
+
       if (!actif) {
         throw new NotFoundException(`Actif with ID ${id} not found`);
       }
-      
+
       return actif;
     } catch (error) {
       if (error instanceof NotFoundException) {

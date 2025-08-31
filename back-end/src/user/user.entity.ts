@@ -12,9 +12,9 @@ export class User {
   email: string;
 
   /**
-   * Role: 'administrateur' | 'utilisateur' (string stored for simplicity)
+   * Role: 'administrateur' | 'maitre_d_ouvrage' | 'operateur'
    */
-  @Column({ default: 'utilisateur' })
+  @Column({ default: 'operateur' })
   role: string;
 
   /** bcrypt/argon2 password hash; nullable until user sets password */
@@ -33,6 +33,13 @@ export class User {
 
   @Column({ name: 'must_reset_password', default: false })
   mustResetPassword: boolean;
+
+  // Reset password token (hash) and expiry
+  @Column({ name: 'reset_token_hash', type: 'text', nullable: true })
+  resetTokenHash?: string | null;
+
+  @Column({ name: 'reset_token_expires_at', type: 'timestamptz', nullable: true })
+  resetTokenExpiresAt?: Date | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

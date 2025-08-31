@@ -20,6 +20,9 @@
 /* Form styles available globally */
 @import './app/shared/styles/form-styles.scss';
 
+/* Professional Notification Styles */
+@import './app/shared/styles/advanced-notifications.scss';
+
 /* Global responsive styles to prevent horizontal scroll */
 html, body {
   overflow-x: hidden;
@@ -58,14 +61,44 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
    - Further reduce OpenLayers controls and large buttons to match visual scale.
    Change values here if you want slightly different sizing. */
 :root {
-  font-size: 65%; /* approx 11.5px if browser default is 16px */
+  font-size: 85%; /* Increased from 65% to 85% for better consistency */
 }
 
-/* Scale down map controls and UI chrome */
+/* Scale down map controls and UI chrome more proportionally */
 .ol-control, .ol-zoom, .ol-scale-line, .ol-attribution {
-  transform: scale(0.80);
+  transform: scale(0.90); /* Reduced from 0.80 for better proportion */
 }
 
 .primary-button, .secondary-button {
-  transform: scale(0.88);
+  transform: scale(0.95); /* Reduced from 0.88 for better proportion */
+}
+
+/* Ensure consistent button sizing across all components */
+.btn, .z-button, .toolbar-btn, .action-button {
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+/* Consistent card and panel sizing */
+.tool-section, .sidebar-content, .map-header, .z-navbar {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure navbar height is consistent with other UI elements */
+.z-navbar {
+  height: 56px; /* Reduced from 64px for better proportion */
+}
+
+/* Consistent spacing for all major UI components */
+.map-container, .control-sidebar, .map-display {
+  border-radius: 8px;
+}
+
+/* Improve button hover effects for consistency */
+.btn:hover, .z-button:hover, .toolbar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

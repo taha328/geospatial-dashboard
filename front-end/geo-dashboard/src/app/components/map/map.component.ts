@@ -89,7 +89,6 @@ export class MapComponent implements OnInit, OnDestroy {
   zones: any[] = [];
   actifs: ActifPourCarte[] = [];
   anomalies: AnomaliePourCarte[] = [];
-  loading = false;
   error: string | null = null;
 
   sidebarCollapsed = false;
@@ -702,7 +701,6 @@ private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
   private loadMapData() {
   // Zones are represented as actifs with polygon geometries in this setup.
   // We no longer load separate 'zones' from a ZoneService. Ensure UI state is consistent.
-  this.loading = false;
   this.error = null;
   this.zones = []; // will be populated from actifs after loadActifsData
   }
@@ -985,11 +983,30 @@ private onDrawEnd(feature: Feature<Geometry>) {
   }
 
   deleteSelectedFeature() {
-    if (!this.selectedFeature) return;
+    if (!this.selectedFeature) {
+      console.warn('No feature selected for deletion');
+      return;
+    }
 
     const data = this.selectedFeature.get('data');
+    if (!data || !data.id) {
+      console.error('Selected feature has no valid data or ID:', data);
+      alert('Erreur: Impossible de supprimer cet élément - données manquantes');
+      return;
+    }
+
     const type = this.selectedFeature.get('type');
-    
+    const featureName = this.getFeatureName() || 'cet élément';
+
+    // Show confirmation dialog
+    const confirmDelete = confirm(`Êtes-vous sûr de vouloir supprimer ${featureName} ? Cette action est irréversible.`);
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    console.log('Deleting feature:', { id: data.id, type, name: featureName });
+
     let source: VectorSource;
     if (type === 'actif') {
       const geometry = this.selectedFeature.getGeometry();
@@ -1005,12 +1022,38 @@ private onDrawEnd(feature: Feature<Geometry>) {
 
     // Treat any polygon feature as an actif (delete via actifService)
     this.actifService.deleteActif(data.id).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Delete successful:', response);
         source.removeFeature(featureToRemove);
         this.actifs = this.actifs.filter(a => a.id !== data.id);
         this.zones = this.zones.filter(z => z.id !== data.id);
+
+        // Show success message
+        alert(`${featureName} a été supprimé avec succès.`);
+
+        // Refresh the map data to ensure consistency
+        this.refreshData(true);
       },
-      error: (err) => console.error('Error deleting actif/zone:', err)
+      error: (err) => {
+        console.error('Error deleting actif/zone:', err);
+        this.selectedFeature = featureToRemove; // Restore selection on error
+
+        // Show user-friendly error message
+        let errorMessage = 'Erreur lors de la suppression. ';
+        if (err.status === 401) {
+          errorMessage += 'Vous n\'êtes pas autorisé à effectuer cette action.';
+        } else if (err.status === 403) {
+          errorMessage += 'Accès refusé.';
+        } else if (err.status === 404) {
+          errorMessage += 'L\'élément n\'existe plus.';
+        } else if (err.status === 500) {
+          errorMessage += 'Erreur serveur. Veuillez réessayer plus tard.';
+        } else {
+          errorMessage += 'Veuillez réessayer.';
+        }
+
+        alert(errorMessage);
+      }
     });
   }
 
@@ -1035,7 +1078,6 @@ private onDrawEnd(feature: Feature<Geometry>) {
     }
 
     // Load both datasets in parallel and show spinner only while waiting
-    this.loading = true;
     this.error = null;
 
     // Use forkJoin to load both datasets together
@@ -1065,14 +1107,11 @@ private onDrawEnd(feature: Feature<Geometry>) {
           } catch (err) {
             console.error('Error processing loaded data:', err);
             this.error = 'Erreur de traitement des données de la carte.';
-          } finally {
-            this.loading = false;
           }
         },
         error: (err) => {
           console.error('Erreur lors du chargement des données de la carte:', err);
           this.error = 'Erreur lors du chargement des données de la carte.';
-          this.loading = false;
         }
       });
     });
@@ -1088,15 +1127,53 @@ private onDrawEnd(feature: Feature<Geometry>) {
     }
   }
 
-  getFeatureTypeDisplay(): string {
-    if (!this.selectedFeature) return '';
-    const type = this.selectedFeature.get('type');
-    switch (type) {
-      case 'actif': return 'Actif';
-      case 'anomalie': return 'Anomalie';
-      case 'zone': return 'Zone';
-      default: return type || 'Inconnu';
+  getAssetTypeIcon(): string {
+    if (!this.selectedFeature) return '📍';
+
+    const data = this.selectedFeature.get('data');
+    const type = data?.type?.toLowerCase() || '';
+    const geometry = this.selectedFeature.getGeometry();
+
+    if (geometry instanceof Point) {
+      // Point assets
+      if (type.includes('portuaire') || type.includes('port')) return '⚓';
+      if (type.includes('radar')) return '📡';
+      if (type.includes('camera') || type.includes('caméra')) return '📹';
+      if (type.includes('sensor') || type.includes('capteur')) return '📊';
+      if (type.includes('light') || type.includes('lumière')) return '💡';
+      return '📍'; // Default point icon
+    } else {
+      // Polygon/Zone assets
+      if (type.includes('zone') || type.includes('area')) return '🏗️';
+      if (type.includes('portuaire') || type.includes('port')) return '⚓';
+      if (type.includes('stockage') || type.includes('storage')) return '📦';
+      return '⬟'; // Default polygon icon
     }
+  }
+
+  getStatusClass(status: string): string {
+    if (!status) return 'unknown';
+
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('operationnel') || statusLower.includes('operational')) return 'operational';
+    if (statusLower.includes('maintenance')) return 'maintenance';
+    if (statusLower.includes('panne') || statusLower.includes('broken') || statusLower.includes('hors_service')) return 'broken';
+    if (statusLower.includes('inactif') || statusLower.includes('inactive')) return 'inactive';
+
+    return 'unknown';
+  }
+
+  getStatusLabel(status: string): string {
+    if (!status) return 'Inconnu';
+
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('operationnel') || statusLower.includes('operational')) return 'Opérationnel';
+    if (statusLower.includes('maintenance')) return 'En Maintenance';
+    if (statusLower.includes('panne') || statusLower.includes('broken')) return 'En Panne';
+    if (statusLower.includes('hors_service')) return 'Hors Service';
+    if (statusLower.includes('inactif') || statusLower.includes('inactive')) return 'Inactif';
+
+    return status; // Return original if no match
   }
 
   getFeatureName(): string {
@@ -1110,6 +1187,23 @@ private onDrawEnd(feature: Feature<Geometry>) {
       (data && (data as any).designation) ||
       ''
     );
+  }
+
+  getFeatureTypeDisplay(): string {
+    if (!this.selectedFeature) return 'Inconnu';
+
+    const type = this.selectedFeature.get('type');
+    const data = this.selectedFeature.get('data');
+
+    if (type === 'actif') {
+      return data?.famille_type || data?.type || 'Actif';
+    } else if (type === 'zone') {
+      return 'Zone';
+    } else if (type === 'anomalie') {
+      return 'Anomalie';
+    }
+
+    return type || 'Inconnu';
   }
 
   isExistingAsset(): boolean {
@@ -1496,16 +1590,6 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
       'inactive': '#6c757d'
     };
     // Legend functionality is disabled
-  }
-
-  private getStatusLabel(status: string): string {
-    const labels: { [key: string]: string } = {
-      'operational': 'Opérationnel',
-      'maintenance': 'En Maintenance',
-      'broken': 'En Panne',
-      'inactive': 'Inactif'
-    };
-    return labels[status] || status;
   }
 
   updateLegend() {

@@ -1,0 +1,110 @@
+// ================================
+// ASSET MANAGEMENT - RESPONSIVE STYLES
+// ================================
+
+// Responsive Design
+@media (max-width: 1200px) {
+  .hierarchy-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .asset-header {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 20px;
+
+    .header-content, .header-actions {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .tab-navigation {
+    flex-wrap: wrap;
+    padding: 0 15px;
+
+    .tab-btn {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+
+  .main-content {
+    padding: 15px;
+  }
+
+  .map-filters {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .assets-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // Responsive adjustments for filters only
+  .assets-filters {
+    flex-direction: column;
+    gap: 8px;
+    padding: 7px 4px;
+    .filter-group {
+      min-width: 100%;
+      max-width: 100%;
+    }
+  }
+
+  .asset-header-enhanced {
+    flex-direction: column;
+    gap: 15px;
+
+    .asset-status-badges {
+      align-items: flex-start;
+      flex-direction: row;
+    }
+  }
+
+  .asset-actions {
+    justify-content: center;
+  }
+
+  .assets-summary {
+    flex-direction: column;
+
+    .summary-card {
+      min-width: unset;
+    }
+  }
+
+  .modal .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal .modal-body {
+    padding: 20px;
+
+    .form-section {
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+  }
+
+  .modal .modal-header,
+  .modal .modal-footer {
+    padding: 16px 20px;
+  }
+
+  .assets-enhanced-grid {
+    grid-template-columns: 1fr;
+  }
+}

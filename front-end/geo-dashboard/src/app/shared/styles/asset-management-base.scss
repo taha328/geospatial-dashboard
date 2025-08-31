@@ -1,0 +1,158 @@
+// ================================
+// ASSET MANAGEMENT - BASE STYLES
+// ================================
+
+.asset-management-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+// Header Section
+.asset-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 10px;
+
+  .header-content {
+    h1 {
+      margin: 0 0 5px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #2c3e50;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      margin: 0;
+      color: #7f8c8d;
+      font-size: 14px;
+    }
+  }
+
+  .header-actions {
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &.btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+      }
+
+      .btn-icon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// Tab Navigation
+.tab-navigation {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 2px;
+  padding: 0 30px;
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #7f8c8d;
+    border-bottom: 3px solid transparent;
+
+    &:hover {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+    }
+
+    &.active {
+      color: #3498db;
+      border-bottom-color: #3498db;
+      background: rgba(52, 152, 219, 0.05);
+    }
+
+    .tab-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// Loading and Error States
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e9ecef;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+
+  .error-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+  }
+
+  p {
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Main Content
+.main-content {
+  padding: 30px;
+}
+
+.tab-content {
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}

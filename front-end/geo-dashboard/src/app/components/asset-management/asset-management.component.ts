@@ -661,21 +661,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     ).length;
   }
 
-  // Map control methods following geospatial dashboard patterns
-  toggleMapActifs(): void {
-    this.showActifsOnMap = !this.showActifsOnMap;
-    console.log('🗺️ Toggle map actifs:', this.showActifsOnMap);
-    // Integrate with OpenLayers map service if available
-    this.synchronizeMapLayers();
-  }
-
-  toggleMapAnomalies(): void {
-    this.showAnomaliesOnMap = !this.showAnomaliesOnMap;
-    console.log('🗺️ Toggle map anomalies:', this.showAnomaliesOnMap);
-    // Integrate with OpenLayers map service if available
-    this.synchronizeMapLayers();
-  }
-
   centerMapOnActifs(): void {
     console.log('🗺️ Center map on actifs');
     // Following geospatial dashboard patterns for map centering
@@ -692,10 +677,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   getMapUrl(): string {
     const params = new URLSearchParams();
-    if (this.showActifsOnMap) params.set('showActifs', 'true');
-    if (this.showAnomaliesOnMap) params.set('showAnomalies', 'true');
     if (this.selectedMapFilter !== 'tous') params.set('filter', this.selectedMapFilter);
-    
+
     return `${this.mapUrl}?${params.toString()}`;
   }
 
@@ -710,14 +693,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     const mapUrl = this.getMapUrl();
     console.log('🗺️ Opening full map:', mapUrl);
     window.open(mapUrl, '_blank');
-  }
-
-  // Private map synchronization method
-  private synchronizeMapLayers(): void {
-    // Following geospatial dashboard integration patterns
-    console.log('🔄 Synchronizing map layers with current filters');
-    // This would integrate with the OpenLayers map service
-    // to update layer visibility based on component state
   }
 
   // Private helper methods

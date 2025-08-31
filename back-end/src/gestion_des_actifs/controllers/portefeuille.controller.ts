@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { PortefeuilleService } from '../services/portefeuille.service';
 import { Portefeuille } from '../entities/portefeuille.entity';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('portefeuilles')
+@UseGuards(JwtAuthGuard)
 export class PortefeuilleController {
   constructor(private readonly portefeuilleService: PortefeuilleService) {}
 

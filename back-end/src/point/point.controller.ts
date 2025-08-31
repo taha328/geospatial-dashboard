@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { PointService } from './point.service';
 import { Point } from './point.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('points')
+@UseGuards(JwtAuthGuard)
 export class PointController {
   constructor(private pointService: PointService) {}
 

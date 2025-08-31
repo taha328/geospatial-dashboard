@@ -10,6 +10,8 @@ import { GestionDesActifsModule } from './gestion_des_actifs/gestion_des_actifs.
 import { SeedModule } from './seed/seed.module';
 import { CarteIntegrationModule } from './modules/carte-integration.module';
 import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 
 @Module({
@@ -28,8 +30,12 @@ import { AuthModule } from './auth/auth.module';
       migrationsRun: process.env.RUN_MIGRATIONS === 'true',
       migrations: [__dirname + '/../migrations/*{.ts,.js}'],
       // For Cloud SQL via Unix domain socket (App Engine Standard), SSL not required
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-      logging: true,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      logging: process.env.NODE_ENV === 'development',
+      // Extra options for Cloud SQL
+      extra: process.env.DB_HOST?.startsWith('/cloudsql/') ? {
+        socketPath: process.env.DB_HOST
+      } : undefined,
     }),
     PointModule,
     ZonesModule,
@@ -42,6 +48,13 @@ import { AuthModule } from './auth/auth.module';
 
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Global JWT Authentication Guard - requires authentication for ALL endpoints by default
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

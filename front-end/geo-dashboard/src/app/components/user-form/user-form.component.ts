@@ -23,7 +23,7 @@ export class UserFormComponent implements OnInit {
   user: User = {
     name: '',
     email: '',
-  role: 'utilisateur'
+    role: 'operateur'
   };
   
   isEditMode = false;
@@ -31,8 +31,8 @@ export class UserFormComponent implements OnInit {
   loading = false;
   error: string | null = null;
   
-  // Simplified roles for this application: administrateur and utilisateur
-  roles = ['administrateur', 'utilisateur'];
+  // Three roles for this application: administrateur, maitre_d_ouvrage, and operateur
+  roles = ['administrateur', 'maitre_d_ouvrage', 'operateur'];
 
   constructor(
     private userService: UserService,
@@ -134,8 +134,9 @@ export class UserFormComponent implements OnInit {
 
   getRoleDisplayName(role: string): string {
     const roleNames: { [key: string]: string } = {
-      'administrateur': '👑 Administrateur',
-      'utilisateur': '👤 Utilisateur'
+      'administrateur': 'Admin Administrateur',
+      'maitre_d_ouvrage': 'MO Maître d\'ouvrage',
+      'operateur': 'OP Opérateur'
     };
     return roleNames[role] || role;
   }
@@ -143,7 +144,8 @@ export class UserFormComponent implements OnInit {
   getRoleDescription(role: string): string {
     const descriptions: { [key: string]: string } = {
       'administrateur': 'Accès complet au système, gestion des utilisateurs et configuration',
-      'utilisateur': 'Accès aux fonctionnalités standard, consultation et saisie de données'
+      'maitre_d_ouvrage': 'Supervision et validation des projets, gestion des budgets et planning',
+      'operateur': 'Saisie et gestion des données opérationnelles, maintenance des équipements'
     };
     return descriptions[role] || 'Rôle personnalisé';
   }

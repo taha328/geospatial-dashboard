@@ -10,7 +10,8 @@ import {
   UseInterceptors, 
   UploadedFiles, 
   HttpException, 
-  HttpStatus 
+  HttpStatus,
+  UseGuards
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Storage } from '@google-cloud/storage';
@@ -19,11 +20,13 @@ import { existsSync, mkdirSync } from 'fs';
 import { AnomalieService } from '../services/anomalie.service';
 import { Anomalie } from '../entities/anomalie.entity';
 import { WorkflowService } from '../services/workflow.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 const storage = new Storage();
 const bucket = storage.bucket(process.env.GCS_BUCKET || 'integrated-hawk-466115-q5.appspot.com');
 
 @Controller('anomalies')
+@UseGuards(JwtAuthGuard)
 export class AnomalieController {
   constructor(
     private readonly anomalieService: AnomalieService,

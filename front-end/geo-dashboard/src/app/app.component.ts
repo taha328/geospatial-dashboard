@@ -3,6 +3,8 @@ import { Router, RouterOutlet, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NotificationService, Notification } from './services/notification.service';
 import { AuthService } from './services/auth.service';
+import { ProfessionalNotificationService } from './services/advanced-notification.service';
+import { BrowserPopupReplacementService } from './services/popup.service';
 import { Subscription } from 'rxjs';
 import { NotificationPanelComponent } from './components/notification-panel/notification-panel.component';
 import { HttpClient } from '@angular/common/http';
@@ -46,8 +48,10 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(
     private notificationService: NotificationService,
     private router: Router,
-    private auth: AuthService
-    , private http: HttpClient
+    private auth: AuthService,
+    private http: HttpClient,
+    private professionalNotification: ProfessionalNotificationService,
+    private browserPopup: BrowserPopupReplacementService
   ) {}
 
   ngOnInit() {
@@ -71,7 +75,7 @@ export class AppComponent implements OnInit, OnDestroy {
         // Use setTimeout to ensure route is resolved
         setTimeout(() => {
           const currentUrl = this.router.url;
-          const publicRoutes = ['/set-password', '/login'];
+          const publicRoutes = ['/set-password', '/reset-password', '/login'];
           const isOnPublicRoute = publicRoutes.some(route => currentUrl.includes(route));
 
           if (!isOnPublicRoute) {

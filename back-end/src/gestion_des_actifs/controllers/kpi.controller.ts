@@ -1,7 +1,9 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { KPIService, KPIData } from '../services/kpi.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('kpis')
+@UseGuards(JwtAuthGuard)
 export class KPIController {
   constructor(private readonly kpiService: KPIService) {}
 

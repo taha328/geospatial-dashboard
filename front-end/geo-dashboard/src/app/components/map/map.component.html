@@ -37,32 +37,6 @@
       </div>
 
       <div class="sidebar-content" [class.collapsed]="sidebarCollapsed">
-        <!-- Layer Visibility Controls -->
-        <div class="tool-section">
-          <div class="section-header">
-            <div class="section-icon">👁️</div>
-            <h4>Affichage des Couches</h4>
-          </div>
-          
-          <div class="asset-controls">
-            <label class="checkbox-control">
-              <input type="checkbox" [(ngModel)]="showActifs" (change)="toggleActifsLayer()">
-              <span class="checkbox-label">
-                <span class="checkbox-icon">⚙️</span>
-                Afficher les Actifs
-              </span>
-            </label>
-            
-            <label class="checkbox-control">
-              <input type="checkbox" [(ngModel)]="showAnomalies" (change)="toggleAnomaliesLayer()">
-              <span class="checkbox-label">
-                <span class="checkbox-icon">🚨</span>
-                Afficher les Anomalies
-              </span>
-            </label>
-          </div>
-        </div>
-
         <!-- Drawing Tools -->
         <div class="tool-section">
           <div class="section-header">
@@ -85,13 +59,6 @@
                 <span>Zone</span>
               </div>
             </label>
-            <label class="draw-type-card" [class.active]="drawType === 'LineString'">
-              <input type="radio" [(ngModel)]="drawType" value="LineString" name="drawType">
-              <div class="card-content">
-                <div class="card-icon">📏</div>
-                <span>Route</span>
-              </div>
-            </label>
           </div>
           
           <div class="action-buttons">
@@ -100,7 +67,7 @@
               [disabled]="isDrawing"
               class="btn btn-primary btn-with-icon">
               <span class="btn-icon">{{ isDrawing ? '⏳' : '🏗️' }}</span>
-              {{ isDrawing ? 'Dessin en cours...' : 'Créer Actif ' + (drawType === 'Point' ? 'Point' : drawType === 'Polygon' ? 'Zone' : 'Route') }}
+              {{ isDrawing ? 'Dessin en cours...' : 'Créer Actif ' + (drawType === 'Point' ? 'Point' : 'Zone') }}
             </button>
             <button 
               (click)="stopDrawing()" 
@@ -116,7 +83,7 @@
         <div class="tool-section" *ngIf="drawType !== 'Point'">
           <div class="section-header">
             <div class="section-icon">⚙️</div>
-            <h4>Propriétés {{ drawType === 'LineString' ? 'Route' : 'Zone' }}</h4>
+            <h4>Propriétés Zone</h4>
           </div>
 
           <!-- Properties controls -->
@@ -136,7 +103,7 @@
                 </div>
               </div>
               
-              <div class="form-group" *ngIf="drawType !== 'LineString'">
+              <div class="form-group">
                 <label for="opacity">
                   <span class="label-icon">👁️</span>
                   Opacité
@@ -274,27 +241,59 @@
           [class.fullscreen]="isFullscreen">
         </div>
 
-        <!-- Floating Popup for Asset Actions -->
+        <!-- Enhanced Floating Popup for Asset Actions -->
         <div *ngIf="selectedFeature && isExistingAsset()" class="ol-popup" [ngStyle]="popupPositionStyle">
           <div class="popup-content">
             <div class="popup-header">
-              <strong>{{ getFeatureName() }}</strong>
-              <small class="text-muted d-block">{{ selectedFeature.get('data')?.code || selectedFeature.get('id') }}</small>
+              <div class="asset-icon">
+                <span class="asset-type-icon">{{ getAssetTypeIcon() }}</span>
+              </div>
+              <div class="asset-info">
+                <strong class="asset-name">{{ getFeatureName() }}</strong>
+                <small class="asset-code">{{ selectedFeature.get('data')?.code || selectedFeature.get('id') }}</small>
+                <div class="asset-type-badge">{{ getFeatureTypeDisplay() }}</div>
+              </div>
             </div>
-            <button class="btn btn-sm btn-warning mt-2 w-100" (click)="signalAnomalieForSelectedFeature()">
-              <i class="fas fa-exclamation-triangle"></i> Signaler Anomalie
-            </button>
+
+            <div class="asset-details">
+              <div class="detail-row" *ngIf="selectedFeature.get('data')?.statutOperationnel">
+                <span class="detail-label">Statut:</span>
+                <span class="detail-value status-badge" [ngClass]="getStatusClass(selectedFeature.get('data')?.statutOperationnel)">
+                  {{ getStatusLabel(selectedFeature.get('data')?.statutOperationnel) }}
+                </span>
+              </div>
+
+              <div class="detail-row" *ngIf="selectedFeature.get('data')?.type">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">{{ selectedFeature.get('data')?.type }}</span>
+              </div>
+
+              <div class="detail-row" *ngIf="selectedFeature.get('data')?.etatGeneral">
+                <span class="detail-label">État:</span>
+                <span class="detail-value">{{ selectedFeature.get('data')?.etatGeneral }}</span>
+              </div>
+
+              <div class="detail-row" *ngIf="selectedFeature.get('data')?.dateMiseEnService">
+                <span class="detail-label">Mise en service:</span>
+                <span class="detail-value">{{ selectedFeature.get('data')?.dateMiseEnService | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+
+            <div class="popup-actions">
+              <button class="btn btn-sm btn-warning btn-with-icon w-100 mb-2" (click)="signalAnomalieForSelectedFeature()">
+                <span class="btn-icon">📝</span>
+                Signaler Anomalie
+              </button>
+
+              <button class="btn btn-sm btn-danger btn-with-icon w-100" (click)="deleteSelectedFeature()">
+                <span class="btn-icon">🗑️</span>
+                Supprimer
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Status Overlays -->
-        <div *ngIf="loading" class="status-overlay loading">
-          <div class="status-content">
-            <div class="loading-spinner"></div>
-            <p>Chargement des données cartographiques...</p>
-          </div>
-        </div>
-        
         <div *ngIf="error" class="status-overlay error">
           <div class="status-content">
             <div class="error-icon">⚠️</div>

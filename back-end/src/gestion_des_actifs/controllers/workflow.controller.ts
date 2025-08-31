@@ -1,7 +1,9 @@
-import { Controller, Post, Put, Get, Param, Body, ParseIntPipe, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Post, Put, Get, Param, Body, ParseIntPipe, HttpException, HttpStatus, Logger, UseGuards } from '@nestjs/common';
 import { WorkflowService } from '../services/workflow.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('workflow')
+@UseGuards(JwtAuthGuard)
 export class WorkflowController {
   private readonly logger = new Logger(WorkflowController.name);
 

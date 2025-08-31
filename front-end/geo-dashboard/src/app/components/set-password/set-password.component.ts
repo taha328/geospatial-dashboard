@@ -98,7 +98,7 @@ export class SetPasswordComponent implements OnInit {
     this.error = '';
 
     this.authService.setPassword(this.email, this.password, this.token).subscribe({
-      next: (response) => {
+      next: (response: any) => {
   console.log('✅ SetPasswordComponent - Password set successfully:', response);
         this.loading = false;
         this.success = true;
@@ -111,7 +111,7 @@ export class SetPasswordComponent implements OnInit {
           this.router.navigate(['/login']);
         }, 3000);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('❌ SetPasswordComponent - Set password error:', error);
         console.error('❌ SetPasswordComponent - Error status:', error.status);
         console.error('❌ SetPasswordComponent - Error body:', error.error);

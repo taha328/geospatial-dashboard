@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { FamilleActifService } from '../services/famille-actif.service';
 import { FamilleActif } from '../entities/famille-actif.entity';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('familles')
+@UseGuards(JwtAuthGuard)
 export class FamilleActifController {
   constructor(private readonly familleActifService: FamilleActifService) {}
 

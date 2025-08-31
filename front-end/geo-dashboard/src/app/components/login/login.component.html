@@ -1,36 +1,29 @@
 <div class="login-wrapper">
   <!-- Background Image -->
   <div class="background-image"></div>
-  
-  <!-- Overlay -->
-  <div class="overlay"></div>
 
   <!-- Login Container -->
   <div class="login-container">
-    <!-- Changed from z-card to regular div with class -->
     <div class="login-card">
       <!-- Header Section -->
       <div class="login-header">
-        <div class="logo-section">
-          <div class="logo-icon">🗺️</div>
-          <div class="title-section">
-            <h1 class="main-title">Geo Dashboard</h1>
-            <h2 class="subtitle">Système Géospatial</h2>
-          </div>
+        <div class="title-section">
+          <h1 class="main-title">GeoSpatial Dashboard</h1>
+ 
         </div>
       </div>
 
       <!-- Content Section -->
       <div class="login-content">
         <div class="form-title">
-          <h2>{{ mode === 'login' ? 'Connexion' : 'Définir le mot de passe' }}</h2>
+          <h2>{{ mode === 'login' ? 'Connexion' : 'Mot de passe oublié' }}</h2>
         </div>
 
         <!-- Login Form -->
-        <form 
-          *ngIf="mode === 'login'" 
-          (ngSubmit)="submitLogin()" 
-          class="auth-form" 
+        <form
+          *ngIf="mode === 'login'"
+          (ngSubmit)="submitLogin()"
+          class="auth-form"
           novalidate
         >
           <div class="form-group">
@@ -78,94 +71,64 @@
             <span>{{ isLoading ? 'Connexion...' : 'Se connecter' }}</span>
           </button>
 
-          <div class="form-divider">
-            <span>ou</span>
-          </div>
-
           <div class="form-footer">
-            <p class="help-text">
-              Si vous avez reçu une invitation, utilisez le lien ci-dessous pour définir votre mot de passe.
-            </p>
             <button
               type="button"
-              class="secondary-button"
-              (click)="switchToSetPassword()"
+              class="link-button"
+              (click)="switchToForgotPassword()"
             >
-              <span class="button-icon">⚙️</span>
-              <span>Définir mon mot de passe</span>
+              <span class="button-icon">🔑</span>
+              <span>Mot de passe oublié ?</span>
             </button>
           </div>
         </form>
 
-        <!-- Set Password Form -->
-        <form 
-          *ngIf="mode === 'set'" 
-          (ngSubmit)="submitSetPassword()" 
-          class="auth-form" 
+        <!-- Forgot Password Form -->
+        <form
+          *ngIf="mode === 'forgot'"
+          (ngSubmit)="submitForgotPassword()"
+          class="auth-form"
           novalidate
         >
           <div class="form-subtitle">
-            <h3>Créer votre mot de passe</h3>
+            <h3>Réinitialiser votre mot de passe</h3>
             <p class="form-description">
-              Utilisez l'adresse email exacte de votre invitation
+              Entrez votre adresse email et nous vous enverrons un lien de réinitialisation.
             </p>
           </div>
 
           <div class="form-group">
-            <label for="setEmail" class="form-label">
+            <label for="resetEmail" class="form-label">
               <span class="label-icon">📧</span>
               Adresse email
             </label>
             <input
-              id="setEmail"
+              id="resetEmail"
               type="email"
-              [(ngModel)]="email"
-              name="setEmail"
+              [(ngModel)]="resetEmail"
+              name="resetEmail"
               placeholder="votre.email@exemple.com"
               required
               autocomplete="email"
               class="form-input"
-              [class.error]="error && !email"
+              [class.error]="error && !resetEmail"
             />
-          </div>
-
-          <div class="form-group">
-            <label for="setPassword" class="form-label">
-              <span class="label-icon">🔐</span>
-              Nouveau mot de passe
-            </label>
-            <input
-              id="setPassword"
-              type="password"
-              [(ngModel)]="password"
-              name="setPassword"
-              placeholder="Minimum 8 caractères"
-              required
-              minlength="8"
-              autocomplete="new-password"
-              class="form-input"
-              [class.error]="error && password.length < 8"
-            />
-            <p class="input-help">Le mot de passe doit contenir au moins 8 caractères</p>
+            <p class="input-help">L'email doit être enregistré dans notre système</p>
           </div>
 
           <button
             type="submit"
             class="primary-button"
-            [disabled]="isSetPasswordDisabled"
+            [disabled]="isForgotPasswordDisabled"
           >
-            <span class="button-icon">{{ isLoading ? '⏳' : '✅' }}</span>
-            <span>{{ isLoading ? 'Création...' : 'Créer le mot de passe' }}</span>
+            <span class="button-icon">{{ isLoading ? '⏳' : '📧' }}</span>
+            <span>{{ isLoading ? 'Envoi...' : 'Envoyer le lien' }}</span>
           </button>
-
-          <div class="form-divider">
-            <span>ou</span>
-          </div>
 
           <div class="form-footer">
             <button
               type="button"
-              class="secondary-button"
+              class="link-button"
               (click)="switchToLogin()"
             >
               <span class="button-icon">←</span>
@@ -186,8 +149,6 @@
             <span class="message-text">{{ successMessage }}</span>
           </div>
         </div>
-
-  <!-- debug block removed for production -->
       </div>
     </div>
   </div>

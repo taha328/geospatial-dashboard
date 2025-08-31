@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { KpiService, KPIResponse } from '../../services/kpi.service';
 import { Router } from '@angular/router';
@@ -8,6 +9,8 @@ type NumericKPIKey = Exclude<keyof KPIResponse, 'statistiques'>;
 
 @Component({
   selector: 'app-dashboard-integre',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './dashboard-integre.component.html',
   styleUrls: ['./dashboard-integre.component.scss']
 })

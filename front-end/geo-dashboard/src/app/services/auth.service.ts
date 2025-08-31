@@ -37,23 +37,26 @@ export class AuthService {
   }
 
   /**
-   * First-time set password for invited users. Backend should verify that the
-   * email exists and is allowed to set a password (invited and no password yet)
+   * Request password reset for existing users. Backend should verify that the
+   * email exists in the database before sending reset email
    */
-  setPassword(email: string, password: string, token?: string): Observable<any> {
-    const payload: any = { email, password };
-    if (token && token.trim()) {
-      payload.token = token.trim();
-    }
+  forgotPassword(email: string): Observable<any> {
+    console.log('🔍 AuthService.forgotPassword - Sending request for:', email);
 
-    console.log('🔍 AuthService.setPassword - Sending payload:', {
-      email: payload.email,
-      hasToken: !!payload.token,
-      tokenLength: payload.token?.length,
-      apiUrl: environment.apiUrl
+    return this.http.post<any>(`${environment.apiUrl}/auth/forgot-password`, { email });
+  }
+
+  /**
+   * Set a new password using a reset token
+   */
+  setPassword(email: string, password: string, token: string): Observable<any> {
+    console.log('🔍 AuthService.setPassword - Setting password for:', email);
+
+    return this.http.post<any>(`${environment.apiUrl}/auth/set-password`, {
+      email,
+      password,
+      token
     });
-
-    return this.http.post<any>(`${environment.apiUrl}/auth/set-password`, payload);
   }
 logout() {
   // Clear in-memory token and any token keys that might have been used

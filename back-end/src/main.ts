@@ -2,13 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SeedService } from './seed/seed.service';
 import { ValidationPipe } from '@nestjs/common';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Set a global prefix for all routes to organize the API
   app.setGlobalPrefix('api');
-  
+
   // Enable global validation pipe for DTOs
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
@@ -42,8 +46,9 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
+
   console.log(`🚀 Geospatial Dashboard API running on port ${port}`);
   console.log(`📍 Health check: http://localhost:${port}/api/health`);
+  console.log(`🔐 Security: JWT authentication required for all endpoints`);
 }
 bootstrap();

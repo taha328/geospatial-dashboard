@@ -64,16 +64,18 @@ export class UserListComponent implements OnInit {
 
   getRoleIcon(role?: string): string {
     const icons: { [key: string]: string } = {
-      'administrateur': '👑',
-      'utilisateur': '👤'
+      'administrateur': 'Admin',
+      'maitre_d_ouvrage': 'MO',
+      'operateur': 'OP'
     };
-    return icons[role || ''] || '❓';
+    return icons[role || ''] || '?';
   }
 
   getRoleDisplayName(role?: string): string {
     const names: { [key: string]: string } = {
       'administrateur': 'Administrateur',
-      'utilisateur': 'Utilisateur'
+      'maitre_d_ouvrage': 'Maître d\'ouvrage',
+      'operateur': 'Opérateur'
     };
     return names[role || ''] || (role || 'Inconnu');
   }
@@ -81,7 +83,8 @@ export class UserListComponent implements OnInit {
   getRoleBadgeClass(role?: string): string {
     const classes: { [key: string]: string } = {
       'administrateur': 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200',
-      'utilisateur': 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200'
+      'maitre_d_ouvrage': 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 border border-orange-200',
+      'operateur': 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200'
     };
     return classes[role || ''] || 'bg-gray-100 text-gray-800 border border-gray-200';
   }
@@ -94,7 +97,11 @@ export class UserListComponent implements OnInit {
     return this.users?.filter(u => u?.role === 'administrateur').length || 0;
   }
 
-  get userCount(): number {
-    return this.users?.filter(u => u?.role === 'utilisateur').length || 0;
+  get maitreDOuvrageCount(): number {
+    return this.users?.filter(u => u?.role === 'maitre_d_ouvrage').length || 0;
+  }
+
+  get operateurCount(): number {
+    return this.users?.filter(u => u?.role === 'operateur').length || 0;
   }
 }

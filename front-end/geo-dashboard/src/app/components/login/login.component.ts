@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-// Remove ZardCardComponent import since we're using regular div now
-// import { ZardCardComponent } from '@shared/components/card';
 
 @Component({
   selector: 'app-login',
@@ -12,7 +10,6 @@ import { AuthService } from '../../services/auth.service';
   imports: [
     CommonModule,
     FormsModule
-    // Remove ZardCardComponent from imports
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
@@ -20,17 +17,17 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   email = '';
   password = '';
+  resetEmail = '';
   error: string | null = null;
   successMessage: string | null = null;
-  mode: 'login' | 'set' = 'login';
+  mode: 'login' | 'forgot' = 'login';
   isLoading = false;
 
   constructor(
-    private auth: AuthService, 
+    private auth: AuthService,
     private router: Router
   ) {
     console.log('LoginComponent initialized');
-    console.log('Initial mode:', this.mode);
   }
 
   ngOnInit() {
@@ -41,7 +38,7 @@ export class LoginComponent {
 
   submitLogin(): void {
     console.log('submitLogin called', { email: this.email, passwordLength: this.password.length });
-    
+
     if (!this.email || !this.password) {
       this.error = 'Veuillez remplir tous les champs.';
       console.log('Form validation failed');
@@ -52,35 +49,20 @@ export class LoginComponent {
     this.isLoading = true;
     console.log('Starting login process...');
 
-    // If AuthService is not available, simulate for testing
-    if (!this.auth) {
-      console.log('AuthService not available, simulating login...');
-      setTimeout(() => {
-        this.isLoading = false;
-        if (this.email === 'test@test.com' && this.password === 'password') {
-          this.successMessage = 'Connexion réussie !';
-          setTimeout(() => this.router.navigate(['/dashboard']), 1000);
-        } else {
-          this.error = 'Email ou mot de passe incorrect.';
-        }
-      }, 1500);
-      return;
-    }
-
     this.auth.login(this.email, this.password).subscribe({
       next: (response: any) => {
         this.isLoading = false;
         console.log('Login successful:', response);
         this.successMessage = 'Connexion réussie !';
-        
+
         setTimeout(() => {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/map']);
         }, 1000);
       },
       error: (error: any) => {
         this.isLoading = false;
         console.error('Login error:', error);
-        
+
         if (error.status === 0) {
           this.error = 'Impossible de contacter le serveur. Vérifiez votre connexion internet.';
         } else if (error.status === 401) {
@@ -96,56 +78,61 @@ export class LoginComponent {
     });
   }
 
-  submitSetPassword(): void {
-    console.log('submitSetPassword called', { email: this.email, passwordLength: this.password.length });
-    
-    if (!this.email || !this.password || this.password.length < 8) {
-      this.error = 'Veuillez remplir tous les champs. Le mot de passe doit contenir au moins 8 caractères.';
+  submitForgotPassword(): void {
+    console.log('submitForgotPassword called', { email: this.resetEmail });
+
+    if (!this.resetEmail) {
+      this.error = 'Veuillez saisir votre adresse email.';
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.resetEmail)) {
+      this.error = 'Veuillez saisir une adresse email valide.';
       return;
     }
 
     this.clearMessages();
     this.isLoading = true;
+    console.log('Starting forgot password process...');
 
-    // If AuthService is not available, simulate for testing
-    if (!this.auth) {
-      console.log('AuthService not available, simulating set password...');
-      setTimeout(() => {
-        this.isLoading = false;
-        this.switchToLogin();
-        this.successMessage = 'Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.';
-      }, 1500);
-      return;
-    }
-
-    this.auth.setPassword(this.email, this.password).subscribe({
+    this.auth.forgotPassword(this.resetEmail).subscribe({
       next: (response: any) => {
         this.isLoading = false;
-        console.log('Set password successful:', response);
-        this.switchToLogin();
-        this.successMessage = 'Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.';
+        console.log('Forgot password successful:', response);
+        this.successMessage = 'Un email de réinitialisation a été envoyé à votre adresse email.';
       },
       error: (error: any) => {
         this.isLoading = false;
-        console.error('Set password error:', error);
-        this.error = error?.error?.message || 'Échec de la définition du mot de passe. Veuillez réessayer.';
+        console.error('Forgot password error:', error);
+
+        if (error.status === 404) {
+          this.error = 'Cette adresse email n\'est pas enregistrée dans notre système.';
+        } else if (error.status === 0) {
+          this.error = 'Impossible de contacter le serveur. Vérifiez votre connexion internet.';
+        } else if (error.status === 429) {
+          this.error = 'Trop de tentatives. Veuillez réessayer dans quelques minutes.';
+        } else {
+          this.error = error?.error?.message || 'Échec de l\'envoi de l\'email. Veuillez réessayer.';
+        }
       }
     });
   }
 
-  switchMode(newMode: 'login' | 'set'): void {
-    console.log('Switching mode from', this.mode, 'to', newMode);
-    this.mode = newMode;
+  switchToForgotPassword(): void {
+    console.log('Switching to forgot password mode');
+    this.mode = 'forgot';
     this.clearMessages();
-    this.resetForm();
+    this.resetEmail = '';
   }
 
   switchToLogin(): void {
-    this.switchMode('login');
-  }
-
-  switchToSetPassword(): void {
-    this.switchMode('set');
+    console.log('Switching to login mode');
+    this.mode = 'login';
+    this.clearMessages();
+    this.email = '';
+    this.password = '';
   }
 
   private clearMessages(): void {
@@ -153,26 +140,19 @@ export class LoginComponent {
     this.successMessage = null;
   }
 
-  private resetForm(): void {
-    this.email = '';
-    this.password = '';
-  }
-
   get isFormValid(): boolean {
     return !!(this.email && this.password);
   }
 
-  get isSetPasswordFormValid(): boolean {
-    return !!(this.email && this.password && this.password.length >= 8);
+  get isForgotPasswordFormValid(): boolean {
+    return !!this.resetEmail;
   }
 
   get isLoginDisabled(): boolean {
     return !this.isFormValid || this.isLoading;
   }
 
-  get isSetPasswordDisabled(): boolean {
-    return !this.isSetPasswordFormValid || this.isLoading;
+  get isForgotPasswordDisabled(): boolean {
+    return !this.isForgotPasswordFormValid || this.isLoading;
   }
 }
-
-// (removed mock AuthService interface to allow real DI injection)

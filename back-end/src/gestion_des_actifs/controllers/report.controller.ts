@@ -1,9 +1,11 @@
-import { Controller, Get, Param, ParseIntPipe, Res, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Res, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ReportService } from '../services/report.service';
 import { MaintenanceService } from '../services/maintenance.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @Controller('reports')
+@UseGuards(JwtAuthGuard)
 export class ReportController {
   constructor(
     private readonly reportService: ReportService,

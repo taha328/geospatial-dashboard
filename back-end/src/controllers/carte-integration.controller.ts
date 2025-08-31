@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { CarteIntegrationService } from '../services/carte-integration.service';
 import { AnomalieService } from '../gestion_des_actifs/services/anomalie.service';
 import { CreateActifFromMapDto } from '../carte-integration/dto/create-actif-from-map.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('carte')
+@UseGuards(JwtAuthGuard)
 export class CarteIntegrationController {
   constructor(
     private readonly carteIntegrationService: CarteIntegrationService,

@@ -1,6 +1,6 @@
 // App Content
 .app-content {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 64px);
   background: #f8f9fa;
 }
 
@@ -11,18 +11,164 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
+}
+
+// Navigation Bar Styling
+.z-navbar {
+  height: 56px; /* Consistent with global styles */
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+}
+
+.z-navbar [brand] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 100%;
+}
+
+.z-navbar [brand] .text-2xl {
+  font-size: 20px; /* Reduced for better proportion */
+}
+
+.z-navbar [brand] h1 {
+  font-size: 16px; /* Reduced for better proportion */
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.z-navbar [brand] span {
+  font-size: 10px; /* Reduced for better proportion */
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.z-navbar [nav-links] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.z-navbar [nav-links] a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px; /* Reduced padding for better proportion */
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px; /* Reduced for better proportion */
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  height: 36px; /* Consistent with global button sizing */
+}
+
+.z-navbar [nav-links] a:hover {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+.z-navbar [nav-links] a.active {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.z-navbar [actions] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 100%;
+}
+
+.z-navbar [actions] .z-button {
+  height: 36px; /* Consistent with global button sizing */
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px; /* Reduced for better proportion */
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.z-navbar [mobile-nav-links] {
+  display: none;
+  flex-direction: column;
+  padding: 16px;
+  gap: 8px;
+}
+
+.z-navbar [mobile-nav-links] a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.z-navbar [mobile-nav-links] a:hover {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+.z-navbar [mobile-nav-links] a.active {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .app-content {
+    min-height: calc(100vh - 56px);
+  }
+
+  .z-navbar {
+    height: 56px;
+  }
+
+  .z-navbar [brand] {
+    padding: 0 16px;
+  }
+
+  .z-navbar [brand] h1 {
+    font-size: 16px;
+  }
+
+  .z-navbar [brand] .text-2xl {
+    font-size: 20px;
+  }
+
+  .z-navbar [nav-links] {
+    display: none;
+  }
+
+  .z-navbar [mobile-nav-links] {
+    display: flex;
+  }
+
+  .z-navbar [actions] {
+    padding: 0 16px;
+  }
 }
 
 // Custom styles for active nav links
 .nav-links a.active {
   background-color: #dbeafe;
   color: #1d4ed8;
-}
-
-// Mobile responsive adjustments
-@media (max-width: 768px) {
-  .app-content {
-    min-height: calc(100vh - 70px);
-  }
 }

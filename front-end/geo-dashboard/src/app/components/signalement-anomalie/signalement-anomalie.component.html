@@ -198,17 +198,17 @@
             <p class="section-description">Ajoutez des photos pour documenter l'anomalie (optionnel)</p>
           </div>
         </div>
-        
+
         <div class="photo-upload-zone">
-          <input 
-            type="file" 
+          <input
+            type="file"
             id="imageUpload"
             class="d-none"
             accept="image/*"
             multiple
             (change)="onFileSelected($event)">
-          
-          <label for="imageUpload" class="upload-area" 
+
+          <label for="imageUpload" class="upload-area"
                  [class.has-file]="selectedFiles.length > 0">
             <div class="upload-content">
               <i class="fas fa-cloud-upload-alt upload-icon"></i>
@@ -226,8 +226,8 @@
               <div *ngFor="let preview of imagePreviews; let i = index" class="image-preview-item">
                 <div class="preview-container">
                   <img [src]="preview.url" [alt]="preview.name" class="preview-image">
-                  <button type="button" 
-                          class="btn btn-danger btn-sm remove-image" 
+                  <button type="button"
+                          class="btn btn-danger btn-sm remove-image"
                           (click)="removeImage(i)"
                           [title]="'Supprimer ' + preview.name">
                     <i class="fas fa-times"></i>

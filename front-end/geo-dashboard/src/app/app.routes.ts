@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login.component';
-import { SetPasswordComponent } from './components/set-password/set-password.component';
 import { RoleGuard } from './services/role.guard';
 
 // Simple guard to allow unauthenticated access to set-password
@@ -21,25 +19,31 @@ export class PublicGuard implements CanActivate {
 export const routes: Routes = [
   {
      path: '',
-     redirectTo: '/assets',
+     redirectTo: '/map',
      pathMatch: 'full'
    },
   {
      path: 'dashboard',
-     redirectTo: '/assets',
-     pathMatch: 'full'
+     loadComponent: () => import('./components/dashboard-integre/dashboard-integre.component').then(m => m.DashboardIntegreComponent)
    },
 
-  // Add the missing login route
+  // Lazy load login component
   {
     path: 'login',
-    component: LoginComponent
+    loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent)
   },
 
-  // Add set-password route for invited users - explicitly allow unauthenticated access
+  // Lazy load set-password component for invited users - explicitly allow unauthenticated access
   {
     path: 'set-password',
-    component: SetPasswordComponent,
+    loadComponent: () => import('./components/set-password/set-password.component').then(m => m.SetPasswordComponent),
+    canActivate: [PublicGuard] // This guard always returns true
+  },
+
+  // Lazy load reset-password component for existing users - explicitly allow unauthenticated access
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./components/set-password/set-password.component').then(m => m.SetPasswordComponent),
     canActivate: [PublicGuard] // This guard always returns true
   },
 
@@ -67,6 +71,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '/assets'
+    redirectTo: '/map'
   }
 ];

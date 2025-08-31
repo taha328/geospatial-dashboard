@@ -1,0 +1,161 @@
+// ================================
+// ASSET MANAGEMENT - DASHBOARD STYLES
+// ================================
+
+// Dashboard Tab
+.dashboard-grid {
+  display: grid;
+  gap: 30px;
+}
+
+.kpi-section {
+  h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+}
+
+.kpi-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+
+  .kpi-header {
+    margin-bottom: 20px;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .kpi-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+
+    .metric-item {
+      text-align: center;
+      padding: 15px;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      .metric-value {
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .metric-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.8;
+      }
+
+      &.primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+      }
+
+      &.success {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        color: white;
+      }
+
+      &.warning {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+      }
+
+      &.danger {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+      }
+
+      &.info {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+      }
+    }
+  }
+
+  .kpi-footer {
+    text-align: center;
+    font-weight: 600;
+    color: #7f8c8d;
+  }
+}
+
+.quick-stats-section {
+  h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+
+  .stat-icon {
+    font-size: 32px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+  }
+
+  .stat-content {
+    .stat-value {
+      display: block;
+      font-size: 24px;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #7f8c8d;
+    }
+  }
+}
