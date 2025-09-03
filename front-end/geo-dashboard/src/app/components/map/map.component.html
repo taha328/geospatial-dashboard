@@ -121,6 +121,14 @@
             <span class="coord-label">Coordonnées:</span>
             <span class="coord-value">{{ mouseCoordinates }}</span>
           </div>
+          
+          <!-- Mode Indicator -->
+          <div class="mode-indicator" [ngClass]="'mode-' + mapMode">
+            <span class="mode-label">Mode: </span>
+            <span class="mode-value">
+              {{ mapMode === 'view' ? 'Navigation' : 'Création' }}
+            </span>
+          </div>
         </div>
         
 
@@ -176,9 +184,9 @@
             </div>
 
             <div class="popup-actions">
-              <button class="btn btn-sm btn-warning btn-with-icon w-100 mb-2" (click)="signalAnomalieForSelectedFeature()">
-                <span class="btn-icon">📝</span>
-                Signaler Anomalie
+              <button class="btn btn-sm btn-primary btn-with-icon w-100 mb-2" (click)="initiateInspection(selectedFeature); $event.stopPropagation()">
+                <span class="btn-icon">🔍</span>
+                Planifier Inspection
               </button>
 
               <button class="btn btn-sm btn-danger btn-with-icon w-100" (click)="deleteSelectedFeature()">
@@ -222,6 +230,101 @@
         (anomalieSignaled)="onAnomalieSignaled()"
         (cancelled)="onSignalementCancelled()">
       </app-signalement-anomalie>
+    </div>
+  </div>
+
+  <!-- Formulaire d'inspection -->
+  <div *ngIf="showInspectionForm" class="inspection-overlay">
+    <div class="inspection-modal">
+      <div class="modal-header">
+        <h3>🔍 Planifier une Inspection</h3>
+        <button type="button" class="close-button" (click)="cancelInspectionForm()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Asset Information -->
+        <div class="asset-info" *ngIf="getSelectedAssetForInspection()">
+          <h4>Actif Sélectionné</h4>
+          <div class="asset-details">
+            <div class="detail-row">
+              <span class="label">Nom:</span>
+              <span class="value">{{ getSelectedAssetForInspection().nom }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Code:</span>
+              <span class="value">{{ getSelectedAssetForInspection().code }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Type:</span>
+              <span class="value">{{ getSelectedAssetForInspection().type }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inspection Form -->
+        <form class="inspection-form" (ngSubmit)="submitInspection()">
+          <div class="form-group">
+            <label for="inspectionTitle">Titre de l'inspection *</label>
+            <input 
+              id="inspectionTitle"
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="inspectionForm.titre"
+              name="titre"
+              required
+              placeholder="Ex: Inspection périodique du quai A1">
+          </div>
+
+          <div class="form-group">
+            <label for="inspectionType">Type d'inspection *</label>
+            <select 
+              id="inspectionType"
+              class="form-control" 
+              [(ngModel)]="inspectionForm.typeInspectionId"
+              name="typeInspectionId"
+              required>
+              <option value="0">Sélectionnez un type d'inspection</option>
+              <option 
+                *ngFor="let type of availableInspectionTypes" 
+                [value]="type.id">
+                {{ type.typeInspection }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inspectionDate">Date prévue *</label>
+            <input 
+              id="inspectionDate"
+              type="date" 
+              class="form-control" 
+              [(ngModel)]="inspectionForm.datePrevue"
+              name="datePrevue"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="inspectionDescription">Description</label>
+            <textarea 
+              id="inspectionDescription"
+              class="form-control" 
+              [(ngModel)]="inspectionForm.description"
+              name="description"
+              rows="3"
+              placeholder="Détails supplémentaires sur l'inspection...">
+            </textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelInspectionForm()">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn-primary">
+              🔍 Planifier l'Inspection
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 

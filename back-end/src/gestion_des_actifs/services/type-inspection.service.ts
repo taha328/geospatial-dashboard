@@ -31,7 +31,7 @@ export class TypeInspectionService {
 
   async findByNumeroInspection(numeroInspection: number): Promise<TypeInspection> {
     const typeInspection = await this.typeInspectionRepository.findOne({
-      where: { numero_inspection: numeroInspection },
+      where: { numeroInspection: numeroInspection },
       relations: ['typeInspectionGroupes']
     });
 

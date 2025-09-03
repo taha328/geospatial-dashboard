@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDat
 import { GroupeActif } from './groupe-actif.entity';
 import { Anomalie } from './anomalie.entity';
 import { Maintenance } from './maintenance.entity';
+import { Inspection } from './inspection.entity';
 
 @Entity('actifs')
 export class Actif {
@@ -20,6 +21,8 @@ export class Actif {
   @Column({ length: 100, unique: true })
   code: string;
 
+  @Column({ length: 255, nullable: true })
+  numeroSerie: string;
 
   @Column({ type: 'enum', enum: ['operationnel', 'hors_service', 'maintenance', 'alerte'], default: 'operationnel' })
   statutOperationnel: string;
@@ -74,4 +77,7 @@ export class Actif {
 
   @OneToMany(() => Maintenance, (maintenance: Maintenance) => maintenance.actif)
   maintenances: Maintenance[];
+
+  @OneToMany(() => Inspection, (inspection: Inspection) => inspection.actif)
+  inspections: Inspection[];
 }

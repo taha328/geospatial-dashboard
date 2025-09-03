@@ -770,6 +770,141 @@
   }
 }
 
+// Mode Indicator
+.mode-indicator {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+  .mode-label {
+    opacity: 0.9;
+  }
+
+  .mode-value {
+    font-weight: 600;
+  }
+
+  &.mode-view {
+    background: #6c757d;
+  }
+
+  &.mode-report-anomaly {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    animation: pulse 2s infinite;
+  }
+
+  &.mode-conduct-inspection {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    animation: pulse 2s infinite;
+  }
+
+  &.mode-create-asset {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.6);
+  }
+}
+
+// Inspection Tools Styles
+.tool-section {
+  .inspection-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: none;
+
+      &.btn-full {
+        width: 100%;
+      }
+
+      &.btn-with-icon {
+        .btn-icon {
+          font-size: 16px;
+        }
+      }
+
+      &.btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+      }
+
+      &.btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        color: white;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+      }
+
+      &.btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+      }
+    }
+
+    .mode-instructions {
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+
+      .instruction-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1976d2;
+        font-size: 14px;
+        font-weight: 500;
+
+        .instruction-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}
+
 // Map Element
 .map-wrapper {
   flex: 1 1 auto;
@@ -1514,12 +1649,57 @@
   color: #6c757d;
 }
 
-.ol-popup .popup-actions {
+.popup-actions {
   padding: 16px;
   background: #f8f9fa;
   border-top: 1px solid #e9ecef;
   flex-shrink: 0; /* Prevent actions from shrinking */
   margin-top: auto; /* Push to bottom */
+  position: relative;
+  z-index: 10; /* Higher z-index for better clickability */
+  pointer-events: auto !important; /* Ensure pointer events work */
+  
+  // Ensure buttons in popup actions are clickable
+  .btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    position: relative;
+    z-index: 11;
+    
+    &.btn-sm {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    &.btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      position: relative;
+      
+      &:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+      
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+    
+    .btn-icon {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
+    
+    span {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      position: relative;
+      z-index: 12;
+    }
+  }
 }
 
 .ol-popup .popup-actions .btn-warning {
@@ -1533,6 +1713,28 @@
   border-color: #ffb300;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(255, 221, 0, 0.3);
+}
+
+// Ensure all buttons in popup actions are properly styled and clickable
+.ol-popup .popup-actions .btn {
+  position: relative;
+  z-index: 10;
+  cursor: pointer;
+  user-select: none;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // Ensure button text and icons are clickable
+  *, span, .btn-icon {
+    pointer-events: auto !important;
+    cursor: pointer;
+  }
 }
 
 .ol-popup:after, .ol-popup:before {
@@ -1558,9 +1760,10 @@
   margin-left: -11px;
 }
 
-/* Formulaires de signalement et d'actif */
+/* Formulaires de signalement, d'actif et d'inspection */
 .signalement-overlay,
-.actif-overlay {
+.actif-overlay,
+.inspection-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1575,7 +1778,8 @@
 }
 
 .signalement-modal,
-.actif-modal {
+.actif-modal,
+.inspection-modal {
   background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -1586,18 +1790,258 @@
   padding: 0;
   position: relative;
 }
+
+// Inspection Modal Specific Styles
+.inspection-modal {
+  .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 10; /* Ensure the header is above other elements */
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .close-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 20; /* Higher z-index to ensure clickability */
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .asset-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+
+    h4 {
+      margin: 0 0 12px 0;
+      color: #2c3e50;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .asset-details {
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        .label {
+          font-weight: 500;
+          color: #6c757d;
+        }
+
+        .value {
+          color: #2c3e50;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+.inspection-form {
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #2c3e50;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        &[required] {
+          border-left: 4px solid #667eea;
+        }
+      }
+
+      select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        padding-right: 40px;
+      }
+
+      textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+      position: relative;
+      z-index: 10; /* Add z-index to ensure clickability */
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer !important;
+        transition: all 0.2s;
+        position: relative;
+        z-index: 11;
+
+        &.btn-secondary {
+          background-color: #6c757d;
+          color: white;
+
+          &:hover {
+            background-color: #5a6268;
+          }
+        }
+
+        &.btn-primary {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          }
+          
+          &:active {
+            transform: translateY(0);
+          }
+        }
+      }
+    }
+  }
+}
 /* Add this CSS to your map.component.scss file */
 
-/* Force all text in layer switcher to be black */
-.ol-layerswitcher * {
-  color: #000000 !important;
-}
-
-/* Additional fix for span text */
-.ol-layerswitcher span,
-.ol-layerswitcher label span {
+/* CRITICAL: Force all text in layer switcher to be visible and black */
+.ol-layerswitcher,
+.ol-layerswitcher *,
+.ol-layerswitcher *::before,
+.ol-layerswitcher *::after {
   color: #000000 !important;
   text-shadow: none !important;
+  font-weight: 600 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Additional fix for span text - VERY SPECIFIC */
+.ol-layerswitcher span,
+.ol-layerswitcher label span,
+.ol-layerswitcher .panel li span,
+.ol-layerswitcher .panel li label span,
+.ol-layerswitcher .li-content span,
+.ol-layerswitcher .li-content label span {
+  color: #000000 !important;
+  text-shadow: none !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  background: transparent !important;
+  text-decoration: none !important;
+}
+
+/* Ensure layer names are visible - ULTRA SPECIFIC */
+.ol-layerswitcher .panel li .li-content label {
+  color: #000000 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: transparent !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.ol-layerswitcher .panel li .li-content label span {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  text-indent: 0 !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  white-space: normal !important;
+  text-transform: none !important;
+}
+
+/* Force visibility on all list items */
+.ol-layerswitcher .panel li {
+  display: list-item !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+/* Ensure the panel itself is visible */
+.ol-layerswitcher .panel {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: transparent !important;
 }
 
 /* LayerSwitcher Control Styles */

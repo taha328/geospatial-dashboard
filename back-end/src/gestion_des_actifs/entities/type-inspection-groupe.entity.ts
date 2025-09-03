@@ -7,14 +7,14 @@ export class TypeInspectionGroupe {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  numero_groupe: number;
+  @Column({ name: 'numero_groupe' })
+  numeroGroupe: number;
 
-  @Column()
-  numero_inspection: number;
+  @Column({ name: 'numero_inspection' })
+  numeroInspection: number;
 
-  @Column({ length: 255 })
-  type_inspection: string;
+  @Column({ length: 255, name: 'type_inspection' })
+  typeInspectionNom: string;
 
   @Column('text', { nullable: true })
   description: string;
@@ -22,14 +22,14 @@ export class TypeInspectionGroupe {
   @Column({ type: 'enum', enum: ['actif', 'inactif'], default: 'actif' })
   statut: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'datecreation' })
   dateCreation: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'datemiseajour' })
   dateMiseAJour: Date;
 
   @ManyToOne(() => TypeInspection, typeInspection => typeInspection.typeInspectionGroupes)
-  @JoinColumn({ name: 'numero_inspection', referencedColumnName: 'numero_inspection' })
+  @JoinColumn({ name: 'numero_inspection', referencedColumnName: 'numeroInspection' })
   typeInspection: TypeInspection;
 
   @ManyToOne(() => GroupeActif, groupeActif => groupeActif.id)

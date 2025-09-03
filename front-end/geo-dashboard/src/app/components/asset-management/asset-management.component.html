@@ -12,24 +12,13 @@
         title="Actualiser les données">
         <span class="btn-icon">🔄</span>
         Actualiser
-      <button 
-        class="tab-btn"
-        [class.active]="activeTab === 'hierarchy'"
-        (click)="setActiveTab('hierarchy')"
-        aria-label="Afficher la hiérarchie">
-        <span class="tab-icon" aria-hidden="true">
-          <!-- Professional hierarchy SVG icon (nodes + connectors) -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" role="img">
-            <circle cx="12" cy="4" r="2" fill="#2c3e50" />
-            <path d="M12 6v4" stroke="#2c3e50" stroke-width="1.4" stroke-linecap="round" />
-            <path d="M12 10L7 14" stroke="#2c3e50" stroke-width="1.4" stroke-linecap="round" />
-            <path d="M12 10l5 4" stroke="#2c3e50" stroke-width="1.4" stroke-linecap="round" />
-            <circle cx="7" cy="18" r="2" fill="#2c3e50" />
-            <circle cx="17" cy="18" r="2" fill="#2c3e50" />
-          </svg>
-        </span>
-        Hiérarchie
       </button>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
       class="tab-btn"
       [class.active]="activeTab === 'dashboard'"
       (click)="setActiveTab('dashboard')">
@@ -40,16 +29,22 @@
       class="tab-btn"
       [class.active]="activeTab === 'hierarchy'"
       (click)="setActiveTab('hierarchy')">
-      <span class="tab-icon">�</span>
+      <span class="tab-icon">🔗</span>
       Hiérarchie
     </button>
-
     <button 
       class="tab-btn"
       [class.active]="activeTab === 'assets'"
       (click)="setActiveTab('assets')">
       <span class="tab-icon">📋</span>
       Actifs
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeTab === 'inspections'"
+      (click)="setActiveTab('inspections')">
+      <span class="tab-icon">🔍</span>
+      Inspections
     </button>
     <button 
       class="tab-btn"
@@ -1134,6 +1129,294 @@
                     (click)="showCreateMaintenanceModal()">
               <i class="btn-icon">➕</i>
               Planifier une maintenance
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspections Tab -->
+    <div class="tab-content" [class.active]="activeTab === 'inspections'">
+      <div class="inspections-section-modern">
+        
+        <!-- Section Header -->
+        <div class="section-header-compact">
+          <div class="header-content">
+            <h2 class="section-title">
+              <i class="section-icon">🔍</i>
+              Gestion des Inspections
+            </h2>
+            <p class="section-subtitle">
+              Planification, suivi et exécution des inspections préventives et de contrôle qualité
+            </p>
+          </div>
+        </div>
+
+        <!-- Workflow Overview -->
+        <div class="workflow-overview">
+          <div class="workflow-card">
+            <h3 class="workflow-title">Processus d'Inspection</h3>
+            <div class="workflow-steps">
+              <div class="workflow-step">
+                <div class="step-icon planned">1</div>
+                <div class="step-content">
+                  <span class="step-name">Planification</span>
+                  <span class="step-desc">Programmation et assignation</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon progress">2</div>
+                <div class="step-content">
+                  <span class="step-name">Exécution</span>
+                  <span class="step-desc">Contrôle et évaluation</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon review">3</div>
+                <div class="step-content">
+                  <span class="step-name">Analyse</span>
+                  <span class="step-desc">Rapport et recommandations</span>
+                </div>
+              </div>
+              <div class="step-arrow">→</div>
+              <div class="workflow-step">
+                <div class="step-icon completed">✓</div>
+                <div class="step-content">
+                  <span class="step-name">Validation</span>
+                  <span class="step-desc">Approbation et archivage</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enhanced Stats Dashboard -->
+        <div class="stats-dashboard">
+          <div class="stat-card total">
+            <div class="stat-header">
+              <span class="stat-icon">📊</span>
+              <span class="stat-value">{{ inspectionsData.length }}</span>
+            </div>
+            <span class="stat-label">Total Inspections</span>
+          </div>
+          
+          <div class="stat-card planned">
+            <div class="stat-header">
+              <span class="stat-icon">📅</span>
+              <span class="stat-value">{{ getInspectionsByStatut('planifiee').length }}</span>
+            </div>
+            <span class="stat-label">Planifiées</span>
+          </div>
+          
+          <div class="stat-card in-progress">
+            <div class="stat-header">
+              <span class="stat-icon">⚙️</span>
+              <span class="stat-value">{{ getInspectionsByStatut('en_cours').length }}</span>
+            </div>
+            <span class="stat-label">En Cours</span>
+          </div>
+          
+          <div class="stat-card completed">
+            <div class="stat-header">
+              <span class="stat-icon">✅</span>
+              <span class="stat-value">{{ getInspectionsByStatut('terminee').length }}</span>
+            </div>
+            <span class="stat-label">Terminées</span>
+          </div>
+          
+          <div class="stat-card overdue">
+            <div class="stat-header">
+              <span class="stat-icon">⏰</span>
+              <span class="stat-value">{{ getOverdueInspections().length }}</span>
+            </div>
+            <span class="stat-label">En Retard</span>
+          </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filter-group">
+            <label for="inspectionStatusFilter">Statut</label>
+            <select id="inspectionStatusFilter" [(ngModel)]="inspectionStatusFilter" class="filter-select">
+              <option value="">Tous les statuts</option>
+              <option value="planifiee">Planifiées</option>
+              <option value="en_cours">En cours</option>
+              <option value="terminee">Terminées</option>
+              <option value="reportee">Reportées</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="inspectionTypeFilter">Type</label>
+            <select id="inspectionTypeFilter" [(ngModel)]="inspectionTypeFilter" class="filter-select">
+              <option value="">Tous les types</option>
+              <option *ngFor="let type of availableInspectionTypes" [value]="type.id">
+                {{ type.nom }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="inspectionSearchTerm">Recherche</label>
+            <input type="text" id="inspectionSearchTerm" [(ngModel)]="inspectionSearchTerm" 
+                   placeholder="Rechercher par titre, actif..." class="filter-input">
+          </div>
+          
+          <button class="filter-reset-btn" (click)="resetInspectionFilters()">
+            <i class="btn-icon">🔄</i>
+            Réinitialiser
+          </button>
+        </div>
+
+        <!-- Inspections Cards Grid -->
+        <div class="inspections-container">
+          <div class="inspections-grid">
+            <div *ngFor="let inspection of getFilteredInspections()" 
+                 class="inspection-card-modern" 
+                 [class]="'type-' + inspection.typeInspection?.nom + ' status-' + inspection.statut">
+              
+              <!-- Card Header -->
+              <div class="card-header">
+                <div class="type-badge" [attr.data-type]="inspection.typeInspection?.nom">
+                  <span class="type-icon">🔍</span>
+                  {{ inspection.typeInspection?.nom?.toUpperCase() || 'INSPECTION' }}
+                </div>
+                <div class="status-indicator" [attr.data-status]="inspection.statut">
+                  {{ getInspectionStatusLabel(inspection.statut) }}
+                </div>
+              </div>
+
+              <!-- Card Content -->
+              <div class="card-content">
+                <h3 class="inspection-title">{{ inspection.titre }}</h3>
+                <p class="inspection-description">{{ inspection.description || 'Aucune description fournie' }}</p>
+                
+                <!-- Asset Info -->
+                <div class="asset-info" *ngIf="inspection.actif">
+                  <i class="asset-icon">🏗️</i>
+                  <span class="asset-name">{{ inspection.actif.nom }}</span>
+                  <span class="asset-code">({{ inspection.actif.code }})</span>
+                </div>
+              </div>
+
+              <!-- Timeline Section -->
+              <div class="timeline-section">
+                <div class="timeline-header">
+                  <span class="timeline-label">Calendrier</span>
+                  <span class="timeline-date">{{ inspection.datePrevue | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="timeline-progress">
+                  <div class="timeline-step" [class.completed]="inspection.statut !== 'planifiee'">
+                    <div class="step-circle">📅</div>
+                    <span class="step-text">Planifiée</span>
+                  </div>
+                  <div class="timeline-step" [class.completed]="['en_cours', 'terminee'].includes(inspection.statut)" 
+                       [class.current]="inspection.statut === 'en_cours'">
+                    <div class="step-circle">🔍</div>
+                    <span class="step-text">En cours</span>
+                  </div>
+                  <div class="timeline-step" [class.completed]="inspection.statut === 'terminee'">
+                    <div class="step-circle">✅</div>
+                    <span class="step-text">Terminée</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details Grid -->
+              <div class="details-grid">
+                <div class="detail-item" *ngIf="inspection.inspecteur">
+                  <span class="detail-label">Inspecteur</span>
+                  <span class="detail-value">{{ inspection.inspecteur }}</span>
+                </div>
+                <div class="detail-item" *ngIf="inspection.dateCreation">
+                  <span class="detail-label">Créée le</span>
+                  <span class="detail-value">{{ inspection.dateCreation | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="detail-item" *ngIf="inspection.dureeEstimee">
+                  <span class="detail-label">Durée</span>
+                  <span class="detail-value">{{ inspection.dureeEstimee }}h</span>
+                </div>
+              </div>
+
+              <!-- Results Section for completed inspections -->
+              <div class="results-section" *ngIf="inspection.statut === 'terminee' && inspection.resultat">
+                <div class="results-header">
+                  <span class="results-icon">📋</span>
+                  <span class="results-title">Résultat: {{ inspection.resultat }}</span>
+                </div>
+                <div class="conformity-indicator" [ngClass]="'conformity-' + inspection.resultat?.toLowerCase()">
+                  <span class="conformity-text">
+                    {{ inspection.resultat === 'conforme' ? '✅ Conforme' : 
+                       inspection.resultat === 'non_conforme' ? '❌ Non Conforme' : 
+                       '⚠️ Avec Réserves' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="card-actions">
+                <!-- Planned Inspection Actions -->
+                <button class="action-btn primary" 
+                        *ngIf="inspection.statut === 'planifiee'"
+                        (click)="startInspection(inspection)"
+                        title="Démarrer l'inspection">
+                  <i class="btn-icon">▶️</i>
+                  Démarrer
+                </button>
+                
+                <!-- In Progress Actions -->
+                <button class="action-btn success" 
+                        *ngIf="inspection.statut === 'en_cours'"
+                        (click)="completeInspection(inspection)"
+                        title="Terminer l'inspection">
+                  <i class="btn-icon">✅</i>
+                  Terminer
+                </button>
+                
+                <!-- View Details -->
+                <button class="action-btn info" 
+                        (click)="viewInspectionDetails(inspection)"
+                        title="Voir les détails">
+                  <i class="btn-icon">👁️</i>
+                  Détails
+                </button>
+
+                <!-- Export Report for completed inspection -->
+                <button class="action-btn export"
+                        *ngIf="inspection.statut === 'terminee'"
+                        (click)="exportInspectionReport(inspection)"
+                        title="Exporter le rapport">
+                  <i class="btn-icon">📄</i>
+                  Exporter
+                </button>
+
+                <!-- Schedule Anomaly Report for non-conforming inspections -->
+                <button class="action-btn warning"
+                        *ngIf="inspection.statut === 'terminee' && inspection.resultat === 'non_conforme'"
+                        (click)="createAnomalieFromInspection(inspection)"
+                        title="Signaler une anomalie suite à cette inspection">
+                  <i class="btn-icon">⚠️</i>
+                  Signaler Anomalie
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Empty State -->
+          <div *ngIf="getFilteredInspections().length === 0" class="empty-state-modern">
+            <div class="empty-icon">🔍</div>
+            <h3 class="empty-title">Aucune inspection trouvée</h3>
+            <p class="empty-message">
+              <span *ngIf="inspectionsData.length === 0">Aucune inspection n'a encore été planifiée.</span>
+              <span *ngIf="inspectionsData.length > 0">Ajustez vos filtres pour voir plus de résultats.</span>
+            </p>
+            <button class="btn-modern btn-primary" 
+                    *ngIf="inspectionsData.length === 0"
+                    (click)="showCreateInspectionModal()">
+              <i class="btn-icon">➕</i>
+              Planifier une inspection
             </button>
           </div>
         </div>

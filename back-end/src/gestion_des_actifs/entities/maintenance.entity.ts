@@ -49,17 +49,17 @@ export class Maintenance {
   @Column('json', { nullable: true })
   documentsAnnexes: any;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'actifId' })
   actifId: number;
 
   // Relationship with anomalie for corrective maintenance
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'anomalieId' })
   anomalieId?: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'dateCreation' })
   dateCreation: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'dateMiseAJour' })
   dateMiseAJour: Date;
 
   @ManyToOne(() => Actif, actif => actif.maintenances)

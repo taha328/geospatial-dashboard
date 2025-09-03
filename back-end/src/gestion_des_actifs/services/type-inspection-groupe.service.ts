@@ -31,14 +31,14 @@ export class TypeInspectionGroupeService {
 
   async findByGroupe(numeroGroupe: number): Promise<TypeInspectionGroupe[]> {
     return this.typeInspectionGroupeRepository.find({
-      where: { numero_groupe: numeroGroupe },
+      where: { numeroGroupe: numeroGroupe },
       relations: ['typeInspection', 'groupeActif']
     });
   }
 
   async findByInspection(numeroInspection: number): Promise<TypeInspectionGroupe[]> {
     return this.typeInspectionGroupeRepository.find({
-      where: { numero_inspection: numeroInspection },
+      where: { numeroInspection: numeroInspection },
       relations: ['typeInspection', 'groupeActif']
     });
   }

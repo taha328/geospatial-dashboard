@@ -10,6 +10,7 @@ import { Anomalie } from './entities/anomalie.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { TypeInspection } from './entities/type-inspection.entity';
 import { TypeInspectionGroupe } from './entities/type-inspection-groupe.entity';
+import { Inspection } from './entities/inspection.entity';
 
 // Services
 import { PortefeuilleService } from './services/portefeuille.service';
@@ -23,6 +24,7 @@ import { WorkflowService } from './services/workflow.service';
 import { ReportService } from './services/report.service';
 import { TypeInspectionService } from './services/type-inspection.service';
 import { TypeInspectionGroupeService } from './services/type-inspection-groupe.service';
+import { InspectionService } from './services/inspection.service';
 
 // Controllers
 import { PortefeuilleController } from './controllers/portefeuille.controller';
@@ -36,6 +38,7 @@ import { WorkflowController } from './controllers/workflow.controller';
 import { ReportController } from './controllers/report.controller';
 import { TypeInspectionController } from './controllers/type-inspection.controller';
 import { TypeInspectionGroupeController } from './controllers/type-inspection-groupe.controller';
+import { InspectionController } from './controllers/inspection.controller';
 
 @Module({
   imports: [
@@ -47,7 +50,8 @@ import { TypeInspectionGroupeController } from './controllers/type-inspection-gr
       Anomalie,
       Maintenance,
       TypeInspection,
-      TypeInspectionGroupe
+      TypeInspectionGroupe,
+      Inspection
     ])
   ],
   controllers: [
@@ -61,7 +65,8 @@ import { TypeInspectionGroupeController } from './controllers/type-inspection-gr
     WorkflowController,
     ReportController,
     TypeInspectionController,
-    TypeInspectionGroupeController
+    TypeInspectionGroupeController,
+    InspectionController
   ],
   providers: [
     PortefeuilleService,
@@ -74,7 +79,8 @@ import { TypeInspectionGroupeController } from './controllers/type-inspection-gr
     WorkflowService,
     ReportService,
     TypeInspectionService,
-    TypeInspectionGroupeService
+    TypeInspectionGroupeService,
+    InspectionService
   ],
   exports: [
     PortefeuilleService,
@@ -88,6 +94,7 @@ import { TypeInspectionGroupeController } from './controllers/type-inspection-gr
     ReportService,
     TypeInspectionService,
     TypeInspectionGroupeService,
+    InspectionService,
     TypeOrmModule
   ]
 })

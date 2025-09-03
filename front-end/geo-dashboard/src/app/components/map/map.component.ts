@@ -22,6 +22,13 @@ import { ol_layer_AnimatedCluster } from './ol-animated-cluster-ext.layer';
 import { SignalementAnomalieComponent } from '../signalement-anomalie/signalement-anomalie.component';
 import { ActifFormComponent } from '../actif-form/actif-form.component';
 import { ActivatedRoute } from '@angular/router';
+import { InspectionService } from '../../shared/services/inspection.service';
+import { TypeInspectionService } from '../../services/type-inspection.service';
+import { 
+  Inspection, 
+  CreateInspectionDto 
+} from '../../shared/interfaces/inspection.interface';
+import { TypeInspection } from '../../models/type-inspection.interface';
 
 // Add this import at the top of your map.component.ts file
 import ol_control_LayerSwitcher from './ol_control_LayerSwitcher'; // Adjust path as needed
@@ -134,10 +141,25 @@ export class MapComponent implements OnInit, OnDestroy {
   showAnomalies = true;
   showSignalementForm = false;
   showActifForm = false;
+  showInspectionForm = false;
+  
+  // Map interaction modes
+  mapMode: 'view' | 'create-asset' = 'view';
   clickCoordinates: [number, number] | null = null;
   currentDrawnGeometry: any = null;
   currentDrawnFeature: Feature<Geometry> | null = null;
   selectedAssetForAnomalie: Feature<Geometry> | null = null;
+  selectedAssetForInspection: Feature<Geometry> | null = null;
+
+  // Inspection data
+  availableInspectionTypes: TypeInspection[] = [];
+  inspectionForm: CreateInspectionDto = {
+    titre: '',
+    description: '',
+    datePrevue: '',
+    actifId: 0,
+    typeInspectionId: 0
+  };
 
   constructor(
     private zoneService: ZoneService,
@@ -145,7 +167,9 @@ export class MapComponent implements OnInit, OnDestroy {
     private carteIntegrationService: CarteIntegrationService,
     private actifService: ActifService,
     private dataRefreshService: DataRefreshService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private inspectionService: InspectionService,
+    private typeInspectionService: TypeInspectionService
   ) {}
 
       /**
@@ -408,11 +432,21 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
     this.loadMapData();
     this.loadActifsData();
     this.loadAnomaliesData();
+    this.loadInspectionTypes();
+    
     this.route.queryParams.subscribe(params => {
-      if (params['action'] === 'signalAnomalie') {
-        console.log('Navigate to anomaly reporting mode');
+      if (params['actifId']) {
+        // Highlight specific asset if provided
+        this.highlightAsset(+params['actifId']);
       }
     });
+
+    // Debug layers after a delay to ensure everything is loaded
+    setTimeout(() => {
+      console.log('🔍 Post-init debug check...');
+      this.debugLayerTitles();
+      this.refreshLayerSwitcher();
+    }, 2000);
   }
 
   ngOnDestroy() {
@@ -499,6 +533,11 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
 
     // Optional: Add event listeners for layer switcher events
     this.setupLayerSwitcherEvents();
+
+    // Force redraw of the layer switcher to show layer names
+    setTimeout(() => {
+      this.layerSwitcher.drawPanel();
+    }, 100);
     
     // Fix select interaction - only target cluster, zone, and anomalie layers
     this.selectInteraction = new Select({
@@ -550,23 +589,88 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
 
   // Add this new method to set proper layer names and properties
   private setupLayerProperties() {
+    console.log('🔧 Setting up layer properties...');
+    
     // Set properties for base layer
     const baseLayers = this.map.getLayers().getArray();
     if (baseLayers[0]) {
       baseLayers[0].set('title', 'Satellite');
+      baseLayers[0].set('name', 'Satellite');
       baseLayers[0].set('baseLayer', true);
       baseLayers[0].set('displayInLayerSwitcher', true);
+      console.log('✅ Base layer configured:', baseLayers[0].get('title'));
     }
 
     // Set properties for your custom layers
-    this.zoneLayer.set('title', 'Zones');
-    this.zoneLayer.set('displayInLayerSwitcher', true);
+    if (this.zoneLayer) {
+      this.zoneLayer.set('title', 'Zones');
+      this.zoneLayer.set('name', 'Zones');
+      this.zoneLayer.set('displayInLayerSwitcher', true);
+      console.log('✅ Zone layer configured:', this.zoneLayer.get('title'));
+    }
     
-    this.clusterLayer.set('title', 'Actifs');
-    this.clusterLayer.set('displayInLayerSwitcher', true);
+    if (this.clusterLayer) {
+      this.clusterLayer.set('title', 'Actifs');
+      this.clusterLayer.set('name', 'Actifs');
+      this.clusterLayer.set('displayInLayerSwitcher', true);
+      console.log('✅ Cluster layer configured:', this.clusterLayer.get('title'));
+    }
     
-    this.anomalieLayer.set('title', 'Anomalies');
-    this.anomalieLayer.set('displayInLayerSwitcher', true);
+    if (this.anomalieLayer) {
+      this.anomalieLayer.set('title', 'Anomalies');
+      this.anomalieLayer.set('name', 'Anomalies');
+      this.anomalieLayer.set('displayInLayerSwitcher', true);
+      console.log('✅ Anomalie layer configured:', this.anomalieLayer.get('title'));
+    }
+
+    console.log('🔧 Layer properties setup complete');
+  }
+
+  // Method to refresh the LayerSwitcher display
+  private refreshLayerSwitcher(): void {
+    if (this.layerSwitcher) {
+      console.log('🔄 Refreshing LayerSwitcher...');
+      
+      // Debug: Check all layers and their titles
+      this.debugLayerTitles();
+      
+      setTimeout(() => {
+        this.layerSwitcher.drawPanel();
+        console.log('✅ LayerSwitcher refreshed');
+      }, 100);
+    }
+  }
+
+  // Debug method to check layer titles
+  private debugLayerTitles(): void {
+    console.log('🔍 Debugging layer titles...');
+    const layers = this.map.getLayers().getArray();
+    layers.forEach((layer, index) => {
+      const title = layer.get('title') || layer.get('name') || 'No title';
+      const displayInSwitcher = layer.get('displayInLayerSwitcher');
+      console.log(`Layer ${index}: title="${title}", displayInLayerSwitcher=${displayInSwitcher}`, layer);
+    });
+    
+    // Also debug the DOM elements in the LayerSwitcher
+    setTimeout(() => {
+      const layerSwitcherElement = document.querySelector('.ol-layerswitcher');
+      if (layerSwitcherElement) {
+        console.log('🔍 LayerSwitcher DOM element found:', layerSwitcherElement);
+        const spans = layerSwitcherElement.querySelectorAll('span');
+        console.log('🔍 Found spans in LayerSwitcher:', spans.length);
+        spans.forEach((span, index) => {
+          console.log(`Span ${index}:`, span.textContent, span.style.cssText, span);
+        });
+        
+        const labels = layerSwitcherElement.querySelectorAll('label');
+        console.log('🔍 Found labels in LayerSwitcher:', labels.length);
+        labels.forEach((label, index) => {
+          console.log(`Label ${index}:`, label.textContent, label);
+        });
+      } else {
+        console.error('❌ LayerSwitcher DOM element not found!');
+      }
+    }, 200);
   }
 
   // Recursively strip any `crs` properties from GeoJSON-like objects to avoid parser/runtime issues
@@ -730,7 +834,14 @@ private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
           const actualFeature = clusteredFeatures ? clusteredFeatures[0] : feature;
           this.selectedFeature = actualFeature as Feature<Geometry>;
           this.setPopupCoordinate(this.selectedFeature);
-          this.onFeatureSelected(this.selectedFeature);
+          
+          // Handle selection based on current map mode
+          this.handleFeatureSelectionByMode(this.selectedFeature);
+          
+          // Only show normal popup in view mode
+          if (this.mapMode === 'view') {
+            this.onFeatureSelected(this.selectedFeature);
+          }
         }
       }
     });
@@ -1217,6 +1328,9 @@ private onDrawEnd(feature: Feature<Geometry>) {
                 return false;
               }
             });
+            
+            // Refresh LayerSwitcher after data is loaded
+            this.refreshLayerSwitcher();
           } catch (err) {
             console.error('Error processing loaded data:', err);
             this.error = 'Erreur de traitement des données de la carte.';
@@ -1964,4 +2078,286 @@ private addActifsToMap(actifs: ActifPourCarte[]) {
     } catch (e) {
       console.error('Failed to add anomalies to map', e);
     }
-  }}
+  }
+
+  // =============================================
+  // INSPECTION INTEGRATION METHODS
+  // =============================================
+
+  private loadInspectionTypes(): void {
+    // Direct API call for debugging
+    this.typeInspectionService.getAllTypeInspections().subscribe({
+      next: (types) => {
+        console.log('✅ Direct API call - Received inspection types:', types);
+        this.availableInspectionTypes = types.filter(type => type.statut === 'actif');
+      },
+      error: (error) => {
+        console.error('❌ Direct API call error:', error);
+      }
+    });
+
+    // Also subscribe to the observable
+    this.typeInspectionService.typeInspections$.subscribe({
+      next: (types) => {
+        this.availableInspectionTypes = types.filter(type => type.statut === 'actif');
+      },
+      error: (error) => {
+        console.error('❌ Observable error:', error);
+      }
+    });
+  }
+
+  /**
+   * Set the map interaction mode
+   */
+  setMapMode(mode: 'view' | 'create-asset'): void {
+    // Reset previous mode state
+    this.resetMapMode();
+    
+    this.mapMode = mode;
+    
+    // Update cursor and instructions based on mode
+    switch (mode) {
+      case 'create-asset':
+        this.map.getViewport().style.cursor = 'crosshair';
+        break;
+      default:
+        this.map.getViewport().style.cursor = 'default';
+        break;
+    }
+  }
+
+  private resetMapMode(): void {
+    this.showSignalementForm = false;
+    this.showInspectionForm = false;
+    this.showActifForm = false;
+    this.selectedAssetForAnomalie = null;
+    this.selectedAssetForInspection = null;
+    this.clickCoordinates = null;
+    this.map.getViewport().style.cursor = 'default';
+  }
+
+  /**
+   * Get user-friendly instructions for current map mode
+   */
+  getMapModeInstructions(): string {
+    switch (this.mapMode) {
+      case 'create-asset':
+        return this.getDrawingStatusText();
+      default:
+        return 'Cliquez sur un élément pour voir les détails';
+    }
+  }
+
+  /**
+   * Handle feature selection based on current map mode
+   */
+  private handleFeatureSelectionByMode(feature: Feature<Geometry>): void {
+    const featureType = feature.get('type');
+    
+    switch (this.mapMode) {
+      case 'view':
+      default:
+        // Default behavior - show asset details
+        break;
+    }
+  }
+
+  /**
+   * Start inspection for selected asset (public method for template)
+   */
+  initiateInspection(feature: Feature<Geometry>): void {
+    if (!feature) {
+      alert('Erreur: Aucun actif sélectionné');
+      return;
+    }
+
+    const geometry = feature.getGeometry();
+    if (!geometry) {
+      alert('Erreur: L\'actif sélectionné n\'a pas de géométrie valide');
+      return;
+    }
+
+    const assetData = feature.get('data');
+    if (!assetData) {
+      alert('Impossible de démarrer l\'inspection - données de l\'actif manquantes');
+      return;
+    }
+
+    // Reset inspection form
+    this.inspectionForm = {
+      titre: `Inspection de ${assetData.nom || assetData.code || 'l\'actif'}`,
+      description: '',
+      datePrevue: new Date().toISOString().split('T')[0], // Today's date
+      actifId: assetData.id,
+      typeInspectionId: 0
+    };
+
+    const coordinates = this.getFeatureCoordinates(geometry);
+    this.clickCoordinates = coordinates;
+    this.selectedAssetForInspection = feature;
+    this.showInspectionForm = true;
+
+    // Don't call setMapMode here as it resets the inspection form!
+  }
+
+  /**
+   * Test method to check if button click is working
+   */
+  testButtonClick(): void {
+    console.log('Button clicked! This should appear in console.');
+    alert('Button click detected!');
+  }
+
+  /**
+   * Helper method to get coordinates from geometry
+   */
+  private getFeatureCoordinates(geometry: Geometry): [number, number] {
+    if (geometry instanceof Point) {
+      const coords = geometry.getCoordinates();
+      const lonLat = transform(coords, 'EPSG:3857', 'EPSG:4326');
+      return [lonLat[0], lonLat[1]];
+    } else {
+      // For complex geometries, use centroid
+      const extent = geometry.getExtent();
+      const centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+      const lonLat = transform(centerCoords, 'EPSG:3857', 'EPSG:4326');
+      return [lonLat[0], lonLat[1]];
+    }
+  }
+
+  /**
+   * Highlight a specific asset on the map
+   */
+  private highlightAsset(actifId: number): void {
+    // Find the asset feature
+    const allFeatures = [
+      ...this.actifSource.getFeatures(),
+      ...this.zoneSource.getFeatures()
+    ];
+    
+    const targetFeature = allFeatures.find(f => f.get('data')?.id === actifId);
+    
+    if (targetFeature) {
+      // Select the feature
+      this.selectInteraction.getFeatures().clear();
+      this.selectInteraction.getFeatures().push(targetFeature);
+      
+      // Zoom to feature
+      const geometry = targetFeature.getGeometry();
+      if (geometry) {
+        const extent = geometry.getExtent();
+        this.map.getView().fit(extent, { 
+          padding: [50, 50, 50, 50], 
+          maxZoom: 16,
+          duration: 1000 
+        });
+      }
+    }
+  }
+
+  /**
+   * Submit inspection form
+   */
+  submitInspection(): void {
+    if (!this.inspectionForm.typeInspectionId || this.inspectionForm.typeInspectionId === 0) {
+      alert('Veuillez sélectionner un type d\'inspection');
+      return;
+    }
+
+    if (!this.inspectionForm.titre.trim()) {
+      alert('Veuillez saisir un titre pour l\'inspection');
+      return;
+    }
+
+    // Convert typeInspectionId to number before sending to API
+    const typeInspectionId = Number(this.inspectionForm.typeInspectionId);
+    const actifId = Number(this.inspectionForm.actifId);
+
+    // Validate that the conversion worked
+    if (isNaN(typeInspectionId) || typeInspectionId === 0) {
+      alert('Type d\'inspection invalide');
+      return;
+    }
+
+    if (isNaN(actifId) || actifId === 0) {
+      alert('Actif invalide');
+      return;
+    }
+
+    const inspectionData = {
+      ...this.inspectionForm,
+      typeInspectionId: typeInspectionId,
+      actifId: actifId
+    };
+
+    console.log('🔍 Submitting inspection data:', inspectionData);
+
+    this.inspectionService.createInspection(inspectionData).subscribe({
+      next: (inspection) => {
+        console.log('Inspection créée avec succès:', inspection);
+        alert('Inspection planifiée avec succès !');
+        this.onInspectionCreated(inspection);
+      },
+      error: (error) => {
+        console.error('Erreur lors de la création de l\'inspection:', error);
+        let errorMessage = 'Erreur lors de la planification de l\'inspection';
+        if (error.error?.message) {
+          if (Array.isArray(error.error.message)) {
+            errorMessage = error.error.message.join(', ');
+          } else {
+            errorMessage = error.error.message;
+          }
+        }
+        alert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Handle successful inspection creation
+   */
+  private onInspectionCreated(inspection: Inspection): void {
+    this.showInspectionForm = false;
+    this.selectedAssetForInspection = null;
+    this.clickCoordinates = null;
+    
+    // Reset form
+    this.inspectionForm = {
+      titre: '',
+      description: '',
+      datePrevue: '',
+      actifId: 0,
+      typeInspectionId: 0
+    };
+
+    // Notify other components about the new inspection
+    this.dataRefreshService.notifyDataChanged();
+  }
+
+  /**
+   * Cancel inspection form
+   */
+  cancelInspectionForm(): void {
+    this.showInspectionForm = false;
+    this.selectedAssetForInspection = null;
+    this.clickCoordinates = null;
+    this.setMapMode('view');
+  }
+
+  /**
+   * Get asset data for inspection form
+   */
+  getSelectedAssetForInspection(): any {
+    if (!this.selectedAssetForInspection) return null;
+    
+    const data = this.selectedAssetForInspection.get('data');
+    return {
+      id: data?.id,
+      nom: data?.nom || data?.name || 'Actif sélectionné',
+      code: data?.code || '',
+      type: data?.type || data?.famille_type || 'Inconnu'
+    };
+  }
+
+}

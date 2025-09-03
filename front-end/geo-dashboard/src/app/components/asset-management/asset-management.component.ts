@@ -10,14 +10,15 @@ import { MaintenanceService, StatistiquesMaintenance, Maintenance } from '../../
 import { WorkflowService, AssetWorkflowSummary } from '../../services/workflow.service';
 import { CarteIntegrationService } from '../../services/carte-integration.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
-import { CreateMaintenanceModalComponent } from '../create-maintenance-modal/create-maintenance-modal.component';
+import { InspectionService } from '../../shared/services/inspection.service';
+import { TypeInspectionService } from '../../services/type-inspection.service';
 import { CompleteMaintenanceModalComponent } from '../complete-maintenance-modal/complete-maintenance-modal.component';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-asset-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, CreateMaintenanceModalComponent, CompleteMaintenanceModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DatePipe, CompleteMaintenanceModalComponent],
   templateUrl: './asset-management.component.html',
   styleUrls: ['./asset-management.component.scss']
 })
@@ -33,6 +34,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   // Données réelles pour les onglets
   anomaliesData: any[] = [];
   maintenanceData: any[] = [];
+  inspectionsData: any[] = [];
+  availableInspectionTypes: any[] = [];
   selectedActifDetails: any = null;
 
   // UI state
@@ -57,6 +60,11 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   maintenanceSearchTerm = '';
   maintenanceStatusFilter = '';
   maintenanceTypeFilter = '';
+
+  // Inspection filters
+  inspectionSearchTerm = '';
+  inspectionStatusFilter = '';
+  inspectionTypeFilter = '';
 
   // Map properties
   showActifsOnMap = true;
@@ -104,7 +112,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     private maintenanceService: MaintenanceService,
     private workflowService: WorkflowService,
     private carteIntegrationService: CarteIntegrationService,
-    private dataRefreshService: DataRefreshService
+    private dataRefreshService: DataRefreshService,
+    private inspectionService: InspectionService,
+    private typeInspectionService: TypeInspectionService
   ) {
     // Initialize reactive forms
     this.createAnomalieForm = this.fb.group({
@@ -158,6 +168,8 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     // Load initial anomalies and maintenance data
     this.loadAnomaliesData();
     this.loadMaintenanceData();
+    this.loadInspectionsData();
+    this.loadInspectionTypes();
     
     // Load synchronized map data
     this.loadSynchronizedMapData();
@@ -214,6 +226,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.loadDashboardData();
     this.loadAnomaliesData();
     this.loadMaintenanceData();
+    this.loadInspectionsData();
   }
 
   // Tab navigation
@@ -226,6 +239,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         break;
       case 'maintenance':
         this.loadMaintenanceData();
+        break;
+      case 'inspections':
+        this.loadInspectionsData();
         break;
       case 'hierarchy':
         break;
@@ -351,6 +367,43 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         console.error('❌ Error loading maintenance data:', error);
         this.maintenanceData = this.getTestMaintenanceData();
         this.updateActifCounters();
+      }
+    });
+  }
+
+  loadInspectionsData() {
+    console.log('🔍 Loading inspections data...');
+    
+    this.inspectionService.getAllInspections().subscribe({
+      next: (inspections: any) => {
+        console.log('✅ Received inspections data:', inspections);
+        this.inspectionsData = inspections || [];
+        this.updateActifCounters();
+        
+        if (this.inspectionsData.length === 0) {
+          console.log('⚠️ No inspections found');
+          this.inspectionsData = [];
+        }
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading inspections data:', error);
+        this.inspectionsData = [];
+        this.updateActifCounters();
+      }
+    });
+  }
+
+  loadInspectionTypes() {
+    console.log('🔍 Loading inspection types...');
+    
+    this.typeInspectionService.getAllTypeInspections().subscribe({
+      next: (types: any) => {
+        console.log('✅ Received inspection types:', types);
+        this.availableInspectionTypes = types || [];
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading inspection types:', error);
+        this.availableInspectionTypes = [];
       }
     });
   }
@@ -1458,6 +1511,173 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         alert(`❌ Erreur: ${err.error?.message || err.message || 'Erreur inconnue'}`);
       }
     });
+  }
+
+  // ========================================
+  // INSPECTION MANAGEMENT METHODS
+  // ========================================
+
+  getInspectionsByStatut(statut: string): any[] {
+    return this.inspectionsData.filter(i => i.statut === statut);
+  }
+
+  getOverdueInspections(): any[] {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of today to be more lenient
+    
+    return this.inspectionsData.filter(i => {
+      if (i.statut === 'terminee' || i.statut === 'annulee') return false;
+      const dueDate = new Date(i.datePrevue);
+      dueDate.setHours(23, 59, 59, 999); // Set to end of due date
+      
+      // Only consider overdue if the due date is more than 1 day in the past
+      const oneDayAgo = new Date(today.getTime() - (24 * 60 * 60 * 1000));
+      return dueDate < oneDayAgo;
+    });
+  }
+
+  getFilteredInspections(): any[] {
+    return this.inspectionsData.filter(inspection => {
+      // Search term filter
+      if (this.inspectionSearchTerm) {
+        const searchLower = this.inspectionSearchTerm.toLowerCase();
+        const matchesSearch = 
+          inspection.titre?.toLowerCase().includes(searchLower) ||
+          inspection.description?.toLowerCase().includes(searchLower) ||
+          inspection.actif?.nom?.toLowerCase().includes(searchLower) ||
+          inspection.actif?.code?.toLowerCase().includes(searchLower) ||
+          inspection.inspecteur?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (this.inspectionStatusFilter && inspection.statut !== this.inspectionStatusFilter) {
+        return false;
+      }
+
+      // Type filter
+      if (this.inspectionTypeFilter && inspection.typeInspection?.id != this.inspectionTypeFilter) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      // Sort by planned date in descending order (most recent first)
+      const dateA = new Date(a.datePrevue || a.dateCreation || a.createdAt || 0).getTime();
+      const dateB = new Date(b.datePrevue || b.dateCreation || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }
+
+  getInspectionStatusLabel(statut: string): string {
+    const statusLabels: { [key: string]: string } = {
+      'planifiee': 'Planifiée',
+      'en_cours': 'En cours',
+      'terminee': 'Terminée',
+      'reportee': 'Reportée',
+      'annulee': 'Annulée'
+    };
+    return statusLabels[statut] || statut;
+  }
+
+  resetInspectionFilters(): void {
+    this.inspectionSearchTerm = '';
+    this.inspectionStatusFilter = '';
+    this.inspectionTypeFilter = '';
+  }
+
+  showCreateInspectionModal(): void {
+    console.log('Opening create inspection modal');
+    // TODO: Implement inspection creation modal
+  }
+
+  startInspection(inspection: any): void {
+    console.log(`Starting inspection: ${inspection.id}`);
+    this.inspectionService.startInspection(inspection.id).subscribe({
+      next: (updatedInspection: any) => {
+        console.log('Inspection started successfully', updatedInspection);
+        // Refresh local data
+        const index = this.inspectionsData.findIndex(i => i.id === inspection.id);
+        if (index !== -1) {
+          this.inspectionsData[index] = updatedInspection;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error starting inspection', error);
+      }
+    });
+  }
+
+  completeInspection(inspection: any): void {
+    console.log('Opening inspection completion modal for:', inspection);
+    // TODO: Implement inspection completion modal with results form
+    // For now, show a simple prompt
+    const resultat = prompt('Résultat de l\'inspection (conforme/non_conforme/avec_reserves):');
+    if (resultat) {
+      this.inspectionService.completeInspection(inspection.id, {
+        resultatGeneral: 'bon', // This should come from a form
+        conformite: resultat as any,
+        observations: 'Inspection terminée via dashboard'
+      }).subscribe({
+        next: (updatedInspection: any) => {
+          console.log('Inspection completed successfully', updatedInspection);
+          const index = this.inspectionsData.findIndex(i => i.id === inspection.id);
+          if (index !== -1) {
+            this.inspectionsData[index] = updatedInspection;
+          }
+        },
+        error: (error: any) => {
+          console.error('Error completing inspection', error);
+        }
+      });
+    }
+  }
+
+  viewInspectionDetails(inspection: any): void {
+    console.log('Viewing inspection details:', inspection);
+    
+    // Create a detailed alert with inspection information
+    const details = `
+📋 DÉTAILS DE L'INSPECTION
+
+🔍 Titre: ${inspection.titre}
+📅 Date prévue: ${new Date(inspection.datePrevue).toLocaleDateString('fr-FR')}
+📊 Statut: ${this.getInspectionStatusLabel(inspection.statut)}
+🏗️ Actif: ${inspection.actif?.nom || 'N/A'} (${inspection.actif?.code || 'N/A'})
+🔧 Type: ${inspection.typeInspection?.nom || inspection.typeInspection?.typeInspection || 'N/A'}
+👨‍🔧 Inspecteur: ${inspection.inspecteur || 'Non assigné'}
+⏱️ Durée estimée: ${inspection.dureeEstimee || 'N/A'} heures
+📝 Description: ${inspection.description || 'Aucune description'}
+
+${inspection.statut === 'terminee' ? `
+✅ RÉSULTATS:
+📊 Résultat général: ${inspection.resultatGeneral || 'N/A'}
+✓ Conformité: ${inspection.conformite || 'N/A'}
+📝 Observations: ${inspection.observations || 'Aucune observation'}
+💡 Recommandations: ${inspection.recommandations || 'Aucune recommandation'}
+📅 Date de réalisation: ${inspection.dateRealisation ? new Date(inspection.dateRealisation).toLocaleDateString('fr-FR') : 'N/A'}
+` : ''}
+
+📅 Créée le: ${inspection.dateCreation ? new Date(inspection.dateCreation).toLocaleDateString('fr-FR') : 'N/A'}
+    `.trim();
+    
+    alert(details);
+    
+    // TODO: In the future, implement a proper modal component for better UX
+    // this.openInspectionDetailsModal(inspection);
+  }
+
+  exportInspectionReport(inspection: any): void {
+    console.log('Exporting inspection report for:', inspection);
+    // TODO: Implement report export
+    const reportUrl = `${environment.apiUrl}/inspections/${inspection.id}/report`;
+    window.open(reportUrl, '_blank');
+  }
+
+  createAnomalieFromInspection(inspection: any): void {
+    console.log('Creating anomaly from inspection:', inspection);
+    // TODO: Implement anomaly creation from inspection results
+    // This should open the anomaly creation modal with pre-filled data from inspection
   }
 
 }

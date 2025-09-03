@@ -653,6 +653,19 @@ class ol_control_LayerSwitcher extends Control {
     
     // Force the color directly on the element to override any CSS
     layerNameSpan.style.setProperty('color', '#000000', 'important');
+    layerNameSpan.style.setProperty('font-weight', '600', 'important');
+    layerNameSpan.style.setProperty('font-size', '13px', 'important');
+    layerNameSpan.style.setProperty('display', 'inline-block', 'important');
+    layerNameSpan.style.setProperty('visibility', 'visible', 'important');
+    layerNameSpan.style.setProperty('opacity', '1', 'important');
+    layerNameSpan.style.setProperty('text-shadow', 'none', 'important');
+    layerNameSpan.style.setProperty('background', 'transparent', 'important');
+    
+    // Debug: Add some visible styling to test
+    layerNameSpan.style.setProperty('border', '1px solid red', 'important');
+    layerNameSpan.style.setProperty('padding', '2px', 'important');
+    
+    console.log('🔧 Created layer span for:', layer.get('title'), layerNameSpan);
 
     if (this.reordering) {
         ol_ext_element.create('div', {

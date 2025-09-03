@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
 import { Actif } from './actif.entity';
 import { Maintenance } from './maintenance.entity';
+import { Inspection } from './inspection.entity';
 
 @Entity('anomalies')
 export class Anomalie {
@@ -47,17 +48,21 @@ export class Anomalie {
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   longitude: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'actifId' })
   actifId: number;
 
   // Relationship with maintenance for corrective actions
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'maintenanceId' })
   maintenanceId?: number;
 
-  @CreateDateColumn()
+  // Relationship with inspection if anomaly was detected during inspection
+  @Column({ nullable: true, name: 'inspectionId' })
+  inspectionId?: number;
+
+  @CreateDateColumn({ name: 'dateCreation' })
   dateCreation: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'dateMiseAJour' })
   dateMiseAJour: Date;
 
   @ManyToOne(() => Actif, actif => actif.anomalies)
@@ -67,4 +72,8 @@ export class Anomalie {
   @OneToOne(() => Maintenance, maintenance => maintenance.anomalie)
   @JoinColumn({ name: 'maintenanceId' })
   maintenance?: Maintenance;
+
+  @ManyToOne(() => Inspection, inspection => inspection.anomaliesDetectees)
+  @JoinColumn({ name: 'inspectionId' })
+  inspection?: Inspection;
 }
