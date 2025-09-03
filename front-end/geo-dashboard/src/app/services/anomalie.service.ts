@@ -74,7 +74,11 @@ export class AnomalieService {
   
     /**
      * Signaler une anomalie depuis la carte interactive
-     * Utilise le bon endpoint backend: /anomalies/carte/signaler
+     * ✅ CORRECT ENDPOINT: Uses /anomalies/carte/signaler 
+     * - Supports multiple file uploads to Google Cloud Storage
+     * - Better validation and error handling
+     * - Proper data processing and coordinate validation
+     * - Should be used instead of CarteIntegrationService.signalerAnomalieDepuisCarte()
      */
     signalerAnomalieDepuisCarte(formData: FormData): Observable<Anomalie> {
       return this.http.post<Anomalie>(`${this.baseUrl}/carte/signaler`, formData);

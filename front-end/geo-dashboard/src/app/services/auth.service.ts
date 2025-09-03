@@ -58,18 +58,26 @@ export class AuthService {
       token
     });
   }
-logout() {
-  // Clear in-memory token and any token keys that might have been used
-  this.accessToken = null;
-  try { localStorage.removeItem(this.storageKey); } catch (e) {}
-  try { localStorage.removeItem('jwt'); } catch (e) {}
-
-  // Optionally call backend logout to clear refresh cookie (do not block navigation)
-  try { this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe(); } catch (e) {}
-
-  // Emit logged out state - let AppComponent handle navigation
-  this.authState$.next(false);
-}
+  logout(): void {
+    // Clear tokens from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    
+    // Clear in-memory token
+    this.accessToken = null;
+    
+    // Update auth state to trigger guards
+    this.authState$.next(false);
+    
+    // Navigate to login and replace current history entry to prevent back button access
+    this.router.navigate(['/login'], { replaceUrl: true });
+    
+    // Optional: Clear browser history for additional security
+    // This prevents back button navigation to authenticated pages
+    if (window.history.replaceState) {
+      window.history.replaceState(null, '', '/login');
+    }
+  }
 
   getToken(): string | null {
     // Prefer the in-memory token, but fall back to localStorage so
@@ -77,10 +85,29 @@ logout() {
     if (this.accessToken) return this.accessToken;
     try {
       const t = localStorage.getItem(this.storageKey) || localStorage.getItem('jwt');
-      if (t) this.accessToken = t;
+      if (t) {
+        // Check if token is expired
+        if (this.isTokenExpired(t)) {
+          console.log('Token expired, logging out');
+          this.logout();
+          return null;
+        }
+        this.accessToken = t;
+      }
       return t;
     } catch (e) {
       return null;
+    }
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const exp = payload.exp * 1000; // Convert to milliseconds
+      return Date.now() >= exp;
+    } catch (error) {
+      console.error('Error checking token expiration:', error);
+      return true; // Consider invalid tokens as expired
     }
   }
 

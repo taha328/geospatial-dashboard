@@ -1,7 +1,8 @@
 // App Content
 .app-content {
-  min-height: calc(100vh - 64px);
-  background: #f8f9fa;
+  min-height: calc(100vh - 72px); /* Updated to match new enhanced navbar height */
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding-top: 8px;
 }
 
 // Login Content (for unauthenticated users)
@@ -14,112 +15,212 @@
   padding: 16px;
 }
 
-// Navigation Bar Styling
+// Navigation Bar Styling - Professional Enhanced Design
 .z-navbar {
-  height: 56px; /* Consistent with global styles */
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.08);
+  height: 72px !important; /* Override global scaling, make it more prominent */
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6) 1;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   z-index: 1000;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);
+    opacity: 0.8;
+  }
 }
 
 .z-navbar [brand] {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 20px;
+  gap: 16px;
+  padding: 0 24px;
   height: 100%;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, #e2e8f0, transparent);
+  }
 }
 
 .z-navbar [brand] .text-2xl {
-  font-size: 20px; /* Reduced for better proportion */
+  font-size: 28px; /* Increased for more prominence */
+  font-weight: 800;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));
 }
 
 .z-navbar [brand] h1 {
-  font-size: 16px; /* Reduced for better proportion */
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: 22px; /* Increased for better hierarchy */
+  font-weight: 700;
+  color: #1e293b;
   margin: 0;
+  letter-spacing: -0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .z-navbar [brand] span {
-  font-size: 10px; /* Reduced for better proportion */
-  color: #7f8c8d;
+  font-size: 14px; /* Increased for better readability */
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
+  letter-spacing: 1px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .z-navbar [nav-links] {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   height: 100%;
+  padding: 0 24px;
 }
 
 .z-navbar [nav-links] a {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px; /* Reduced padding for better proportion */
-  color: #2c3e50;
+  gap: 10px;
+  padding: 14px 20px; /* Increased padding for better touch targets */
+  color: #374151;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 13px; /* Reduced for better proportion */
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  height: 36px; /* Consistent with global button sizing */
+  font-weight: 600;
+  font-size: 15px; /* Increased for better readability */
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 48px; /* Increased for better proportion */
+  position: relative;
+  text-transform: capitalize;
+  letter-spacing: 0.025em;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
 }
 
 .z-navbar [nav-links] a:hover {
-  background: rgba(52, 152, 219, 0.1);
-  color: #3498db;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.08));
+  color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  
+  &::before {
+    width: 80%;
+  }
 }
 
 .z-navbar [nav-links] a.active {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 
+    0 4px 20px rgba(59, 130, 246, 0.4),
+    0 2px 8px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+  
+  &::before {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+  }
 }
 
 .z-navbar [actions] {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 20px;
+  gap: 12px;
+  padding: 0 24px;
   height: 100%;
 }
 
 .z-navbar [actions] .z-button {
-  height: 36px; /* Consistent with global button sizing */
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px; /* Reduced for better proportion */
-  font-weight: 500;
+  height: 48px; /* Increased for better proportion */
+  padding: 14px 18px; /* Increased padding */
+  border-radius: 10px;
+  font-size: 15px; /* Increased for better readability */
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: capitalize;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .z-navbar [mobile-nav-links] {
   display: none;
   flex-direction: column;
-  padding: 16px;
-  gap: 8px;
+  padding: 20px;
+  gap: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-top: 3px solid #3b82f6;
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .z-navbar [mobile-nav-links] a {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  color: #2c3e50;
+  gap: 14px;
+  padding: 16px 20px; /* Increased padding for mobile */
+  color: #374151;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 16px; /* Increased for mobile readability */
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  border: 2px solid transparent;
+  text-transform: capitalize;
+  letter-spacing: 0.025em;
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.08));
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+    transform: translateX(8px);
+  }
+  
+  &.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
 }
 
 .z-navbar [mobile-nav-links] a:hover {
@@ -135,23 +236,23 @@
 // Mobile responsive adjustments
 @media (max-width: 768px) {
   .app-content {
-    min-height: calc(100vh - 56px);
+    min-height: calc(100vh - 72px); /* Updated to match new enhanced navbar height */
   }
 
   .z-navbar {
-    height: 56px;
+    height: 72px !important; /* Maintain enhanced height on mobile */
   }
 
   .z-navbar [brand] {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
   .z-navbar [brand] h1 {
-    font-size: 16px;
+    font-size: 20px; /* Slightly reduced for mobile */
   }
 
   .z-navbar [brand] .text-2xl {
-    font-size: 20px;
+    font-size: 26px; /* Slightly reduced for mobile */
   }
 
   .z-navbar [nav-links] {
@@ -163,12 +264,57 @@
   }
 
   .z-navbar [actions] {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 }
 
-// Custom styles for active nav links
+// Custom styles for active nav links - Enhanced Professional Look
 .nav-links a.active {
-  background-color: #dbeafe;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   color: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.2);
+  border: 2px solid rgba(29, 78, 216, 0.1);
+}
+
+// Additional Professional Enhancements
+.z-navbar {
+  font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+  
+  // Add subtle animation on load
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Enhance button interactions
+.z-navbar [actions] button {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+  }
+  
+  &:active::before {
+    width: 200px;
+    height: 200px;
+  }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MaintenanceService } from '../../services/maintenance.service';
 import { Maintenance } from '../../services/maintenance.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-complete-maintenance-modal',
@@ -133,7 +134,7 @@ export class CompleteMaintenanceModalComponent implements OnInit {
           console.log('Maintenance details updated successfully:', result);
           
           // Generate and download the detailed report
-          const reportUrl = `http://localhost:3000/reports/maintenance/${this.maintenance.id}/detailed`;
+          const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${this.maintenance.id}/detailed`;
           console.log('Opening detailed report:', reportUrl);
           window.open(reportUrl, '_blank');
           

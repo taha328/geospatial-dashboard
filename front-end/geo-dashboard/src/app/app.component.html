@@ -3,54 +3,48 @@
   <!-- ZardUI Navbar -->
   <z-navbar class="mb-0">
     <div brand>
-      <div class="flex items-center gap-3">
-        <div class="text-2xl">🗺️</div>
-        <div>
-          <h1 class="text-lg font-bold text-gray-900">{{ title | titlecase }}</h1>
-          <span class="text-xs text-gray-600 uppercase tracking-wide">Système Géospatial</span>
-        </div>
-      </div>
+      <!-- Empty brand section -->
     </div>
 
     <div nav-links>
-      <a routerLink="/map" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-        <span class="mr-2">🗺️</span>
+      <a routerLink="/map" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-4 py-3 rounded-md text-base font-semibold transition-colors">
+        <span class="mr-3 text-lg">🗺️</span>
         Cartographie
       </a>
-      <a routerLink="/assets" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-        <span class="mr-2">🏗️</span>
+      <a routerLink="/assets" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-4 py-3 rounded-md text-base font-semibold transition-colors">
+        <span class="mr-3 text-lg">🏗️</span>
         Gestion Actifs
       </a>
-      <a *ngIf="isAdmin" routerLink="/users" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-        <span class="mr-2">👥</span>
+      <a *ngIf="isAdmin" routerLink="/users" routerLinkActive="active" class="text-gray-700 hover:text-blue-600 px-4 py-3 rounded-md text-base font-semibold transition-colors">
+        <span class="mr-3 text-lg">👥</span>
         Utilisateurs
       </a>
     </div>
 
     <div actions>
-      <z-button zType="ghost" zSize="sm" (click)="toggleNotificationPanel()" class="relative">
-        <span>🔔</span>
+      <z-button zType="ghost" zSize="lg" (click)="toggleNotificationPanel()" class="relative px-3 py-2">
+        <span class="text-lg">🔔</span>
         <span *ngIf="unreadNotificationCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
           {{ unreadNotificationCount }}
         </span>
       </z-button>
-      <z-button zType="outline" zSize="sm" (click)="logout()">
-        <span class="mr-2">🔓</span>
-        Logout
+      <z-button zType="outline" zSize="lg" (click)="logout()" class="px-4 py-2">
+        <span class="mr-2 text-lg">🔓</span>
+        <span class="text-base font-medium">Logout</span>
       </z-button>
     </div>
 
     <div mobile-nav-links>
-      <a routerLink="/map" routerLinkActive="active" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
-        <span class="mr-3">🗺️</span>
+      <a routerLink="/map" routerLinkActive="active" class="block px-4 py-3 rounded-md text-lg font-semibold text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
+        <span class="mr-4 text-xl">🗺️</span>
         Cartographie Interactive
       </a>
-      <a routerLink="/assets" routerLinkActive="active" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
-        <span class="mr-3">🏗️</span>
+      <a routerLink="/assets" routerLinkActive="active" class="block px-4 py-3 rounded-md text-lg font-semibold text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
+        <span class="mr-4 text-xl">🏗️</span>
         Gestion Actifs
       </a>
-      <a *ngIf="isAdmin" routerLink="/users" routerLinkActive="active" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
-        <span class="mr-3">👥</span>
+      <a *ngIf="isAdmin" routerLink="/users" routerLinkActive="active" class="block px-4 py-3 rounded-md text-lg font-semibold text-gray-700 hover:text-blue-600 transition-colors" (click)="closeMobileMenu()">
+        <span class="mr-4 text-xl">👥</span>
         Gestion Utilisateurs
       </a>
     </div>
@@ -67,6 +61,6 @@
 </ng-container>
 
 <!-- Always show router-outlet for all routes -->
-<main class="app-content">
+<main [class]="isLoggedIn ? 'app-content' : 'login-content'">
   <router-outlet></router-outlet>
 </main>

@@ -292,7 +292,7 @@ export class ActifFormComponent implements OnInit {
       }
       // DEBUG: show outgoing payload for troubleshooting geometry issues
       try {
-        console.debug('[ActifForm] Sending payload to /carte/actifs/from-map:', JSON.stringify(geoData));
+        console.debug('[ActifForm] Sending payload to /actifs/from-map:', JSON.stringify(geoData));
       } catch (e) {
         console.debug('[ActifForm] Sending payload (non-serializable):', geoData);
       }
@@ -370,6 +370,13 @@ prepareActifData(): any {
 
   // Add geometry if it exists (for polygon/linestring actifs)
   if (this.geometry) {
+    console.log('Preparing actif data with geometry:', {
+      geometryType: this.geometry.type,
+      hasCoordinates: !!this.geometry.coordinates,
+      formLatLng: [formValue.latitude, formValue.longitude],
+      isPolygon: this.geometry.type === 'Polygon'
+    });
+    
     return {
       ...baseData,
       geometry: this.geometry

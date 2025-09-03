@@ -12,6 +12,7 @@ import { CarteIntegrationService } from '../../services/carte-integration.servic
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { CreateMaintenanceModalComponent } from '../create-maintenance-modal/create-maintenance-modal.component';
 import { CompleteMaintenanceModalComponent } from '../complete-maintenance-modal/complete-maintenance-modal.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-asset-management',
@@ -35,7 +36,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   selectedActifDetails: any = null;
 
   // UI state
-  loading = false;
   error: string | null = null;
   activeTab = 'dashboard';
   expandedNodes = new Set<string>();
@@ -139,6 +139,13 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
+  // Add getPiecesArray method for template
+  getPiecesArray(pieces: string | string[]): string[] {
+    if (!pieces) return [];
+    if (Array.isArray(pieces)) return pieces;
+    return pieces.split('\n').filter(piece => piece.trim().length > 0);
+  }
+
   // Method to get current time string for template
   getCurrentTimeString(): string {
     return this.currentTime.toLocaleTimeString('fr-FR');
@@ -229,7 +236,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   // Data loading methods
   loadDashboardData() {
-    this.loading = true;
     this.error = null;
 
     console.log('🔄 Loading dashboard data with map synchronization...');
@@ -239,11 +245,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       next: (carteData) => {
         console.log('✅ Carte dashboard data loaded:', carteData);
         this.carteDashboard = carteData;
-        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('❌ Error loading carte dashboard data:', error);
-        this.checkLoadingComplete();
       }
     });
 
@@ -252,18 +256,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       next: (actifsFromMap) => {
         console.log('✅ Assets from map loaded:', actifsFromMap);
         this.actifsPourCarte = this.convertMapActifsToCardActifs(actifsFromMap);
-        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('❌ Error loading assets from map:', error);
         this.actifService.getActifsPourCarte().subscribe({
           next: (actifsPourCarte) => {
             this.actifsPourCarte = actifsPourCarte;
-            this.checkLoadingComplete();
           },
           error: (fallbackError) => {
             console.error('❌ Fallback error loading actifs:', fallbackError);
-            this.checkLoadingComplete();
           }
         });
       }
@@ -700,11 +701,9 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
     this.actifService.getHierarchy().subscribe({
       next: (hierarchyData) => {
         this.hierarchyData = hierarchyData;
-        this.checkLoadingComplete();
       },
       error: (error) => {
         console.error('Erreur lors du chargement de la hiérarchie:', error);
-        this.checkLoadingComplete();
       }
     });
   }
@@ -738,12 +737,6 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
         console.error('Error loading actif details:', error);
       }
     });
-  }
-
-  private checkLoadingComplete() {
-    if (this.statistiquesActifs && this.hierarchyData.length > 0 && this.actifsPourCarte.length > 0) {
-      this.loading = false;
-    }
   }
 
   private updateActifCounters() {
@@ -818,61 +811,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   }
 
   private getTestAnomaliesData(): any[] {
-    return [
-      {
-        id: 999,
-        titre: 'Dysfonctionnement éclairage quai',
-        description: 'Plusieurs points lumineux ne fonctionnent plus sur le quai principal',
-        priorite: 'eleve',
-        statut: 'nouveau',
-        typeAnomalie: 'electrique',
-        actif: { nom: 'Éclairage Quai A', code: 'ECL-001' },
-        actifId: 1,
-        dateDetection: new Date(Date.now() - 86400000),
-        rapportePar: 'Agent sécurité'
-      },
-      {
-        id: 998,
-        titre: 'Fissure dans le revêtement',
-        description: 'Fissure observée sur la voie d\'accès principale',
-        priorite: 'moyen',
-        statut: 'en_cours',
-        typeAnomalie: 'structural',
-        actif: { nom: 'Voie d\'accès A', code: 'VOI-002' },
-        actifId: 2,
-        dateDetection: new Date(Date.now() - 172800000),
-        rapportePar: 'Technicien maintenance'
-      }
-    ];
+    // Return empty array instead of hardcoded test data
+    console.log('No anomalies found in the database - returning empty array');
+    return [];
   }
 
   private getTestMaintenanceData(): any[] {
-    return [
-      {
-        id: 999,
-        titre: 'Inspection mensuelle des grues',
-        description: 'Inspection mensuelle des grues',
-        typeMaintenance: 'preventive',
-        statut: 'planifiee',
-        actif: { nom: 'Grue portique A', code: 'GRU-001' },
-        actifId: 1,
-        datePrevue: new Date(Date.now() + 604800000),
-        technicienResponsable: 'X',
-        coutEstime: 1500
-      },
-      {
-        id: 998,
-        titre: 'Réparation système hydraulique',
-        description: 'Réparation système hydraulique',
-        typeMaintenance: 'corrective',
-        statut: 'en_cours',
-        actif: { nom: 'Grue mobile B', code: 'GRU-002' },
-        actifId: 2,
-        datePrevue: new Date(),
-        technicienResponsable: 'Marie Martin',
-        coutEstime: 2500
-      }
-    ];
+    // Return empty array instead of hardcoded test data
+    console.log('No maintenance data found in the database - returning empty array');
+    return [];
   }
 
   // ================================
@@ -1394,7 +1341,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       this.showCompleteMaintenanceModal = true;
     } else {
       // For ongoing or planned maintenance, generate basic report
-      const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}`;
+      const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${maintenance.id}`;
       console.log('Opening basic maintenance report:', reportUrl);
       window.open(reportUrl, '_blank');
     }
@@ -1402,7 +1349,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   generateDetailedReport(maintenance: any): void {
     // Generate detailed PDF report with actual vs planned comparison
-    const reportUrl = `http://localhost:3000/reports/maintenance/${maintenance.id}/detailed`;
+    const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${maintenance.id}/detailed`;
     console.log('Opening detailed report:', reportUrl);
     window.open(reportUrl, '_blank');
   }

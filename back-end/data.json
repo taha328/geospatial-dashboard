@@ -1,0 +1,247 @@
+{
+  "groupes": [
+    {
+      "numero_groupe": 1,
+      "groupe_actif": "Digue à caisson",
+      "famille": "Ouvrages de protection",
+      "numero_famille": 1
+    },
+    {
+      "numero_groupe": 2,
+      "groupe_actif": "Digue à talus",
+      "famille": "Ouvrages de protection",
+      "numero_famille": 1
+    },
+    {
+      "numero_groupe": 3,
+      "groupe_actif": "Bollard",
+      "famille": "Ouvrages d'amarrage et d'accostage",
+      "numero_famille": 2
+    },
+    {
+      "numero_groupe": 4,
+      "groupe_actif": "Bassin",
+      "famille": "Bassin",
+      "numero_famille": 3
+    },
+    {
+      "numero_groupe": 5,
+      "groupe_actif": "Défense",
+      "famille": "Ouvrages d'amarrage et d'accostage",
+      "numero_famille": 2
+    },
+    {
+      "numero_groupe": 6,
+      "groupe_actif": "Pont cadre",
+      "famille": "Ouvrages d'arts",
+      "numero_famille": 4
+    },
+    {
+      "numero_groupe": 7,
+      "groupe_actif": "Pont à poutre",
+      "famille": "Ouvrages d'arts",
+      "numero_famille": 4
+    },
+    {
+      "numero_groupe": 8,
+      "groupe_actif": "Pont dalots",
+      "famille": "Ouvrages d'arts",
+      "numero_famille": 4
+    },
+    {
+      "numero_groupe": 9,
+      "groupe_actif": "Feu de guidage",
+      "famille": "Equipement de balisage maritime",
+      "numero_famille": 5
+    },
+    {
+      "numero_groupe": 10,
+      "groupe_actif": "Feu d'extrémité",
+      "famille": "Equipement de balisage maritime",
+      "numero_famille": 5
+    },
+    {
+      "numero_groupe": 11,
+      "groupe_actif": "Feu à secteurs",
+      "famille": "Equipement de balisage maritime",
+      "numero_famille": 5
+    },
+    {
+      "numero_groupe": 12,
+      "groupe_actif": "Poste répartiteur",
+      "famille": "Equipement Electrique",
+      "numero_famille": 6
+    },
+    {
+      "numero_groupe": 13,
+      "groupe_actif": "Groupe électrogène",
+      "famille": "Equipement Electrique",
+      "numero_famille": 6
+    },
+    {
+      "numero_groupe": 14,
+      "groupe_actif": "Onduleur",
+      "famille": "Equipement Electrique",
+      "numero_famille": 6
+    },
+    {
+      "numero_groupe": 15,
+      "groupe_actif": "Panneau de signalisation",
+      "famille": "Equipement de signalisation",
+      "numero_famille": 7
+    },
+    {
+      "numero_groupe": 16,
+      "groupe_actif": "Désenfumage",
+      "famille": "Equipement de protection contre incendie",
+      "numero_famille": 8
+    },
+    {
+      "numero_groupe": 17,
+      "groupe_actif": "Centrale incendie",
+      "famille": "Equipement de protection contre incendie",
+      "numero_famille": 8
+    }
+  ],
+  "familles": [
+    {
+      "portfolio": "Infrastructure",
+      "famille": "Ouvrages de protection",
+      "numero_famille": 1
+    },
+    {
+      "portfolio": "Infrastructure",
+      "famille": "Ouvrages d'amarrage et d'accostage",
+      "numero_famille": 2
+    },
+    {
+      "portfolio": "Infrastructure",
+      "famille": "Bassin",
+      "numero_famille": 3
+    },
+    {
+      "portfolio": "Infrastructure",
+      "famille": "Ouvrages d'arts",
+      "numero_famille": 4
+    },
+    {
+      "portfolio": "Equipement",
+      "famille": "Equipement de balisage maritime",
+      "numero_famille": 5
+    },
+    {
+      "portfolio": "Equipement",
+      "famille": "Equipement Electrique",
+      "numero_famille": 6
+    },
+    {
+      "portfolio": "Equipement",
+      "famille": "Equipement de signalisation",
+      "numero_famille": 7
+    },
+    {
+      "portfolio": "Equipement",
+      "famille": "Equipement de protection contre incendie",
+      "numero_famille": 8
+    }
+  ],
+  "type_inspection": [
+    {
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "type_inspection": "Levée bathymétrique",
+      "numero_inspection": 2
+    },
+    {
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "type_inspection": "Instrumentation",
+      "numero_inspection": 4
+    },
+    {
+      "type_inspection": "Drone aérien",
+      "numero_inspection": 5
+    }
+  ],
+  "types_inspection_groupe": [
+    {
+      "numero_groupe": 1,
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "numero_groupe": 2,
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "numero_groupe": 6,
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "numero_groupe": 7,
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "numero_groupe": 8,
+      "type_inspection": "Auscultation topographique",
+      "numero_inspection": 1
+    },
+    {
+      "numero_groupe": 4,
+      "type_inspection": "Levée bathymétrique",
+      "numero_inspection": 2
+    },
+    {
+      "numero_groupe": 3,
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "numero_groupe": 4,
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "numero_groupe": 6,
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "numero_groupe": 8,
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "numero_groupe": 7,
+      "type_inspection": "Inspection visuelle",
+      "numero_inspection": 3
+    },
+    {
+      "numero_groupe": 1,
+      "type_inspection": "Instrumentation",
+      "numero_inspection": 4
+    },
+    {
+      "numero_groupe": 2,
+      "type_inspection": "Instrumentation",
+      "numero_inspection": 4
+    },
+    {
+      "numero_groupe": 1,
+      "type_inspection": "Drone aérien",
+      "numero_inspection": 5
+    },
+    {
+      "numero_groupe": 2,
+      "type_inspection": "Drone aérien",
+      "numero_inspection": 5
+    }
+  ]
+}

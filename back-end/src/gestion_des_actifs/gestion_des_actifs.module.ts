@@ -8,6 +8,8 @@ import { GroupeActif } from './entities/groupe-actif.entity';
 import { Actif } from './entities/actif.entity';
 import { Anomalie } from './entities/anomalie.entity';
 import { Maintenance } from './entities/maintenance.entity';
+import { TypeInspection } from './entities/type-inspection.entity';
+import { TypeInspectionGroupe } from './entities/type-inspection-groupe.entity';
 
 // Services
 import { PortefeuilleService } from './services/portefeuille.service';
@@ -19,6 +21,8 @@ import { MaintenanceService } from './services/maintenance.service';
 import { KPIService } from './services/kpi.service';
 import { WorkflowService } from './services/workflow.service';
 import { ReportService } from './services/report.service';
+import { TypeInspectionService } from './services/type-inspection.service';
+import { TypeInspectionGroupeService } from './services/type-inspection-groupe.service';
 
 // Controllers
 import { PortefeuilleController } from './controllers/portefeuille.controller';
@@ -30,6 +34,8 @@ import { MaintenanceController } from './controllers/maintenance.controller';
 import { KPIController } from './controllers/kpi.controller';
 import { WorkflowController } from './controllers/workflow.controller';
 import { ReportController } from './controllers/report.controller';
+import { TypeInspectionController } from './controllers/type-inspection.controller';
+import { TypeInspectionGroupeController } from './controllers/type-inspection-groupe.controller';
 
 @Module({
   imports: [
@@ -39,7 +45,9 @@ import { ReportController } from './controllers/report.controller';
       GroupeActif,
       Actif,
       Anomalie,
-      Maintenance
+      Maintenance,
+      TypeInspection,
+      TypeInspectionGroupe
     ])
   ],
   controllers: [
@@ -51,7 +59,9 @@ import { ReportController } from './controllers/report.controller';
     MaintenanceController,
     KPIController,
     WorkflowController,
-    ReportController
+    ReportController,
+    TypeInspectionController,
+    TypeInspectionGroupeController
   ],
   providers: [
     PortefeuilleService,
@@ -62,7 +72,9 @@ import { ReportController } from './controllers/report.controller';
     MaintenanceService,
     KPIService,
     WorkflowService,
-    ReportService
+    ReportService,
+    TypeInspectionService,
+    TypeInspectionGroupeService
   ],
   exports: [
     PortefeuilleService,
@@ -74,6 +86,8 @@ import { ReportController } from './controllers/report.controller';
     KPIService,
     WorkflowService,
     ReportService,
+    TypeInspectionService,
+    TypeInspectionGroupeService,
     TypeOrmModule
   ]
 })

@@ -19,22 +19,25 @@ export class GroupeActif {
 @Column({
   type: 'enum',
   enum: [
-    'bollards',
-    'ducs_albe',
-    'defenses',
-    'grues_portiques',
-    'grues_mobiles',
-    'chariots_elevateurs',
-    'reach_stackers',
-    'eclairage',
-    'signalisation',
-    'systemes_securite',
-    'alimentations_electriques',
-    'vehicules_service',
-    'remorques_specialisees',
-    'navettes'
+    'digue_a_caisson',
+    'digue_a_talus',
+    'bollard',
+    'bassin',
+    'defense',
+    'pont_cadre',
+    'pont_a_poutre',
+    'pont_dalots',
+    'feu_de_guidage',
+    'feu_extremite',
+    'feu_a_secteurs',
+    'poste_repartiteur',
+    'groupe_electrogene',
+    'onduleur',
+    'panneau_signalisation',
+    'desenfumage',
+    'centrale_incendie'
   ],
-  default: 'bollards'
+  default: 'bollard'
 })
 type: string;
 

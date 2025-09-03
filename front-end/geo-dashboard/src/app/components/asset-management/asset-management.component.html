@@ -56,12 +56,6 @@
     </button>
   </div>
 
-  <!-- Loading state -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Chargement des données...</p>
-  </div>
-
   <!-- Error state -->
   <div *ngIf="error" class="error-container">
     <div class="error-icon">⚠️</div>
@@ -70,7 +64,7 @@
   </div>
 
   <!-- Main content -->
-  <div class="main-content" *ngIf="!loading && !error">
+  <div class="main-content">
     
     <!-- Dashboard Tab -->
     <div class="tab-content" [class.active]="activeTab === 'dashboard'">
@@ -600,6 +594,17 @@
     <div class="tab-content" [class.active]="activeTab === 'anomalies'">
       <div class="anomalies-section">
         <!-- Main Header -->
+        <div class="section-header-compact">
+          <div class="header-content">
+            <h2 class="section-title">
+              <i class="section-icon">⚠️</i>
+              Gestion des Anomalies
+            </h2>
+            <p class="section-subtitle">
+              Signalement, analyse et résolution des dysfonctionnements détectés
+            </p>
+          </div>
+        </div>
 
 
         <!-- Workflow Overview -->
@@ -886,7 +891,7 @@
       <div class="maintenance-section-modern">
         
         <!-- Section Header -->
-        <div class="section-header-modern">
+        <div class="section-header-compact">
           <div class="header-content">
             <h2 class="section-title">
               <i class="section-icon">🔧</i>
@@ -1488,75 +1493,152 @@
 
 <!-- Maintenance Details Modal -->
 <div class="modal fade" [class.show]="showMaintenanceDetailsModal" [style.display]="showMaintenanceDetailsModal ? 'block' : 'none'" *ngIf="showMaintenanceDetailsModal">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content maintenance-details-content">
-      <div class="modal-header">
-        <h5 class="modal-title details-title">
-          <span class="section-icon">🔧</span>
-          Détails de la Maintenance
-        </h5>
-        <button type="button" class="btn-close" (click)="closeMaintenanceDetailsModal()"></button>
+      <div class="modal-header modern-header">
+        <div class="header-content">
+          <div class="title-section">
+            <span class="main-icon">🔧</span>
+            <div class="title-text">
+              <h4 class="modal-title">Détails de la Maintenance</h4>
+              <p class="subtitle">{{ selectedMaintenanceForDetails.titre }}</p>
+            </div>
+          </div>
+          <div class="status-badge">
+            <span class="badge status-{{ selectedMaintenanceForDetails.statut }}">
+              {{ selectedMaintenanceForDetails.statut | titlecase }}
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-close modern-close" (click)="closeMaintenanceDetailsModal()"></button>
       </div>
-      <div class="modal-body" *ngIf="selectedMaintenanceForDetails">
-        <div class="row">
-          <div class="col-md-6">
-            <h6>Informations Générales</h6>
-            <dl class="row">
-              <dt class="col-sm-5">Titre:</dt>
-              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.titre }}</dd>
-              <dt class="col-sm-5">Description:</dt>
-              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.description }}</dd>
-              <dt class="col-sm-5">Type:</dt>
-              <dd class="col-sm-7">
-                <span class="badge type-badge">{{ selectedMaintenanceForDetails.typeMaintenance }}</span>
-              </dd>
-              <dt class="col-sm-5">Statut:</dt>
-              <dd class="col-sm-7">
-                <span class="badge status-{{ selectedMaintenanceForDetails.statut }}">
-                  {{ selectedMaintenanceForDetails.statut }}
-                </span>
-              </dd>
-            </dl>
-            <hr>
-          </div>
-          <div class="col-md-6">
-            <h6>Planification & Coûts</h6>
-            <dl class="row">
-              <dt class="col-sm-5">Date Prévue:</dt>
-              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.datePrevue | date:'dd/MM/yyyy' }}</dd>
-              <dt class="col-sm-5">Technicien:</dt>
-              <dd class="col-sm-7">{{ selectedMaintenanceForDetails.technicienResponsable }}</dd>
-              <dt class="col-sm-5">Coût Estimé:</dt>
-              <dd class="col-sm-7">{{ formatCurrency(selectedMaintenanceForDetails.coutEstime) }}</dd>
-            </dl>
-            <hr>
-          </div>
-        </div>
-        <div class="row mt-3">
-          <div class="col-md-6">
-            <h6>Rapport d'Intervention</h6>
-            <div class="stat-box">
-              <span class="stat-label">{{ selectedMaintenanceForDetails.rapportIntervention || 'Non renseigné' }}</span>
+      
+      <div class="modal-body modern-body" *ngIf="selectedMaintenanceForDetails">
+        
+        <!-- Quick Info Cards Row -->
+        <div class="quick-info-row">
+          <div class="info-card type-card">
+            <div class="card-icon">⚙️</div>
+            <div class="card-content">
+              <span class="card-label">Type</span>
+              <span class="card-value">{{ selectedMaintenanceForDetails.typeMaintenance | titlecase }}</span>
             </div>
           </div>
-          <div class="col-md-6">
-            <h6>Pièces Remplacées</h6>
-            <div class="stat-box">
-              <span class="stat-label">{{ selectedMaintenanceForDetails.piecesRemplacees || 'Aucune' }}</span>
+          
+          <div class="info-card date-card">
+            <div class="card-icon">📅</div>
+            <div class="card-content">
+              <span class="card-label">Date Prévue</span>
+              <span class="card-value">{{ selectedMaintenanceForDetails.datePrevue | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+          
+          <div class="info-card cost-card">
+            <div class="card-icon">💰</div>
+            <div class="card-content">
+              <span class="card-label">Coût Estimé</span>
+              <span class="card-value">{{ formatCurrency(selectedMaintenanceForDetails.coutEstime) }}</span>
+            </div>
+          </div>
+          
+          <div class="info-card tech-card">
+            <div class="card-icon">👨‍🔧</div>
+            <div class="card-content">
+              <span class="card-label">Technicien</span>
+              <span class="card-value">{{ selectedMaintenanceForDetails.technicienResponsable || 'Non assigné' }}</span>
             </div>
           </div>
         </div>
-        <div class="row mt-3">
-          <div class="col-md-12">
-            <h6>Entreprise Externe</h6>
-            <div class="stat-box">
-              <span class="stat-label">{{ selectedMaintenanceForDetails.entrepriseExterne || 'Non renseignée' }}</span>
+        
+        <!-- Main Content Sections -->
+        <div class="content-sections">
+          
+          <!-- Description Section -->
+          <div class="section-card description-section">
+            <div class="section-header">
+              <div class="section-icon">📝</div>
+              <h5 class="section-title">Description des Travaux</h5>
+            </div>
+            <div class="section-content">
+              <div class="description-box">
+                <p>{{ selectedMaintenanceForDetails.description || 'Aucune description fournie' }}</p>
+              </div>
             </div>
           </div>
+          
+          <!-- Execution Details Grid -->
+          <div class="execution-grid">
+            
+            <!-- Intervention Report -->
+            <div class="section-card report-section">
+              <div class="section-header">
+                <div class="section-icon">📋</div>
+                <h5 class="section-title">Rapport d'Intervention</h5>
+              </div>
+              <div class="section-content">
+                <div class="report-content">
+                  <div class="content-display">
+                    {{ selectedMaintenanceForDetails.rapportIntervention || 'Rapport non encore disponible' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Replaced Parts -->
+            <div class="section-card parts-section">
+              <div class="section-header">
+                <div class="section-icon">🔩</div>
+                <h5 class="section-title">Pièces Remplacées</h5>
+              </div>
+              <div class="section-content">
+                <div class="parts-list">
+                  <div class="content-display">
+                    <ng-container *ngIf="selectedMaintenanceForDetails.piecesRemplacees; else noParts">
+                      <div class="parts-items">
+                        <div *ngFor="let piece of getPiecesArray(selectedMaintenanceForDetails.piecesRemplacees)" class="part-item">
+                          <span class="part-bullet">•</span>
+                          <span class="part-text">{{ piece }}</span>
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #noParts>
+                      <span class="no-data">Aucune pièce remplacée</span>
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <!-- External Company Section -->
+          <div class="section-card company-section" *ngIf="selectedMaintenanceForDetails.entrepriseExterne">
+            <div class="section-header">
+              <div class="section-icon">🏢</div>
+              <h5 class="section-title">Entreprise Externe</h5>
+            </div>
+            <div class="section-content">
+              <div class="company-info">
+                <div class="company-name">
+                  {{ selectedMaintenanceForDetails.entrepriseExterne }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
         </div>
+        
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeMaintenanceDetailsModal()">Fermer</button>
+      
+      <div class="modal-footer modern-footer">
+        <button type="button" class="btn btn-secondary modern-btn" (click)="closeMaintenanceDetailsModal()">
+          <span class="btn-icon">✕</span>
+          Fermer
+        </button>
+        <button type="button" class="btn btn-primary modern-btn" *ngIf="selectedMaintenanceForDetails.statut === 'terminee'">
+          <span class="btn-icon">📄</span>
+          Générer Rapport PDF
+        </button>
       </div>
     </div>
   </div>

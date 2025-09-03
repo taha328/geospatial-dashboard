@@ -7,6 +7,7 @@ import { User } from '../user/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { InviteDto } from './dto/invite.dto';
 import { randomBytes } from 'crypto';
 import { MailerService } from '../mailer/mailer.service';
@@ -59,16 +60,18 @@ export class AuthService {
       email: user.email,
       hasInviteTokenHash: !!user.inviteTokenHash,
       inviteTokenExpiresAt: user.inviteTokenExpiresAt,
-      hasResetTokenHash: !!user.resetTokenHash,
-      resetTokenExpiresAt: user.resetTokenExpiresAt,
       mustResetPassword: user.mustResetPassword
     });
 
-    // Check for valid token (either invite token or reset token)
-    let tokenValid = false;
-    let tokenType = '';
-
-    if (user.inviteTokenHash) {
+    // Check for valid invite token (this method is only for invite flow)
+    if (!user.inviteTokenHash) {
+      console.log('🔍 AuthService.setPassword - No invite token found for user');
+      // No invite token -> only allow if no password yet or mustResetPassword is true
+      if (user.passwordHash && !user.mustResetPassword) {
+        console.log('❌ AuthService.setPassword - Password already set and no invite token');
+        throw new BadRequestException('Password already set. Use password reset instead.');
+      }
+    } else {
       console.log('🔍 AuthService.setPassword - Checking invite token...');
       if (!dto.token) {
         console.log('❌ AuthService.setPassword - No token provided in request');
@@ -87,47 +90,6 @@ export class AuthService {
         console.log('❌ AuthService.setPassword - Invite token expired');
         throw new BadRequestException('Invite token expired');
       }
-
-      tokenValid = true;
-      tokenType = 'invite';
-      console.log('✅ AuthService.setPassword - Invite token validation successful');
-    } else if (user.resetTokenHash) {
-      console.log('🔍 AuthService.setPassword - Checking reset token...');
-      if (!dto.token) {
-        console.log('❌ AuthService.setPassword - No token provided in request');
-        throw new BadRequestException('Reset token required');
-      }
-
-      const ok = await bcrypt.compare(dto.token, user.resetTokenHash);
-      console.log('🔍 AuthService.setPassword - Reset token validation result:', ok);
-
-      if (!ok) {
-        console.log('❌ AuthService.setPassword - Reset token validation failed');
-        throw new BadRequestException('Invalid or expired reset token');
-      }
-
-      if (user.resetTokenExpiresAt && user.resetTokenExpiresAt.getTime() < Date.now()) {
-        console.log('❌ AuthService.setPassword - Reset token expired');
-        throw new BadRequestException('Reset token expired');
-      }
-
-      tokenValid = true;
-      tokenType = 'reset';
-      console.log('✅ AuthService.setPassword - Reset token validation successful');
-    } else {
-      console.log('🔍 AuthService.setPassword - No token hash found for user');
-      // No token present -> only allow if no password yet or mustResetPassword is true
-      if (user.passwordHash && !user.mustResetPassword) {
-        console.log('❌ AuthService.setPassword - Password already set and no reset required');
-        throw new BadRequestException('Password already set');
-      }
-      tokenValid = true; // Allow password setting without token if conditions are met
-      tokenType = 'none';
-    }
-
-    if (!tokenValid) {
-      console.log('❌ AuthService.setPassword - Token validation failed');
-      throw new BadRequestException('Invalid or expired token');
     }
 
     console.log('🔍 AuthService.setPassword - Proceeding to set password...');
@@ -136,18 +98,76 @@ export class AuthService {
     user.isActive = true;
     user.mustResetPassword = false;
 
-    // Clear the appropriate token based on type
-    if (tokenType === 'invite') {
+    // Clear the invite token if it exists
+    if (user.inviteTokenHash) {
       user.inviteTokenHash = null;
       user.inviteTokenExpiresAt = null;
-    } else if (tokenType === 'reset') {
-      user.resetTokenHash = null;
-      user.resetTokenExpiresAt = null;
     }
 
     await this.userRepo.save(user);
 
-    console.log('✅ AuthService.setPassword - Password set successfully for user:', user.email, 'via', tokenType, 'token');
+    console.log('✅ AuthService.setPassword - Password set successfully for user:', user.email);
+    return { ok: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    console.log('🔍 AuthService.resetPassword - Received DTO:', {
+      email: dto.email,
+      hasToken: !!dto.token,
+      tokenLength: dto.token?.length,
+      tokenValue: dto.token ? dto.token.substring(0, 10) + '...' : 'undefined'
+    });
+
+    const user = await this.userRepo.findOneBy({ email: dto.email });
+    if (!user) {
+      console.log('❌ AuthService.resetPassword - User not found for email:', dto.email);
+      throw new BadRequestException('Invalid email');
+    }
+
+    console.log('🔍 AuthService.resetPassword - User found:', {
+      id: user.id,
+      email: user.email,
+      hasResetTokenHash: !!user.resetTokenHash,
+      resetTokenExpiresAt: user.resetTokenExpiresAt
+    });
+
+    // Check for valid reset token
+    if (!user.resetTokenHash) {
+      console.log('❌ AuthService.resetPassword - No reset token found for user');
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (!dto.token) {
+      console.log('❌ AuthService.resetPassword - No token provided in request');
+      throw new BadRequestException('Reset token required');
+    }
+
+    const tokenValid = await bcrypt.compare(dto.token, user.resetTokenHash);
+    console.log('🔍 AuthService.resetPassword - Reset token validation result:', tokenValid);
+
+    if (!tokenValid) {
+      console.log('❌ AuthService.resetPassword - Reset token validation failed');
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (user.resetTokenExpiresAt && user.resetTokenExpiresAt.getTime() < Date.now()) {
+      console.log('❌ AuthService.resetPassword - Reset token expired');
+      throw new BadRequestException('Reset token expired');
+    }
+
+    console.log('🔍 AuthService.resetPassword - Proceeding to reset password...');
+    const hash = await bcrypt.hash(dto.password, 12);
+    user.passwordHash = hash;
+    user.isActive = true;
+    user.mustResetPassword = false;
+
+    // Clear the reset token
+    user.resetTokenHash = null;
+    user.resetTokenExpiresAt = null;
+
+    await this.userRepo.save(user);
+
+    console.log('✅ AuthService.resetPassword - Password reset successfully for user:', user.email);
     return { ok: true };
   }
 

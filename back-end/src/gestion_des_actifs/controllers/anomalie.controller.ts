@@ -72,6 +72,9 @@ export class AnomalieController {
     return this.anomalieService.findAnomaliesForMap();
   }
 
+  // ✅ CORRECT ENDPOINT for anomalie reporting from map
+  // Supports multiple file uploads, proper validation, and Google Cloud Storage
+  // Use this instead of /carte/signaler-anomalie
   @Post('carte/signaler')
   @UseInterceptors(FilesInterceptor('photosAnnexes', 10, {
     limits: { fileSize: 5 * 1024 * 1024, files: 10 },

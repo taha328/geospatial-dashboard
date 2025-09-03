@@ -2,6 +2,7 @@ import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitte
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CarteIntegrationService, SignalementAnomalie } from '../../services/carte-integration.service';
+import { AnomalieService } from '../../services/anomalie.service';
 import { ActifService } from '../../services/actif.service';
 import { NotificationService } from '../../services/notification.service';
 import { transform } from 'ol/proj';
@@ -58,6 +59,7 @@ export class SignalementAnomalieComponent implements OnInit, OnChanges {
   constructor(
     private fb: FormBuilder,
     private carteIntegrationService: CarteIntegrationService,
+    private anomalieService: AnomalieService,
     private actifService: ActifService,
     private notificationService: NotificationService
   ) {
@@ -262,8 +264,8 @@ export class SignalementAnomalieComponent implements OnInit, OnChanges {
         });
       }
 
-      // Submit following geospatial dashboard service patterns
-      this.carteIntegrationService.signalerAnomalieDepuisCarte(formData)
+      // Submit to the proper anomalie endpoint with better error handling and file upload support
+      this.anomalieService.signalerAnomalieDepuisCarte(formData)
         .subscribe({
           next: (response) => {
             this.showSuccess = true;

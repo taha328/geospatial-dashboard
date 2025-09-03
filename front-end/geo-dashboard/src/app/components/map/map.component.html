@@ -2,7 +2,7 @@
   <!-- Modern Header -->
   <div class="map-header">
     <div class="header-content">
-      <h1>🗺️ Carte Interactive Géospatiale</h1>
+      <h1>Carte Interactive Géospatiale</h1>
       <p>Gestion des actifs portuaires et signalement d'anomalies</p>
     </div>
     <div class="header-stats">
@@ -28,7 +28,7 @@
   <!-- Main Content Layout -->
   <div class="map-layout">
     <!-- Enhanced Control Panel -->
-    <div class="control-sidebar">
+    <div class="control-sidebar" [class.collapsed]="sidebarCollapsed">
       <div class="sidebar-header">
         <h3>🛠️ Outils de Cartographie</h3>
         <button class="sidebar-toggle" (click)="toggleSidebar()">
@@ -79,113 +79,6 @@
           </div>
         </div>
 
-        <!-- Properties Form -->
-        <div class="tool-section" *ngIf="drawType !== 'Point'">
-          <div class="section-header">
-            <div class="section-icon">⚙️</div>
-            <h4>Propriétés Zone</h4>
-          </div>
-
-          <!-- Properties controls -->
-            <div class="form-row">
-              <div class="form-group">
-                <label for="color">
-                  <span class="label-icon">🎨</span>
-                  Couleur
-                </label>
-                <div class="color-input-wrapper">
-                  <input 
-                    type="color" 
-                    id="color" 
-                    [(ngModel)]="newGeometry.color" 
-                    class="form-color">
-                  <span class="color-preview" [style.background-color]="newGeometry.color"></span>
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label for="opacity">
-                  <span class="label-icon">👁️</span>
-                  Opacité
-                </label>
-                <div class="range-input-wrapper">
-                  <input 
-                    type="range" 
-                    id="opacity" 
-                    [(ngModel)]="newGeometry.opacity" 
-                    min="0" 
-                    max="1" 
-                    step="0.1" 
-                    class="form-range">
-                  <span class="range-value">{{ (newGeometry.opacity * 100) | number:'1.0-0' }}%</span>
-                </div>
-              </div>
-            </div>
-              </div><!-- end tool-section (properties non-point) -->
-        <!-- Point Properties -->
-        <div class="tool-section" *ngIf="drawType === 'Point'">
-          <div class="section-header">
-            <div class="section-icon">📍</div>
-            <h4>Propriétés Point</h4>
-          </div>
-          <div class="form-group">
-            <label for="point-color">
-              <span class="label-icon">🎨</span>
-              Couleur
-            </label>
-            <div class="color-input-wrapper">
-              <input 
-                type="color" 
-                id="point-color" 
-                [(ngModel)]="newGeometry.color" 
-                class="form-color">
-              <span class="color-preview" [style.background-color]="newGeometry.color"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Selection Info -->
-        <div class="tool-section" *ngIf="selectedFeature">
-          <div class="section-header">
-            <div class="section-icon">🎯</div>
-            <h4>Sélection Active</h4>
-          </div>
-          
-          <div class="selection-card">
-            <div class="selection-info">
-              <div class="info-item">
-                <span class="info-label">Type:</span>
-                <span class="info-value">{{ getFeatureTypeDisplay() }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">ID:</span>
-                <span class="info-value">{{ selectedFeature.get('data')?.id || selectedFeature.get('id') }}</span>
-              </div>
-              <div class="info-item" *ngIf="getFeatureName()">
-                <span class="info-label">Nom:</span>
-                <span class="info-value">{{ getFeatureName() }}</span>
-              </div>
-            </div>
-            
-            <div class="selection-actions">
-              <!-- Signaler Anomalie button for existing assets -->
-              <button 
-                (click)="signalAnomalieForSelectedFeature()" 
-                class="btn btn-warning btn-with-icon btn-full"
-                *ngIf="isExistingAsset()">
-                <span class="btn-icon">📝</span>
-                Signaler Anomalie
-              </button>
-              
-              <button 
-                (click)="deleteSelectedFeature()" 
-                class="btn btn-danger btn-with-icon btn-full">
-                <span class="btn-icon">🗑️</span>
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
 
         <!-- Data Management -->
         <div class="tool-section">
@@ -253,6 +146,9 @@
                 <small class="asset-code">{{ selectedFeature.get('data')?.code || selectedFeature.get('id') }}</small>
                 <div class="asset-type-badge">{{ getFeatureTypeDisplay() }}</div>
               </div>
+              <button class="popup-close-btn" (click)="closePopup()" title="Fermer">
+                <span>×</span>
+              </button>
             </div>
 
             <div class="asset-details">

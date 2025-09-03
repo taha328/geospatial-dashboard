@@ -53,7 +53,11 @@
             "allowedCommonJsDependencies": [
               "geotiff",
               "lerc",
-              "xml-utils"
+              "xml-utils",
+              "stream",
+              "util",
+              "class-validator",
+              "class-transformer"
             ],
             "budgets": [
               {

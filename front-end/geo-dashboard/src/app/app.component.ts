@@ -147,6 +147,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   logout() {
+    // Clear notification panel state before logout
+    this.notificationPanelOpen = false;
+    this.mobileMenuOpen = false;
+    
+    // Perform logout which will clear tokens and redirect
     this.auth.logout();
   }
 

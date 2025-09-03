@@ -3,7 +3,7 @@ import { ActifService } from '../services/actif.service';
 import { Actif } from '../entities/actif.entity';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
-@Controller('carte/actifs')
+@Controller('actifs')
 @UseGuards(JwtAuthGuard)
 export class ActifController {
   constructor(private readonly actifService: ActifService) {}

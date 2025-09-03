@@ -46,7 +46,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
         return {
           secret: jwtSecret,
-          signOptions: { expiresIn: '15m' },
+          signOptions: { expiresIn: '8h' }, // Extended from 15m to 8 hours
         };
       },
     })

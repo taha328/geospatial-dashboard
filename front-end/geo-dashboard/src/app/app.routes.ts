@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { RoleGuard } from './services/role.guard';
+import { AuthGuard } from './services/auth.guard';
 
 // Simple guard to allow unauthenticated access to set-password
 import { Injectable } from '@angular/core';
@@ -24,7 +25,8 @@ export const routes: Routes = [
    },
   {
      path: 'dashboard',
-     loadComponent: () => import('./components/dashboard-integre/dashboard-integre.component').then(m => m.DashboardIntegreComponent)
+     loadComponent: () => import('./components/dashboard-integre/dashboard-integre.component').then(m => m.DashboardIntegreComponent),
+     canActivate: [AuthGuard]
    },
 
   // Lazy load login component
@@ -49,25 +51,29 @@ export const routes: Routes = [
 
   {
     path: 'map',
-    loadChildren: () => import('./features/map/map.module').then(m => m.MapModule)
+    loadChildren: () => import('./features/map/map.module').then(m => m.MapModule),
+    canActivate: [AuthGuard]
   },
   {
     path: 'assets',
-    loadChildren: () => import('./features/asset-management/asset-management.module').then(m => m.AssetManagementModule)
+    loadChildren: () => import('./features/asset-management/asset-management.module').then(m => m.AssetManagementModule),
+    canActivate: [AuthGuard]
   },
   {
     path: 'users',
     loadChildren: () => import('./features/user-management/user-management.module').then(m => m.UserManagementModule),
-    canActivate: [RoleGuard],
+    canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['administrateur'] }
   },
   {
     path: 'vessels',
-    loadChildren: () => import('./features/vessel-finder/vessel-finder.module').then(m => m.VesselFinderModule)
+    loadChildren: () => import('./features/vessel-finder/vessel-finder.module').then(m => m.VesselFinderModule),
+    canActivate: [AuthGuard]
   },
   {
     path: 'zones',
-    loadChildren: () => import('./features/zones/zones.module').then(m => m.ZonesModule)
+    loadChildren: () => import('./features/zones/zones.module').then(m => m.ZonesModule),
+    canActivate: [AuthGuard]
   },
   {
     path: '**',

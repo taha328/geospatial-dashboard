@@ -29,6 +29,8 @@ export class CarteIntegrationController {
     return this.carteIntegrationService.getCarteDashboard();
   }
 
+  // DEPRECATED: Use POST /anomalies/carte/signaler instead
+  // This endpoint lacks file upload support and proper validation
   @Post('signaler-anomalie')
   @UseInterceptors(FileInterceptor('image'))
   async signalerAnomalieDepuisCarte(
@@ -44,6 +46,7 @@ export class CarteIntegrationController {
     },
     @UploadedFile() image?: Express.Multer.File
   ) {
+    console.warn('DEPRECATED ENDPOINT: Use POST /anomalies/carte/signaler instead - this endpoint lacks proper file upload support');
     // Convert string coordinates to numbers
     const processedData = {
       ...anomalieData,

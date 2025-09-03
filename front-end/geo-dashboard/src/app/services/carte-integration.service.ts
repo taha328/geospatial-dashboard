@@ -99,15 +99,18 @@ export class CarteIntegrationService {
   }
 
   // Signaler une anomalie depuis la carte
+  // DEPRECATED: Use AnomalieService.signalerAnomalieDepuisCarte() instead
+  // This endpoint lacks file upload support and proper validation
   signalerAnomalieDepuisCarte(anomalie: SignalementAnomalie | FormData): Observable<any> {
-    // Use the correct anomalies endpoint for anomaly reporting
-    return this.http.post(`${environment.apiUrl}/anomalies/carte/signaler`, anomalie);
+    console.warn('DEPRECATED: Use AnomalieService.signalerAnomalieDepuisCarte() instead - this endpoint lacks file upload support');
+    // Use the correct carte endpoint for anomaly reporting
+    return this.http.post(`${this.baseUrl}/signaler-anomalie`, anomalie);
   }
 
   // Créer un nouvel actif depuis la carte
   createActif(actifData: any): Observable<any> {
-    // Use the specific from-map endpoint
-    return this.http.post<any>(`${this.baseUrl}/actifs/from-map`, actifData);
+    // Use the correct carte endpoint for asset creation
+    return this.http.post<any>(`${this.baseUrl}/actifs`, actifData);
   }
 
   // Méthodes utilitaires pour l'affichage

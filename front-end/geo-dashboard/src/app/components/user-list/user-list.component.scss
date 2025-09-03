@@ -86,12 +86,14 @@
 }
 
 .btn-warning {
-  background-color: #ffc107;
+  background-color: #ffdd00; /* Bright yellow */
   color: #212529;
+  border: 2px solid #ffcc00;
 }
 
 .btn-warning:hover {
-  background-color: #e0a800;
+  background-color: #ffcc00;
+  border-color: #ffb300;
 }
 
 .btn-danger {

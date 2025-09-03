@@ -143,12 +143,16 @@
 }
 
 .btn-warning {
-  background: #ffc107;
+  background: #ffdd00; /* Brighter yellow */
   color: #212529;
+  border: 2px solid #ffcc00; /* Darker yellow border for better contrast */
 }
 
 .btn-warning:hover {
-  background: #e0a800;
+  background: #ffcc00; /* Slightly darker on hover */
+  border-color: #ffb300;
+  transform: translateY(-1px); /* Add slight lift effect */
+  box-shadow: 0 4px 8px rgba(255, 221, 0, 0.3);
 }
 
 .btn i {

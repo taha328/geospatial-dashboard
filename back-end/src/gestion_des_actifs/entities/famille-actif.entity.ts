@@ -19,13 +19,14 @@ export class FamilleActif {
   @Column({
     type: 'enum',
     enum: [
-      'batiments',
-      'infrastructures_portuaires',
-      'reseaux_utilitaires',
-      'equipements_specifiques',
-      'zones_stockage',
-      'equipements_transport',
-      'ouvrages_amarrage', 
+      'ouvrages_protection',
+      'ouvrages_amarrage_accostage',
+      'bassin',
+      'ouvrages_arts',
+      'equipement_balisage_maritime',
+      'equipement_electrique',
+      'equipement_signalisation',
+      'equipement_protection_incendie'
     ],
     name: 'type',
     nullable: true,

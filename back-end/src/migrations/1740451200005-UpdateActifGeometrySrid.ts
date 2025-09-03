@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class UpdateActifGeometrySrid1234567890123 implements MigrationInterface {
-    name = 'UpdateActifGeometrySrid1234567890123'
+export class UpdateActifGeometrySrid1740451200005 implements MigrationInterface {
+    name = 'UpdateActifGeometrySrid1740451200005'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Step 1: Transform existing geometries from SRID 26191 to EPSG:4326 where needed

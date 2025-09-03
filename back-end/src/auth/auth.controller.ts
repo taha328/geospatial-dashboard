@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './public.decorator';
@@ -21,6 +22,12 @@ export class AuthController {
   @Public()
   async setPassword(@Body() dto: SetPasswordDto) {
     return this.auth.setPassword(dto);
+  }
+
+  @Post('reset-password')
+  @Public()
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto);
   }
 
   @Post('forgot-password')

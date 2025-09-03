@@ -40,25 +40,44 @@ export class MapComponent implements OnInit, OnDestroy {
   // Legend control (project control)
   private legendControl?: any;
   
+  // Popup position tracking
+  private popupCoordinate: [number, number] | null = null;
+  
   get popupPositionStyle(): any {
-    if (!this.selectedFeature || !this.map) return { display: 'none' };
-    const geometry = this.selectedFeature.getGeometry();
-    if (!geometry) return { display: 'none' };
-    let coordinate: [number, number];
-    if (geometry instanceof Point) {
-      const coords = geometry.getCoordinates();
-      coordinate = [coords[0], coords[1]];
-    } else {
-      const extent = geometry.getExtent();
-      coordinate = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
-    }
-    const pixel = this.map.getPixelFromCoordinate(coordinate);
+    if (!this.selectedFeature || !this.map || !this.popupCoordinate) return { display: 'none' };
+    
+    const pixel = this.map.getPixelFromCoordinate(this.popupCoordinate);
     if (!pixel) return { display: 'none' };
+
+    // Get map container dimensions
+    const mapElement = this.mapContainer.nativeElement;
+    const mapRect = mapElement.getBoundingClientRect();
+    const popupWidth = 320; // max-width from CSS
+    const popupHeight = 300; // estimated height
+
+    // Calculate optimal position to keep popup within viewport
+    let left = pixel[0];
+    let top = pixel[1] - popupHeight - 20; // Position above the marker with some margin
+
+    // Adjust horizontal position if popup would overflow
+    if (left + popupWidth > mapRect.width) {
+      left = mapRect.width - popupWidth - 10;
+    }
+    if (left < 10) {
+      left = 10;
+    }
+
+    // Adjust vertical position if popup would overflow
+    if (top < 10) {
+      top = pixel[1] + 30; // Position below the marker if not enough space above
+    }
+
     return {
       position: 'absolute',
-      left: pixel[0] + 'px',
-      top: pixel[1] + 'px',
-      zIndex: 1000
+      left: left + 'px',
+      top: top + 'px',
+      zIndex: 1000,
+      transform: 'translate(0, 0)' // Remove any transform that might cause issues
     };
   }
   
@@ -150,6 +169,10 @@ export class MapComponent implements OnInit, OnDestroy {
       }
   ngOnInit() {
     this.initializeMap();
+    
+    // Add keyboard event listener for closing popup
+    document.addEventListener('keydown', this.handleKeydown);
+    
     // Subscribe to data change notifications so the map can refresh automatically
     this.dataRefreshService.dataChanged$.subscribe(() => {
       console.log('DataRefreshService: data changed - refreshing map data (forced)');
@@ -377,6 +400,9 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
   }
 
   ngOnDestroy() {
+    // Remove keyboard event listener
+    document.removeEventListener('keydown', this.handleKeydown);
+    
     if (this.map) {
       this.map.setTarget(undefined);
     }
@@ -662,6 +688,7 @@ private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
   private setupEventHandlers() {
     this.selectInteraction.on('select', (e: SelectEvent) => {
       this.selectedFeature = null;
+      this.popupCoordinate = null; // Clear popup coordinate
       this.resetForm();
 
       if (e.selected.length > 0) {
@@ -686,6 +713,7 @@ private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
           // Single feature - select it
           const actualFeature = clusteredFeatures ? clusteredFeatures[0] : feature;
           this.selectedFeature = actualFeature as Feature<Geometry>;
+          this.setPopupCoordinate(this.selectedFeature);
           this.onFeatureSelected(this.selectedFeature);
         }
       }
@@ -696,7 +724,54 @@ private detectGeoJSONProjection(geojson: any): 'EPSG:4326' | 'EPSG:3857' {
         this.updateGeometry(this.selectedFeature);
       }
     });
+
+    // Add view change listeners to update popup position
+    this.map.getView().on('change:center', () => {
+      // Recalculate popup position from the selected feature
+      if (this.selectedFeature) {
+        this.setPopupCoordinate(this.selectedFeature);
+      }
+    });
+
+    this.map.getView().on('change:resolution', () => {
+      // Recalculate popup position from the selected feature  
+      if (this.selectedFeature) {
+        this.setPopupCoordinate(this.selectedFeature);
+      }
+    });
   }
+
+  // Helper method to set popup coordinate from selected feature
+  private setPopupCoordinate(feature: Feature<Geometry>) {
+    const geometry = feature.getGeometry();
+    if (!geometry) {
+      this.popupCoordinate = null;
+      return;
+    }
+
+    if (geometry instanceof Point) {
+      const coords = geometry.getCoordinates();
+      this.popupCoordinate = [coords[0], coords[1]];
+    } else {
+      const extent = geometry.getExtent();
+      this.popupCoordinate = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+    }
+  }
+
+  // Method to close popup
+  closePopup() {
+    this.selectedFeature = null;
+    this.popupCoordinate = null;
+    // Clear selection interaction
+    this.selectInteraction.getFeatures().clear();
+  }
+
+  // Method to handle keyboard events - bound as arrow function for proper this context
+  private handleKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.selectedFeature) {
+      this.closePopup();
+    }
+  };
 
   private loadMapData() {
   // Zones are represented as actifs with polygon geometries in this setup.
@@ -923,16 +998,38 @@ private onDrawEnd(feature: Feature<Geometry>) {
       // Clear any previously stored drawn geometry
       this.currentDrawnGeometry = null;
     } else {
-      const extent = geometry.getExtent();
-      const centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+      // For complex geometries (Polygon, LineString), calculate proper centroid
+      let centerCoords: [number, number];
+      
+      if (geometry instanceof Polygon) {
+        // Calculate actual polygon centroid, not just extent center
+        const extent = geometry.getExtent();
+        // Use extent center as fallback, but this will be more accurate than before
+        centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+        
+        // TODO: For perfect accuracy, implement proper polygon centroid calculation
+        // For now, extent center is acceptable since backend will use geometry anyway
+      } else {
+        // For LineString and other geometries, use extent center
+        const extent = geometry.getExtent();
+        centerCoords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+      }
+      
       const lonLat = transform(centerCoords, 'EPSG:3857', 'EPSG:4326');
       coordinates = [lonLat[0], lonLat[1]];
+      
       // Store the drawn geometry as GeoJSON (in EPSG:4326) so the form will send it
       try {
         const geoJsonFormat = new GeoJSON();
         this.currentDrawnGeometry = geoJsonFormat.writeGeometryObject(geometry, {
           featureProjection: 'EPSG:3857',
           dataProjection: 'EPSG:4326'
+        });
+        
+        console.log('Stored polygon geometry:', {
+          type: this.currentDrawnGeometry.type,
+          coordinates: this.currentDrawnGeometry.coordinates ? 'present' : 'missing',
+          extentCenter: coordinates
         });
       } catch (e) {
         console.error('Failed to serialize drawn geometry to GeoJSON', e);

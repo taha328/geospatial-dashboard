@@ -234,20 +234,39 @@ export class CarteIntegrationService {
         dateAcquisition: new Date()
       };
 
-      // Handle different geometry types
-      if (actifData.geom && actifData.geom.type === 'Point') {
-        // Point geometry - extract coordinates
-        const [longitude, latitude] = actifData.geom.coordinates as [number, number];
-        createData.latitude = latitude;
-        createData.longitude = longitude;
+      // Handle different geometry types - PRIORITY ORDER: geometry > coordinates
+      if (actifData.geometry && typeof actifData.geometry === 'object') {
+        // Complex geometry provided - check type
+        if (['LineString', 'Polygon', 'MultiPolygon'].includes((actifData.geometry as any).type)) {
+          // Complex geometry (LineString, Polygon, MultiPolygon) - use geometry field
+          console.log('Processing complex geometry:', {
+            type: actifData.geometry.type,
+            hasCoordinates: !!(actifData.geometry as any).coordinates,
+            providedLatLng: [actifData.latitude, actifData.longitude]
+          });
+          createData.geometry = actifData.geometry;
+          // For complex geometries, also include lat/lng as centroid if provided
+          if (actifData.latitude && actifData.longitude) {
+            createData.latitude = actifData.latitude;
+            createData.longitude = actifData.longitude;
+          }
+        } else if (actifData.geometry.type === 'Point') {
+          // Point geometry - extract coordinates
+          const [longitude, latitude] = (actifData.geometry as any).coordinates as [number, number];
+          createData.latitude = latitude;
+          createData.longitude = longitude;
+          console.log('Processing Point geometry:', { latitude, longitude });
+        } else {
+          throw new Error(`Unsupported geometry type: ${(actifData.geometry as any).type}`);
+        }
       } else if (actifData.latitude && actifData.longitude) {
-        // Direct coordinates provided
+        // Direct coordinates provided (fallback for point creation)
+        console.log('Using direct coordinates (no geometry):', { 
+          latitude: actifData.latitude, 
+          longitude: actifData.longitude 
+        });
         createData.latitude = actifData.latitude;
         createData.longitude = actifData.longitude;
-      } else if (actifData.geometry || (actifData.geom && ['LineString', 'Polygon'].includes(actifData.geom.type))) {
-        // Complex geometry (LineString, Polygon) - use geometry field
-        console.log('Processing complex geometry:', actifData.geometry || actifData.geom);
-        createData.geometry = actifData.geometry || actifData.geom;
       } else {
         throw new Error('Either point coordinates or geometry must be provided');
       }
