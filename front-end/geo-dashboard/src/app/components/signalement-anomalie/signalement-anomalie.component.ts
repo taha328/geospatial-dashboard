@@ -69,7 +69,7 @@ export class SignalementAnomalieComponent implements OnInit, OnChanges {
   private createForm(): FormGroup {
     return this.fb.group({
       titre: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
+      description: ['', Validators.required],
       typeAnomalie: ['', Validators.required],
       priorite: ['moyen', Validators.required],
       latitude: [null, [Validators.required, Validators.min(-90), Validators.max(90)]],

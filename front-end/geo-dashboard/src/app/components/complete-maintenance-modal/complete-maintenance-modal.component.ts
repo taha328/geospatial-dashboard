@@ -134,7 +134,7 @@ export class CompleteMaintenanceModalComponent implements OnInit {
           console.log('Maintenance details updated successfully:', result);
           
           // Generate and download the detailed report
-          const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${this.maintenance.id}/detailed`;
+          const reportUrl = `${environment.apiUrl}/reports/maintenance/${this.maintenance.id}/detailed`;
           console.log('Opening detailed report:', reportUrl);
           window.open(reportUrl, '_blank');
           

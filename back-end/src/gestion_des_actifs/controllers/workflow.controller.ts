@@ -108,6 +108,8 @@ export class WorkflowController {
     }
   ) {
     this.logger.log(`Completing maintenance ${maintenanceId}`);
+    this.logger.debug(`Completion data: ${JSON.stringify(completionData)}`);
+    
     try {
       const result = await this.workflowService.completeMaintenance(maintenanceId, completionData);
       return {
@@ -117,9 +119,16 @@ export class WorkflowController {
       };
     } catch (error) {
       this.logger.error(`Error completing maintenance: ${error.message}`, error.stack);
+      
+      // Provide more specific error messages based on the error content
+      let message = error.message || 'Erreur lors de la finalisation de la maintenance';
+      if (error.message?.includes('ne peut pas être terminée')) {
+        message = `Cette maintenance ne peut pas être terminée. Vérifiez que le statut est correct.`;
+      }
+      
       throw new HttpException({
         success: false,
-        message: error.message || 'Erreur lors de la finalisation de la maintenance',
+        message: message,
       }, HttpStatus.BAD_REQUEST);
     }
   }

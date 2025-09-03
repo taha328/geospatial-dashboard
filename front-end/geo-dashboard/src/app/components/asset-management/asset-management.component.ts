@@ -111,7 +111,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       titre: ['', [Validators.required, Validators.minLength(3)]],
       typeAnomalie: ['', Validators.required],
       priorite: ['', Validators.required],
-      description: ['', [Validators.required, Validators.minLength(10)]],
+      description: ['', Validators.required],
       rapportePar: ['Utilisateur système']
     });
 
@@ -119,7 +119,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       titre: ['', [Validators.required, Validators.minLength(3)]],
       typeMaintenance: ['', Validators.required],
       datePrevue: ['', Validators.required],
-      description: ['', [Validators.required, Validators.minLength(10)]],
+      description: ['', Validators.required],
       coutEstime: [0, [Validators.min(0)]],
       technicienResponsable: ['']
     });
@@ -1341,7 +1341,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       this.showCompleteMaintenanceModal = true;
     } else {
       // For ongoing or planned maintenance, generate basic report
-      const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${maintenance.id}`;
+      const reportUrl = `${environment.apiUrl}/reports/maintenance/${maintenance.id}`;
       console.log('Opening basic maintenance report:', reportUrl);
       window.open(reportUrl, '_blank');
     }
@@ -1349,7 +1349,7 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   generateDetailedReport(maintenance: any): void {
     // Generate detailed PDF report with actual vs planned comparison
-    const reportUrl = `${environment.apiUrl.replace('/api', '')}/reports/maintenance/${maintenance.id}/detailed`;
+    const reportUrl = `${environment.apiUrl}/reports/maintenance/${maintenance.id}/detailed`;
     console.log('Opening detailed report:', reportUrl);
     window.open(reportUrl, '_blank');
   }

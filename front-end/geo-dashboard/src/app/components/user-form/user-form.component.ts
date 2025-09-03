@@ -134,9 +134,9 @@ export class UserFormComponent implements OnInit {
 
   getRoleDisplayName(role: string): string {
     const roleNames: { [key: string]: string } = {
-      'administrateur': 'Admin Administrateur',
-      'maitre_d_ouvrage': 'MO Maître d\'ouvrage',
-      'operateur': 'OP Opérateur'
+      'administrateur': 'Administrateur',
+      'maitre_d_ouvrage': 'Maître d\'ouvrage',
+      'operateur': 'Opérateur'
     };
     return roleNames[role] || role;
   }

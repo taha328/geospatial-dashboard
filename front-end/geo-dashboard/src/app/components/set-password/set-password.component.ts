@@ -19,6 +19,7 @@ export class SetPasswordComponent implements OnInit {
   loading: boolean = false;
   error: string = '';
   success: boolean = false;
+  isResetFlow: boolean = false; // Flag to determine if this is a reset or set flow
 
   constructor(
     private route: ActivatedRoute,
@@ -27,6 +28,10 @@ export class SetPasswordComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Determine if this is a reset password flow based on the URL
+    this.isResetFlow = this.router.url.includes('reset-password');
+    console.log('🔍 SetPasswordComponent - Flow type:', this.isResetFlow ? 'Reset Password' : 'Set Password');
+
     // Extract token and email from URL parameters
     this.route.queryParams.subscribe(params => {
       this.token = params['token'] || '';
@@ -37,14 +42,15 @@ export class SetPasswordComponent implements OnInit {
       console.log('🔍 SetPasswordComponent - Extracted email:', this.email);
 
       // Persist token as a short-lived fallback so it survives accidental reloads/navigation
+      const storageKey = this.isResetFlow ? 'reset_token' : 'invite_token';
       if (this.token && this.token.trim()) {
-        try { sessionStorage.setItem('invite_token', this.token.trim()); } catch (e) {}
+        try { sessionStorage.setItem(storageKey, this.token.trim()); } catch (e) {}
       }
 
       if (!this.token || !this.email) {
         // Try to fallback to sessionStorage for token if email present
         try {
-          const saved = sessionStorage.getItem('invite_token') || '';
+          const saved = sessionStorage.getItem(storageKey) || '';
           if (saved && !this.token) {
             this.token = saved;
             console.log('🔁 SetPasswordComponent - Recovered token from sessionStorage');
@@ -52,7 +58,8 @@ export class SetPasswordComponent implements OnInit {
         } catch (e) {}
 
         if (!this.token || !this.email) {
-          this.error = 'Invalid invitation link. Please check your email for the correct link.';
+          const linkType = this.isResetFlow ? 'password reset' : 'invitation';
+          this.error = `Invalid ${linkType} link. Please check your email for the correct link.`;
           console.error('❌ SetPasswordComponent - Missing token or email in URL');
         }
       } else {
@@ -63,11 +70,13 @@ export class SetPasswordComponent implements OnInit {
 
   onSubmit() {
     console.log('🚀 SetPasswordComponent - onSubmit called');
+    console.log('🚀 SetPasswordComponent - Flow type:', this.isResetFlow ? 'Reset' : 'Set');
 
     // If token got lost, try to recover from sessionStorage before sending
     if (!this.token || !this.token.trim()) {
       try {
-        const saved = sessionStorage.getItem('invite_token') || '';
+        const storageKey = this.isResetFlow ? 'reset_token' : 'invite_token';
+        const saved = sessionStorage.getItem(storageKey) || '';
         if (saved) {
           this.token = saved;
           console.log('🔁 SetPasswordComponent - Recovered token from sessionStorage on submit');
@@ -97,14 +106,23 @@ export class SetPasswordComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.authService.setPassword(this.email, this.password, this.token).subscribe({
+    // Use the appropriate service method based on the flow type
+    const serviceCall = this.isResetFlow 
+      ? this.authService.resetPassword(this.email, this.password, this.token)
+      : this.authService.setPassword(this.email, this.password, this.token);
+
+    serviceCall.subscribe({
       next: (response: any) => {
-  console.log('✅ SetPasswordComponent - Password set successfully:', response);
+        const actionType = this.isResetFlow ? 'reset' : 'set';
+        console.log(`✅ SetPasswordComponent - Password ${actionType} successfully:`, response);
         this.loading = false;
         this.success = true;
 
-  // Clean up persisted token
-  try { sessionStorage.removeItem('invite_token'); } catch (e) {}
+        // Clean up persisted token
+        try { 
+          const storageKey = this.isResetFlow ? 'reset_token' : 'invite_token';
+          sessionStorage.removeItem(storageKey); 
+        } catch (e) {}
 
         // Redirect to login after 3 seconds
         setTimeout(() => {
@@ -112,16 +130,19 @@ export class SetPasswordComponent implements OnInit {
         }, 3000);
       },
       error: (error: any) => {
-        console.error('❌ SetPasswordComponent - Set password error:', error);
+        const actionType = this.isResetFlow ? 'reset' : 'set';
+        console.error(`❌ SetPasswordComponent - ${actionType} password error:`, error);
         console.error('❌ SetPasswordComponent - Error status:', error.status);
         console.error('❌ SetPasswordComponent - Error body:', error.error);
         this.loading = false;
         if (error.status === 400) {
-          this.error = error.error?.message || 'Invalid or expired invitation token';
+          const tokenType = this.isResetFlow ? 'reset token' : 'invitation token';
+          this.error = error.error?.message || `Invalid or expired ${tokenType}`;
         } else {
-          this.error = 'Failed to set password. Please try again.';
+          const actionType = this.isResetFlow ? 'reset' : 'set';
+          this.error = `Failed to ${actionType} password. Please try again.`;
         }
-        console.error('Set password error:', error);
+        console.error(`${actionType} password error:`, error);
       }
     });
   }

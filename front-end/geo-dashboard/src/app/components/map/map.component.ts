@@ -53,23 +53,37 @@ export class MapComponent implements OnInit, OnDestroy {
     const mapElement = this.mapContainer.nativeElement;
     const mapRect = mapElement.getBoundingClientRect();
     const popupWidth = 320; // max-width from CSS
-    const popupHeight = 300; // estimated height
+    const popupHeight = 400; // Increased estimated height to account for all content
 
-    // Calculate optimal position to keep popup within viewport
-    let left = pixel[0];
-    let top = pixel[1] - popupHeight - 20; // Position above the marker with some margin
+    // Calculate initial position (above the marker)
+    let left = pixel[0] - (popupWidth / 2); // Center the popup horizontally over the marker
+    let top = pixel[1] - popupHeight - 30; // Position above the marker with margin
 
     // Adjust horizontal position if popup would overflow
-    if (left + popupWidth > mapRect.width) {
-      left = mapRect.width - popupWidth - 10;
+    if (left + popupWidth > mapRect.width - 20) {
+      left = mapRect.width - popupWidth - 20; // Right edge with margin
     }
-    if (left < 10) {
-      left = 10;
+    if (left < 20) {
+      left = 20; // Left edge with margin
     }
 
     // Adjust vertical position if popup would overflow
-    if (top < 10) {
-      top = pixel[1] + 30; // Position below the marker if not enough space above
+    if (top < 20) {
+      // Not enough space above, position below the marker
+      top = pixel[1] + 40; // Position below the marker
+      
+      // If still not enough space below, try to fit within viewport
+      if (top + popupHeight > mapRect.height - 20) {
+        top = mapRect.height - popupHeight - 20;
+      }
+    }
+
+    // Final check to ensure popup is never positioned outside viewport
+    if (top + popupHeight > mapRect.height - 20) {
+      top = mapRect.height - popupHeight - 20;
+    }
+    if (top < 20) {
+      top = 20;
     }
 
     return {
@@ -77,6 +91,8 @@ export class MapComponent implements OnInit, OnDestroy {
       left: left + 'px',
       top: top + 'px',
       zIndex: 1000,
+      maxHeight: (mapRect.height - top - 40) + 'px', // Dynamic max height based on available space
+      overflowY: 'auto', // Allow scrolling if content is too tall
       transform: 'translate(0, 0)' // Remove any transform that might cause issues
     };
   }

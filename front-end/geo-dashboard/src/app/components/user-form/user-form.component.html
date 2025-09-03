@@ -76,6 +76,11 @@
             <span *ngIf="email.errors?.['required']">L'adresse email est obligatoire</span>
             <span *ngIf="email.errors?.['email']">Veuillez saisir une adresse email valide</span>
           </p>
+          <!-- Confirmation email message for new users -->
+          <p *ngIf="!isEditMode && user.email && email.valid" class="text-xs text-blue-600 mt-1 flex items-center">
+            <span class="mr-1">📧</span>
+            Un email de confirmation va être envoyé vers cette adresse afin de définir son mot de passe
+          </p>
         </div>
       </div>
     </z-card>

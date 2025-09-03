@@ -47,12 +47,25 @@ export class AuthService {
   }
 
   /**
-   * Set a new password using a reset token
+   * Set a new password using an invite token (for new users)
    */
   setPassword(email: string, password: string, token: string): Observable<any> {
     console.log('🔍 AuthService.setPassword - Setting password for:', email);
 
     return this.http.post<any>(`${environment.apiUrl}/auth/set-password`, {
+      email,
+      password,
+      token
+    });
+  }
+
+  /**
+   * Reset password using a reset token (for existing users)
+   */
+  resetPassword(email: string, password: string, token: string): Observable<any> {
+    console.log('🔍 AuthService.resetPassword - Resetting password for:', email);
+
+    return this.http.post<any>(`${environment.apiUrl}/auth/reset-password`, {
       email,
       password,
       token

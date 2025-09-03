@@ -639,9 +639,10 @@ class ol_control_LayerSwitcher extends Control {
     label.addEventListener('click', setVisibility);
     label.addEventListener('selectstart', () => false);
 
-    ol_ext_element.create('span', {
+    const layerNameSpan = ol_ext_element.create('span', {
       html: layer.get('title') || layer.get('name'),
       parent: label,
+      style: { color: '#000000', fontWeight: '600', textShadow: 'none' },
       click: (e: MouseEvent) => {
         if (this.get('selection')) {
             e.stopPropagation();
@@ -649,6 +650,9 @@ class ol_control_LayerSwitcher extends Control {
         }
       }
     });
+    
+    // Force the color directly on the element to override any CSS
+    layerNameSpan.style.setProperty('color', '#000000', 'important');
 
     if (this.reordering) {
         ol_ext_element.create('div', {

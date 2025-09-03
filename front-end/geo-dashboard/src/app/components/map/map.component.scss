@@ -1300,12 +1300,13 @@
 .ol-popup {
   position: absolute;
   background: #fff;
-  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.18);
+  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.25);
   padding: 0;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
   min-width: 280px;
   max-width: 320px;
+  max-height: 400px; /* Add max-height */
   font-size: 14px;
   z-index: 1000;
   text-align: left;
@@ -1313,11 +1314,45 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 10px; /* Add margin to prevent edge overflow */
+  margin: 0; /* Remove margin to allow better positioning control */
+  
+  /* Ensure popup doesn't get cut off */
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #fff;
+    z-index: 1001;
+    display: none; /* Hide arrow by default, can be shown when popup is above marker */
+  }
+  
+  /* Add subtle animation */
+  animation: popupSlideIn 0.2s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ol-popup .popup-content {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  overflow: hidden;
 }
 
 .ol-popup .popup-header {
@@ -1328,6 +1363,7 @@
   border-bottom: 1px solid #f0f0f0;
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   position: relative;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .ol-popup .popup-close-btn {
@@ -1411,6 +1447,9 @@
 .ol-popup .asset-details {
   padding: 12px 16px;
   background: #ffffff;
+  flex: 1; /* Allow to grow and take available space */
+  overflow-y: auto; /* Add scrolling if content overflows */
+  max-height: 200px; /* Limit height to ensure actions are visible */
 }
 
 .ol-popup .detail-row {
@@ -1479,6 +1518,8 @@
   padding: 16px;
   background: #f8f9fa;
   border-top: 1px solid #e9ecef;
+  flex-shrink: 0; /* Prevent actions from shrinking */
+  margin-top: auto; /* Push to bottom */
 }
 
 .ol-popup .popup-actions .btn-warning {
@@ -1547,6 +1588,18 @@
 }
 /* Add this CSS to your map.component.scss file */
 
+/* Force all text in layer switcher to be black */
+.ol-layerswitcher * {
+  color: #000000 !important;
+}
+
+/* Additional fix for span text */
+.ol-layerswitcher span,
+.ol-layerswitcher label span {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
 /* LayerSwitcher Control Styles */
 .ol-layerswitcher {
   position: absolute;
@@ -1561,11 +1614,11 @@
   z-index: 1000;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #2c3e50 !important; /* FIX: Force explicit text color */
+  color: #2c3e50 !important; /* Force explicit text color */
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 
-  /* Force color for all children */
-  * {
+  /* Explicitly force text color for all text elements */
+  *, li, span, label, div, input, p {
     color: #2c3e50 !important;
   }
 
@@ -1644,18 +1697,22 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  color: #2c3e50 !important; /* FIX: Force explicit text color for list items */
+  color: #2c3e50 !important; /* Force explicit text color for list items */
   
   li {
     display: block;
     padding: 8px 12px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     position: relative;
-    color: #2c3e50 !important; /* FIX: Force explicit text color for each item */
+    color: #2c3e50 !important; /* Force explicit text color for each item */
     transition: all 0.2s ease;
 
-    /* Force color inheritance for all children */
-    * {
+    /* Force color inheritance for all children with greater specificity */
+    *, span, label, div {
+      color: #2c3e50 !important;
+    }
+    
+    span {
       color: #2c3e50 !important;
     }
 
@@ -1752,13 +1809,15 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    color: #2c3e50 !important; /* FIX: Force color instead of inherit */
+    color: #2c3e50 !important; /* Force color instead of inherit */
     font-weight: 500;
     font-size: 0.9em;
 
     span {
       flex: 1;
-      color: #2c3e50 !important; /* FIX: Force span color */
+      color: #000000 !important; /* Force black color with maximum specificity */
+      text-shadow: none !important; /* Prevent any text shadow */
+      background-color: transparent !important; /* Ensure no background is interfering */
     }
 
     &:hover {
@@ -1847,6 +1906,13 @@
   font-size: 9px;
   color: #666;
   text-align: right;
+}
+
+/* Extra specific rules to ensure layer names are visible */
+.ol-layerswitcher .panel li .li-content label span {
+  color: #000 !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
 }
 
 .layerswitcher-progress {

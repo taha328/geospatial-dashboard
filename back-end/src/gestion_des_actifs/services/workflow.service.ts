@@ -266,7 +266,8 @@ export class WorkflowService {
       throw new Error('Maintenance not found');
     }
 
-    if (maintenance.statut !== 'en_cours') {
+    // Allow completion for both 'en_cours' and 'terminee' status
+    if (maintenance.statut !== 'en_cours' && maintenance.statut !== 'terminee') {
       throw new Error('Cette maintenance ne peut pas être terminée');
     }
 
