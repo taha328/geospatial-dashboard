@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Maintenance } from '../entities/maintenance.entity';
+import { Inspection } from '../entities/inspection.entity';
 // Runtime constructor import
 import PDFDocument from 'pdfkit';
 // Types import (namespace types like PDFKit.PDFDocument)
@@ -78,6 +79,32 @@ export class ReportService {
     });
   }
 
+  async generateInspectionReport(inspection: Inspection): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ 
+        margin: this.pageMargin,
+        size: 'A4',
+        info: {
+          Title: `Rapport d'Inspection - ${inspection.titre}`,
+          Subject: `Inspection ID: ${inspection.id}`,
+          Keywords: 'inspection, geospatial, actif',
+        }
+      });
+      const buffers: Buffer[] = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+      doc.on('error', reject);
+
+      // Create the inspection report content
+      this.createInspectionReport(doc, inspection);
+
+      doc.end();
+    });
+  }
+
   private createStandardReport(doc: PDFKit.PDFDocument, maintenance: Maintenance): void {
     this.createHeader(doc, 'RAPPORT DE MAINTENANCE', maintenance);
     
@@ -108,6 +135,19 @@ export class ReportService {
     this.addRecommendations(doc, maintenance);
     
     this.addProfessionalFooter(doc, maintenance);
+  }
+
+  private createInspectionReport(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    this.createInspectionHeader(doc, 'RAPPORT D\'INSPECTION', inspection);
+    
+    // Main content sections for inspection
+    this.addInspectionDetails(doc, inspection);
+    this.addInspectionTimeline(doc, inspection);
+    this.addInspectionResults(doc, inspection);
+    this.addInspectionFinancial(doc, inspection);
+    this.addInspectionObservations(doc, inspection);
+    
+    this.addInspectionFooter(doc, inspection);
   }
 
   private createHeader(doc: PDFKit.PDFDocument, title: string, maintenance: Maintenance): void {
@@ -544,6 +584,203 @@ export class ReportService {
     }
     
     return recommendations;
+  }
+
+  // Utility methods for consistent formatting
+
+  // ✅ INSPECTION REPORT METHODS
+  private createInspectionHeader(doc: PDFKit.PDFDocument, title: string, inspection: Inspection): void {
+    const headerHeight = 80;
+    
+    // Header background with gradient effect
+    doc
+      .rect(0, 0, doc.page.width, headerHeight)
+      .fill(this.colors.primary);
+    
+    // Main title
+    doc
+      .fillColor(this.colors.white)
+      .fontSize(22)
+      .font('Helvetica-Bold')
+      .text(title, this.pageMargin + 80, 25);
+    
+    // Subtitle with inspection info
+    doc
+      .fillColor(this.colors.white)
+      .fontSize(11)
+      .font('Helvetica')
+      .text(`Référence: I-${inspection.id} | ${this.formatDate(new Date())}`, 
+             this.pageMargin + 80, 50);
+    
+    // Accent line
+    doc
+      .rect(0, headerHeight, doc.page.width, 3)
+      .fill(this.colors.accent);
+    
+    doc.y = headerHeight + 20;
+  }
+
+  private addInspectionDetails(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    this.addSectionTitle(doc, 'DÉTAILS DE L\'INSPECTION');
+    
+    this.addDetailRow(doc, 'Titre:', inspection.titre);
+    this.addDetailRow(doc, 'Description:', inspection.description);
+    this.addDetailRow(doc, 'Statut:', this.formatInspectionStatus(inspection.statut));
+    
+    if (inspection.typeInspection) {
+      this.addDetailRow(doc, 'Type d\'inspection:', inspection.typeInspection.typeInspection);
+      this.addDetailRow(doc, 'Description type:', inspection.typeInspection.description);
+    }
+    
+    if (inspection.actif) {
+      this.addDetailRow(doc, 'Actif inspecté:', inspection.actif.nom);
+      this.addDetailRow(doc, 'Code Actif:', inspection.actif.code);
+    }
+  }
+
+  private addInspectionTimeline(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    this.addSectionTitle(doc, 'CHRONOLOGIE');
+    
+    this.addDetailRow(doc, 'Date prévue:', this.formatDate(inspection.datePrevue));
+    if (inspection.dateRealisation) {
+      this.addDetailRow(doc, 'Date de réalisation:', this.formatDate(inspection.dateRealisation));
+    }
+    
+    this.addDetailRow(doc, 'Date de création:', this.formatDate(inspection.dateCreation));
+    this.addDetailRow(doc, 'Dernière modification:', this.formatDate(inspection.dateMiseAJour));
+  }
+
+  private addInspectionResults(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    this.addSectionTitle(doc, 'RÉSULTATS DE L\'INSPECTION');
+    
+    if (inspection.resultatGeneral) {
+      this.addDetailRow(doc, 'Résultat général:', this.formatInspectionResult(inspection.resultatGeneral));
+    }
+    
+    if (inspection.conformite) {
+      this.addDetailRow(doc, 'Conformité:', this.formatConformity(inspection.conformite));
+    }
+    
+    if (inspection.inspecteurResponsable) {
+      this.addDetailRow(doc, 'Inspecteur responsable:', inspection.inspecteurResponsable);
+    }
+    
+    if (inspection.organismeInspection) {
+      this.addDetailRow(doc, 'Organisme d\'inspection:', inspection.organismeInspection);
+    }
+  }
+
+  private addInspectionFinancial(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    if (inspection.coutInspection) {
+      this.addSectionTitle(doc, 'INFORMATIONS FINANCIÈRES');
+      this.addDetailRow(doc, 'Coût de l\'inspection:', `${inspection.coutInspection.toLocaleString('fr-FR')} MAD`);
+    }
+  }
+
+  private addInspectionObservations(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    if (inspection.observations || inspection.recommandations || inspection.mesuresRelevees) {
+      this.addSectionTitle(doc, 'OBSERVATIONS ET RECOMMANDATIONS');
+      
+      if (inspection.observations) {
+        this.addSubsectionTitle(doc, 'Observations:');
+        this.addParagraph(doc, inspection.observations);
+      }
+      
+      if (inspection.recommandations) {
+        this.addSubsectionTitle(doc, 'Recommandations:');
+        this.addParagraph(doc, inspection.recommandations);
+      }
+      
+      if (inspection.mesuresRelevees) {
+        this.addSubsectionTitle(doc, 'Mesures relevées:');
+        const mesuresText = typeof inspection.mesuresRelevees === 'string' 
+          ? inspection.mesuresRelevees 
+          : JSON.stringify(inspection.mesuresRelevees, null, 2);
+        this.addParagraph(doc, mesuresText);
+      }
+    }
+
+    // Add information about attached files
+    if (inspection.photosRapport || inspection.documentsAnnexes) {
+      this.addSectionTitle(doc, 'DOCUMENTS JOINTS');
+      
+      if (inspection.photosRapport && Array.isArray(inspection.photosRapport)) {
+        this.addDetailRow(doc, 'Photos du rapport:', `${inspection.photosRapport.length} photo(s) jointe(s)`);
+      }
+      
+      if (inspection.documentsAnnexes && Array.isArray(inspection.documentsAnnexes)) {
+        this.addDetailRow(doc, 'Documents annexes:', `${inspection.documentsAnnexes.length} document(s) joint(s)`);
+      }
+    }
+  }
+
+  private addInspectionFooter(doc: PDFKit.PDFDocument, inspection: Inspection): void {
+    const pageRange = doc.bufferedPageRange();
+    
+    for (let i = 0; i < pageRange.count; i++) {
+      doc.switchToPage(pageRange.start + i);
+      
+      doc
+        .rect(0, doc.page.height - 50, doc.page.width, 50)
+        .fill(this.colors.light);
+      
+      doc
+        .moveTo(this.pageMargin, doc.page.height - 50)
+        .lineTo(doc.page.width - this.pageMargin, doc.page.height - 50)
+        .strokeColor(this.colors.border)
+        .stroke();
+      
+      doc
+        .fillColor(this.colors.text)
+        .fontSize(9)
+        .font('Helvetica')
+        .text(
+          `Rapport I-${inspection.id} | Page ${i + 1} de ${pageRange.count}`,
+          this.pageMargin,
+          doc.page.height - 30,
+          { align: 'center', width: doc.page.width - (2 * this.pageMargin) }
+        );
+    }
+  }
+
+  // ✅ INSPECTION-SPECIFIC FORMATTERS
+  private formatInspectionStatus(status: string): string {
+    if (!status) return 'Non défini';
+    
+    const statusMap: { [key: string]: string } = {
+      'planifiee': 'Planifiée',
+      'en_cours': 'En Cours',
+      'terminee': 'Terminée',
+      'annulee': 'Annulée',
+      'reportee': 'Reportée'
+    };
+    
+    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  private formatInspectionResult(result: string): string {
+    if (!result) return 'Non défini';
+    
+    const resultMap: { [key: string]: string } = {
+      'bon': 'Bon',
+      'moyen': 'Moyen',
+      'mauvais': 'Mauvais',
+      'critique': 'Critique'
+    };
+    
+    return resultMap[result] || result.charAt(0).toUpperCase() + result.slice(1);
+  }
+
+  private formatConformity(conformity: string): string {
+    if (!conformity) return 'Non défini';
+    
+    const conformityMap: { [key: string]: string } = {
+      'conforme': 'Conforme',
+      'non_conforme': 'Non Conforme',
+      'avec_reserves': 'Avec Réserves'
+    };
+    
+    return conformityMap[conformity] || conformity.charAt(0).toUpperCase() + conformity.slice(1);
   }
 
   // Utility methods for consistent formatting

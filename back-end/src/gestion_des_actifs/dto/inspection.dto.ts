@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, IsEnum, IsNumber, IsJSON } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsEnum, IsNumber, IsArray, IsUrl } from 'class-validator';
 
 export class CreateInspectionDto {
   @IsString()
@@ -44,15 +44,16 @@ export class CreateInspectionDto {
   coutInspection?: number;
 
   @IsOptional()
-  @IsJSON()
-  photosRapport?: any;
+  @IsArray()
+  @IsUrl({}, { each: true })
+  photosRapport?: string[]; // Array of Google Cloud Storage URLs
 
   @IsOptional()
-  @IsJSON()
-  documentsAnnexes?: any;
+  @IsArray()
+  @IsUrl({}, { each: true })
+  documentsAnnexes?: string[]; // Array of Google Cloud Storage URLs
 
   @IsOptional()
-  @IsJSON()
   mesuresRelevees?: any;
 
   @IsOptional()
@@ -112,15 +113,16 @@ export class UpdateInspectionDto {
   coutInspection?: number;
 
   @IsOptional()
-  @IsJSON()
-  photosRapport?: any;
+  @IsArray()
+  @IsUrl({}, { each: true })
+  photosRapport?: string[]; // Array of Google Cloud Storage URLs
 
   @IsOptional()
-  @IsJSON()
-  documentsAnnexes?: any;
+  @IsArray()
+  @IsUrl({}, { each: true })
+  documentsAnnexes?: string[]; // Array of Google Cloud Storage URLs
 
   @IsOptional()
-  @IsJSON()
   mesuresRelevees?: any;
 
   @IsOptional()

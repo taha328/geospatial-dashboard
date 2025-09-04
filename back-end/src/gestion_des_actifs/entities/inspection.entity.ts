@@ -53,22 +53,26 @@ export class Inspection {
   @Column({ type: 'enum', enum: ['conforme', 'non_conforme', 'avec_reserves'], nullable: true })
   conformite: string;
 
+  // Column names match actual database schema
   @Column({ nullable: true, name: 'actifId' })
   actifId: number;
 
+  // Column names match actual database schema
   @Column({ nullable: true, name: 'typeInspectionId' })
   typeInspectionId: number;
 
   @CreateDateColumn({ name: 'dateCreation' })
   dateCreation: Date;
 
-  @UpdateDateColumn({ name: 'dateMiseAJour' })
+  @UpdateDateColumn({ name: 'datemiseajour' })
   dateMiseAJour: Date;
 
+  // JoinColumn names match actual database schema
   @ManyToOne(() => Actif, actif => actif.inspections)
   @JoinColumn({ name: 'actifId' })
   actif: Actif;
 
+  // JoinColumn names match actual database schema
   @ManyToOne(() => TypeInspection, typeInspection => typeInspection.inspections)
   @JoinColumn({ name: 'typeInspectionId' })
   typeInspection: TypeInspection;

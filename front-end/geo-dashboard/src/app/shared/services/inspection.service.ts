@@ -28,6 +28,16 @@ export class InspectionService {
     };
   }
 
+  private getFileUploadHttpOptions(): { headers: HttpHeaders } {
+    const token = localStorage.getItem('auth_token');
+    return {
+      headers: new HttpHeaders({
+        'Authorization': token ? `Bearer ${token}` : ''
+        // Don't set Content-Type for file uploads - let browser set it with boundary
+      })
+    };
+  }
+
   private handleError(error: any): Observable<never> {
     console.error('Une erreur s\'est produite:', error);
     return throwError(() => error);
@@ -92,9 +102,66 @@ export class InspectionService {
       .pipe(catchError(this.handleError));
   }
 
+  // ✅ NEW: Create inspection with files (photos and documents)
+  createInspectionWithFiles(
+    inspection: CreateInspectionDto, 
+    files: File[] = []
+  ): Observable<Inspection> {
+    const formData = new FormData();
+    
+    // Add inspection data to FormData
+    Object.keys(inspection).forEach(key => {
+      const value = (inspection as any)[key];
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'object') {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+    
+    // Add files to FormData
+    files.forEach(file => {
+      formData.append('files', file, file.name);
+    });
+    
+    return this.http.post<Inspection>(`${this.apiUrl}/avec-fichiers`, formData, this.getFileUploadHttpOptions())
+      .pipe(catchError(this.handleError));
+  }
+
   // Update inspection
   updateInspection(id: number, inspection: UpdateInspectionDto): Observable<Inspection> {
     return this.http.patch<Inspection>(`${this.apiUrl}/${id}`, inspection, this.getHttpOptions())
+      .pipe(catchError(this.handleError));
+  }
+
+  // ✅ NEW: Update inspection with files
+  updateInspectionWithFiles(
+    id: number,
+    inspection: UpdateInspectionDto, 
+    files: File[] = []
+  ): Observable<Inspection> {
+    const formData = new FormData();
+    
+    // Add inspection data to FormData
+    Object.keys(inspection).forEach(key => {
+      const value = (inspection as any)[key];
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'object') {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+    
+    // Add files to FormData
+    files.forEach(file => {
+      formData.append('files', file, file.name);
+    });
+    
+    return this.http.patch<Inspection>(`${this.apiUrl}/${id}/avec-fichiers`, formData, this.getFileUploadHttpOptions())
       .pipe(catchError(this.handleError));
   }
 

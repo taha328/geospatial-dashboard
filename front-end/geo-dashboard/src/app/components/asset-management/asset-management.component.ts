@@ -86,6 +86,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
   showCompleteMaintenanceModal = false;
   selectedMaintenanceForCompletion: any = null;
 
+  // Inspection completion modal
+  showCompleteInspectionModal = false;
+  selectedInspectionForCompletion: any = null;
+  inspectionCompletionForm: FormGroup;
+
+  // File upload properties for inspection documents and photos
+  selectedPhotos: File[] = [];
+  selectedDocuments: File[] = [];
+
   // Reactive forms
   createAnomalieForm: FormGroup;
   scheduleMaintenanceForm: FormGroup;
@@ -133,6 +142,19 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       coutEstime: [0, [Validators.min(0)]],
       technicienResponsable: ['']
     });
+
+    this.inspectionCompletionForm = this.fb.group({
+      dateRealisation: [this.getCurrentDate(), Validators.required],
+      inspecteurResponsable: [''],
+      organismeInspection: [''],
+      coutInspection: [0, [Validators.min(0)]],
+      resultatGeneral: ['', Validators.required],
+      conformite: ['', Validators.required],
+      mesuresRelevees: [''],
+      observations: [''],
+      recommandations: ['']
+      // Note: photosRapport and documentsAnnexes are now handled as file uploads
+    });
     
     // Update time every second for template binding
     setInterval(() => {
@@ -147,6 +169,15 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
       style: 'currency', 
       currency: 'MAD' 
     }).format(value);
+  }
+
+  // Get current date in YYYY-MM-DD format
+  getCurrentDate(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   // Add getPiecesArray method for template
@@ -1610,27 +1641,187 @@ export class AssetManagementComponent implements OnInit, OnDestroy {
 
   completeInspection(inspection: any): void {
     console.log('Opening inspection completion modal for:', inspection);
-    // TODO: Implement inspection completion modal with results form
-    // For now, show a simple prompt
-    const resultat = prompt('Résultat de l\'inspection (conforme/non_conforme/avec_reserves):');
-    if (resultat) {
-      this.inspectionService.completeInspection(inspection.id, {
-        resultatGeneral: 'bon', // This should come from a form
-        conformite: resultat as any,
-        observations: 'Inspection terminée via dashboard'
-      }).subscribe({
-        next: (updatedInspection: any) => {
-          console.log('Inspection completed successfully', updatedInspection);
-          const index = this.inspectionsData.findIndex(i => i.id === inspection.id);
-          if (index !== -1) {
-            this.inspectionsData[index] = updatedInspection;
-          }
-        },
-        error: (error: any) => {
-          console.error('Error completing inspection', error);
-        }
-      });
+    // This method is kept for backward compatibility but redirects to the new modal
+    this.openCompleteInspectionModal(inspection);
+  }
+
+  // ========================================
+  // INSPECTION COMPLETION MODAL METHODS
+  // ========================================
+
+  openCompleteInspectionModal(inspection: any): void {
+    console.log('Opening inspection completion modal for:', inspection);
+    this.selectedInspectionForCompletion = inspection;
+    
+    // Pre-fill form with existing data
+    this.inspectionCompletionForm.patchValue({
+      dateRealisation: inspection.dateRealisation || this.getCurrentDate(),
+      inspecteurResponsable: inspection.inspecteurResponsable || '',
+      organismeInspection: inspection.organismeInspection || '',
+      coutInspection: inspection.coutInspection || 0,
+      resultatGeneral: inspection.resultatGeneral || '',
+      conformite: inspection.conformite || '',
+      mesuresRelevees: inspection.mesuresRelevees || '',
+      observations: inspection.observations || '',
+      recommandations: inspection.recommandations || '',
+      photosRapport: inspection.photosRapport || '',
+      documentsAnnexes: inspection.documentsAnnexes || ''
+    });
+    
+    this.showCompleteInspectionModal = true;
+  }
+
+  closeCompleteInspectionModal(): void {
+    this.showCompleteInspectionModal = false;
+    this.selectedInspectionForCompletion = null;
+    this.inspectionCompletionForm.reset();
+    this.clearSelectedFiles(); // Clear uploaded files when closing modal
+  }
+
+  completeInspectionSuccessfully(): void {
+    if (!this.inspectionCompletionForm.valid || !this.selectedInspectionForCompletion) {
+      alert('Veuillez remplir tous les champs requis.');
+      return;
     }
+
+    const formData = this.inspectionCompletionForm.value;
+    const completionData = {
+      ...formData,
+      statut: 'terminee',
+      dateRealisation: formData.dateRealisation
+    };
+
+    console.log('Completing inspection successfully with data:', completionData);
+    console.log('Files to upload:', { 
+      photos: this.selectedPhotos.length, 
+      documents: this.selectedDocuments.length 
+    });
+
+    // Combine all files for upload
+    const allFiles = [...this.selectedPhotos, ...this.selectedDocuments];
+
+    // Use the new updateInspectionWithFiles method if there are files
+    const updateObservable = allFiles.length > 0 
+      ? this.inspectionService.updateInspectionWithFiles(this.selectedInspectionForCompletion.id, completionData, allFiles)
+      : this.inspectionService.updateInspection(this.selectedInspectionForCompletion.id, completionData);
+
+    updateObservable.subscribe({
+      next: (updatedInspection: any) => {
+        console.log('Inspection completed successfully:', updatedInspection);
+        
+        // Update the inspection in the local data
+        const index = this.inspectionsData.findIndex(i => i.id === this.selectedInspectionForCompletion.id);
+        if (index !== -1) {
+          this.inspectionsData[index] = { ...this.inspectionsData[index], ...updatedInspection };
+        }
+        
+        // Close modal and show success message
+        this.closeCompleteInspectionModal();
+        alert('✅ Inspection terminée avec succès !');
+        
+        // Refresh data
+        this.loadInspectionsData();
+      },
+      error: (error: any) => {
+        console.error('Error completing inspection:', error);
+        alert('❌ Erreur lors de la finalisation de l\'inspection. Veuillez réessayer.');
+      }
+    });
+  }
+
+  completeInspectionWithAnomalie(): void {
+    if (!this.inspectionCompletionForm.valid || !this.selectedInspectionForCompletion) {
+      alert('Veuillez remplir tous les champs requis.');
+      return;
+    }
+
+    const formData = this.inspectionCompletionForm.value;
+    
+    // First complete the inspection
+    const completionData = {
+      ...formData,
+      statut: 'terminee',
+      dateRealisation: formData.dateRealisation,
+      conformite: 'non_conforme' // Force non-conforme since we're creating an anomaly
+    };
+
+    console.log('Completing inspection with anomaly creation:', completionData);
+    console.log('Files to upload:', { 
+      photos: this.selectedPhotos.length, 
+      documents: this.selectedDocuments.length 
+    });
+
+    // Combine all files for upload
+    const allFiles = [...this.selectedPhotos, ...this.selectedDocuments];
+
+    // Use the new updateInspectionWithFiles method if there are files
+    const updateObservable = allFiles.length > 0 
+      ? this.inspectionService.updateInspectionWithFiles(this.selectedInspectionForCompletion.id, completionData, allFiles)
+      : this.inspectionService.updateInspection(this.selectedInspectionForCompletion.id, completionData);
+
+    updateObservable.subscribe({
+      next: (updatedInspection: any) => {
+        console.log('Inspection completed, now creating anomaly...');
+        
+        // Update the inspection in the local data
+        const index = this.inspectionsData.findIndex(i => i.id === this.selectedInspectionForCompletion.id);
+        if (index !== -1) {
+          this.inspectionsData[index] = { ...this.inspectionsData[index], ...updatedInspection };
+        }
+        
+        // Create anomaly data based on inspection results
+        const prioriteMap: { [key: string]: 'faible' | 'moyen' | 'eleve' | 'critique' } = {
+          'critique': 'critique',
+          'mauvais': 'eleve',
+          'moyen': 'moyen',
+          'bon': 'faible'
+        };
+
+        const anomalieData = {
+          titre: `Anomalie détectée lors de l'inspection: ${this.selectedInspectionForCompletion.titre}`,
+          description: `Anomalie détectée lors de l'inspection du ${formData.dateRealisation}.
+          
+Observations: ${formData.observations || 'Aucune observation spécifique'}
+Mesures relevées: ${formData.mesuresRelevees || 'Aucune mesure relevée'}
+Recommandations: ${formData.recommandations || 'Aucune recommandation spécifique'}
+
+Cette anomalie a été créée automatiquement suite à une inspection non-conforme.`,
+          typeAnomalie: 'autre' as 'autre',
+          priorite: prioriteMap[formData.resultatGeneral] || 'moyen',
+          actifId: this.selectedInspectionForCompletion.actifId,
+          rapportePar: formData.inspecteurResponsable || 'Système automatique'
+        };
+
+        // Create the anomaly
+        this.anomalieService.createAnomalie(anomalieData).subscribe({
+          next: (newAnomalie: any) => {
+            console.log('Anomaly created successfully:', newAnomalie);
+            
+            // Close modal and show success message
+            this.closeCompleteInspectionModal();
+            alert(`✅ Inspection terminée et anomalie créée avec succès !
+            
+📋 Inspection: ${updatedInspection.titre}
+⚠️ Anomalie: ${newAnomalie.titre}
+            
+L'anomalie a été ajoutée au système et peut maintenant être traitée dans la section Anomalies.`);
+            
+            // Refresh both inspections and anomalies data
+            this.loadInspectionsData();
+            this.loadAnomaliesData();
+          },
+          error: (error: any) => {
+            console.error('Error creating anomaly:', error);
+            alert('⚠️ Inspection terminée mais erreur lors de la création de l\'anomalie. Vous pouvez créer l\'anomalie manuellement dans la section Anomalies.');
+            this.closeCompleteInspectionModal();
+          }
+        });
+      },
+      error: (error: any) => {
+        console.error('Error completing inspection:', error);
+        alert('❌ Erreur lors de la finalisation de l\'inspection. Veuillez réessayer.');
+      }
+    });
   }
 
   viewInspectionDetails(inspection: any): void {
@@ -1678,6 +1869,42 @@ ${inspection.statut === 'terminee' ? `
     console.log('Creating anomaly from inspection:', inspection);
     // TODO: Implement anomaly creation from inspection results
     // This should open the anomaly creation modal with pre-filled data from inspection
+  }
+
+  // ✅ File handling methods for inspection documents and photos
+  onPhotosSelected(event: any): void {
+    const files: FileList = event.target.files;
+    if (files && files.length > 0) {
+      // Convert FileList to Array and add to selectedPhotos
+      const newPhotos: File[] = Array.from(files);
+      this.selectedPhotos = [...this.selectedPhotos, ...newPhotos];
+      console.log('Selected photos:', this.selectedPhotos.map(f => f.name));
+    }
+  }
+
+  onDocumentsSelected(event: any): void {
+    const files: FileList = event.target.files;
+    if (files && files.length > 0) {
+      // Convert FileList to Array and add to selectedDocuments
+      const newDocuments: File[] = Array.from(files);
+      this.selectedDocuments = [...this.selectedDocuments, ...newDocuments];
+      console.log('Selected documents:', this.selectedDocuments.map(f => f.name));
+    }
+  }
+
+  removePhoto(index: number): void {
+    this.selectedPhotos.splice(index, 1);
+    console.log('Removed photo at index:', index);
+  }
+
+  removeDocument(index: number): void {
+    this.selectedDocuments.splice(index, 1);
+    console.log('Removed document at index:', index);
+  }
+
+  private clearSelectedFiles(): void {
+    this.selectedPhotos = [];
+    this.selectedDocuments = [];
   }
 
 }

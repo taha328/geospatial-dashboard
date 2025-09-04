@@ -591,17 +591,17 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
   private setupLayerProperties() {
     console.log('🔧 Setting up layer properties...');
     
-    // Set properties for base layer
+    // Set properties for base layer (satellite) - HIDE from LayerSwitcher
     const baseLayers = this.map.getLayers().getArray();
     if (baseLayers[0]) {
       baseLayers[0].set('title', 'Satellite');
       baseLayers[0].set('name', 'Satellite');
       baseLayers[0].set('baseLayer', true);
-      baseLayers[0].set('displayInLayerSwitcher', true);
-      console.log('✅ Base layer configured:', baseLayers[0].get('title'));
+      baseLayers[0].set('displayInLayerSwitcher', false); // HIDE from LayerSwitcher
+      console.log('✅ Base layer configured (hidden from LayerSwitcher):', baseLayers[0].get('title'));
     }
 
-    // Set properties for your custom layers
+    // Set properties for your custom layers - SHOW in LayerSwitcher
     if (this.zoneLayer) {
       this.zoneLayer.set('title', 'Zones');
       this.zoneLayer.set('name', 'Zones');
@@ -624,6 +624,12 @@ this.dataRefreshService.actifCreated$.subscribe((actif: any) => {
     }
 
     console.log('🔧 Layer properties setup complete');
+    
+    // Force refresh the layer switcher after a delay
+    setTimeout(() => {
+      this.refreshLayerSwitcher();
+      this.debugLayerTitles();
+    }, 200);
   }
 
   // Method to refresh the LayerSwitcher display

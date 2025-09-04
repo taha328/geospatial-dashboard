@@ -17,8 +17,126 @@ import BaseLayer from 'ol/layer/Base.js';
 import BaseEvent from 'ol/events/Event.js';
 import TileSource from 'ol/source/Tile.js';
 
-// CRITICAL FIX: Import ol_ext_element from ol-ext
-import ol_ext_element from 'ol-ext/util/element';
+// FIXED: Create custom element utility to replace ol_ext_element
+class ElementUtil {
+  static create(tagName: string, options: any = {}): any {
+    const element = document.createElement(tagName);
+    
+    // Handle className
+    if (options.className || options.class) {
+      element.className = options.className || options.class;
+    }
+    
+    // Handle parent - append to parent if provided
+    if (options.parent) {
+      // Ensure parent is a valid DOM element
+      if (options.parent && options.parent.appendChild) {
+        options.parent.appendChild(element);
+      }
+    }
+    
+    // Handle text content
+    if (options.text !== undefined) {
+      element.textContent = options.text;
+    }
+    
+    // Handle HTML content - FIXED: Better null/undefined checking
+    if (options.html !== undefined && options.html !== null) {
+      if (typeof options.html === 'string') {
+        element.innerHTML = options.html;
+      } else if (options.html && typeof options.html === 'object' && options.html.nodeType === 1) {
+        // Ensure it's a valid DOM element before appending
+        element.appendChild(options.html);
+      }
+    }
+    
+    // Handle styles
+    if (options.style) {
+      Object.assign(element.style, options.style);
+    }
+    
+    // Handle type for inputs
+    if (options.type) {
+      (element as HTMLInputElement).type = options.type;
+    }
+    
+    // Handle checked for inputs
+    if (options.checked !== undefined) {
+      (element as HTMLInputElement).checked = options.checked;
+    }
+    
+    // Handle title
+    if (options.title) {
+      element.title = options.title;
+    }
+    
+    // Handle click events
+    if (options.click) {
+      element.addEventListener('click', options.click);
+    }
+    
+    // Handle event listeners (on object)
+    if (options.on) {
+      Object.entries(options.on).forEach(([event, handler]) => {
+        element.addEventListener(event, handler as EventListener);
+      });
+    }
+    
+    return element;
+  }
+  
+  static setHTML(element: HTMLElement, content: string | HTMLElement): void {
+    if (typeof content === 'string') {
+      element.innerHTML = content;
+    } else {
+      element.innerHTML = '';
+      element.appendChild(content);
+    }
+  }
+  
+  static addListener(element: HTMLElement, events: string, handler: EventListener): void {
+    events.split(' ').forEach(event => {
+      element.addEventListener(event, handler);
+    });
+  }
+  
+  static getStyle(element: HTMLElement, property: string): number {
+    const computed = window.getComputedStyle(element);
+    return parseFloat(computed.getPropertyValue(property)) || 0;
+  }
+  
+  static setStyle(element: HTMLElement, styles: Record<string, any>): void {
+    Object.assign(element.style, styles);
+  }
+  
+  static outerHeight(element: HTMLElement): number {
+    const computed = window.getComputedStyle(element);
+    return element.offsetHeight + 
+           parseFloat(computed.marginTop || '0') + 
+           parseFloat(computed.marginBottom || '0');
+  }
+  
+  static hidden(element: HTMLElement): boolean {
+    return element.offsetParent === null;
+  }
+  
+  static hide(element: HTMLElement): void {
+    element.style.display = 'none';
+  }
+  
+  static show(element: HTMLElement): void {
+    element.style.display = '';
+  }
+  
+  static scrollDiv(container: HTMLElement, options: any): any {
+    // Simplified scroll implementation
+    return {
+      refresh: () => {}
+    };
+  }
+}
+
+const ol_ext_element = ElementUtil;
 
 interface LayerSwitcherOptions extends ControlOptions {
   selection?: boolean;
@@ -109,7 +227,14 @@ class ol_control_LayerSwitcher extends Control {
 
   constructor(options: LayerSwitcherOptions = {}) {
     const element = ol_ext_element.create('div', {
-      className: options.switcherClass || 'ol-layerswitcher'
+      className: options.switcherClass || 'ol-layerswitcher',
+      style: {
+        minWidth: '160px',
+        width: '160px', 
+        maxWidth: '160px',
+        flexShrink: '0',
+        boxSizing: 'border-box'
+      }
     });
     super({
       element: element,
@@ -122,7 +247,7 @@ class ol_control_LayerSwitcher extends Control {
     this.oninfo = (typeof (options.oninfo) == 'function' ? options.oninfo : null);
     this.onextent = (typeof (options.onextent) == 'function' ? options.onextent : null);
     this.hasextent = !!options.extent || !!options.onextent;
-    this.hastrash = !!options.trash;
+    this.hastrash = false; // Disabled to prevent accidental layer deletion
     this.reordering = (options.reordering !== false);
     this._layers = [];
     this._layerGroup = (options.layerGroup instanceof LayerGroup) ? options.layerGroup : null;
@@ -188,18 +313,35 @@ class ol_control_LayerSwitcher extends Control {
       this._noScroll = !!options.noScroll;
     }
 
-    this.panel_ = ol_ext_element.create('ul', { className: 'panel' });
+    this.panel_ = ol_ext_element.create('ul', { 
+      className: 'panel',
+      style: {
+        width: '160px',
+        minWidth: '160px',
+        maxWidth: '160px',
+        flexShrink: '0',
+        flexBasis: '160px',
+        boxSizing: 'border-box'
+      }
+    });
     this.panelContainer_ = ol_ext_element.create('div', {
       className: 'panel-container',
       html: this.panel_,
-      parent: element
+      parent: element,
+      style: {
+        width: '160px',
+        minWidth: '160px',
+        maxWidth: '160px',
+        flexShrink: '0'
+      }
     });
 
     if (!options.target && !options.noScroll) {
-      ol_ext_element.addListener(this.panel_, 'mousewheel DOMMouseScroll onmousewheel', (e: WheelEvent) => {
-        if (self.overflow(Math.max(-1, Math.min(1, (-e.deltaY || e.detail))))) {
-          e.stopPropagation();
-          e.preventDefault();
+      ol_ext_element.addListener(this.panel_, 'mousewheel DOMMouseScroll onmousewheel', (e: Event) => {
+        const wheelEvent = e as WheelEvent;
+        if (self.overflow(Math.max(-1, Math.min(1, (-(wheelEvent as any).deltaY || (wheelEvent as any).detail))))) {
+          wheelEvent.stopPropagation();
+          wheelEvent.preventDefault();
         }
       });
     }
@@ -271,7 +413,8 @@ class ol_control_LayerSwitcher extends Control {
   }
 
   setHeader(html: Element | string): void {
-    ol_ext_element.setHTML(this.header_, html);
+    const htmlParam = typeof html === 'string' ? html : html as HTMLElement;
+    ol_ext_element.setHTML(this.header_ as HTMLElement, htmlParam);
   }
 
   private overflow(dir?: number | string): boolean {
@@ -288,7 +431,7 @@ class ol_control_LayerSwitcher extends Control {
       if (hp > h - dh) {
         ol_ext_element.setStyle(this.element, { height: '100%' });
         const li = this.panel_.querySelector('li.ol-visible .li-content');
-        const lh = li ? 2 * ol_ext_element.getStyle(li, 'height') : 0;
+        const lh = li ? 2 * ol_ext_element.getStyle(li as HTMLElement, 'height') : 0;
 
         switch (dir) {
           case 1: top += lh; break;
@@ -596,13 +739,44 @@ class ol_control_LayerSwitcher extends Control {
     }
     const li = ol_ext_element.create('li', {
       className: (layer.getVisible() ? "ol-visible " : "") + (layer.get('baseLayer') ? "baselayer" : ""),
-      parent: ul
+      parent: ul,
+      style: {
+        minHeight: '40px',
+        height: 'auto',
+        padding: '10px 12px',
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: '1px solid #e9ecef',
+        backgroundColor: '#ffffff',
+        listStyle: 'none',
+        margin: '0',
+        flexShrink: '0',
+        boxSizing: 'border-box',
+        width: '100%'
+      }
     });
     this._setLayerForLI(li, layer);
     if (this._selectedLayer === layer) li.classList.add('ol-layer-select');
 
-    const buttons = ol_ext_element.create('div', { className: 'ol-layerswitcher-buttons', parent: li });
-    const content = ol_ext_element.create('div', { className: 'li-content', parent: li });
+    const buttons = ol_ext_element.create('div', { 
+      className: 'ol-layerswitcher-buttons', 
+      parent: li,
+      style: {
+        marginRight: '8px',
+        flexShrink: '0'
+      }
+    });
+    const content = ol_ext_element.create('div', { 
+      className: 'li-content', 
+      parent: li,
+      style: {
+        flex: '1',
+        display: 'flex',
+        alignItems: 'center',
+        minHeight: '24px',
+        width: '100%'
+      }
+    });
 
     const setVisibility = (e: Event) => {
         e.stopPropagation();
@@ -618,7 +792,20 @@ class ol_control_LayerSwitcher extends Control {
       type: layer.get('baseLayer') ? 'radio' : 'checkbox',
       className: 'ol-visibility',
       checked: layer.getVisible(),
-      parent: content
+      parent: content,
+      style: {
+        marginRight: '8px',
+        transform: 'scale(1.3)',
+        cursor: 'pointer',
+        flexShrink: '0',
+        width: '20px',
+        height: '20px',
+        position: 'relative',
+        zIndex: '10',
+        accentColor: '#3498db',
+        border: '2px solid #3498db',
+        borderRadius: '3px'
+      }
     });
     input.addEventListener('click', (e: Event) => {
         setVisibility(e);
@@ -632,40 +819,92 @@ class ol_control_LayerSwitcher extends Control {
     }
 
     const label = ol_ext_element.create('label', {
-      title: layer.get('title') || layer.get('name'),
+      title: layer.get('title') || layer.get('name') || 'Unnamed Layer',
       parent: content,
-      style: { userSelect: 'none' },
+      style: { 
+        userSelect: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '4px 0',
+        minHeight: '24px',
+        flex: '1',
+        width: '100%',
+        boxSizing: 'border-box'
+      },
     });
     label.addEventListener('click', setVisibility);
     label.addEventListener('selectstart', () => false);
 
-    const layerNameSpan = ol_ext_element.create('span', {
-      html: layer.get('title') || layer.get('name'),
-      parent: label,
-      style: { color: '#000000', fontWeight: '600', textShadow: 'none' },
-      click: (e: MouseEvent) => {
-        if (this.get('selection')) {
-            e.stopPropagation();
-            this.selectLayer(layer);
-        }
+    const layerName = layer.get('title') || layer.get('name') || 'Unnamed Layer';
+    console.log('🏷️ Creating layer name span for:', layerName);
+    
+    // Create span element directly using DOM API for maximum reliability
+    const layerNameSpan = document.createElement('span');
+    layerNameSpan.className = 'layer-switcher-name';
+    layerNameSpan.textContent = layerName;
+    layerNameSpan.innerText = layerName; // Fallback
+    label.appendChild(layerNameSpan);
+    
+    // Apply critical styles with maximum priority and expanded dimensions
+    const criticalStyles = {
+      'color': '#111827',
+      'font-weight': '600',
+      'font-size': '14px',
+      'display': 'inline-block',
+      'visibility': 'visible',
+      'opacity': '1',
+      'text-shadow': 'none',
+      'background': 'transparent',
+      'white-space': 'normal',
+      'overflow': 'visible',
+      'text-overflow': 'clip',
+      'max-width': '200px',
+      'min-width': '150px',
+      'line-height': '1.5',
+      'font-family': 'Arial, sans-serif',
+      'position': 'relative',
+      'z-index': '10',
+      'padding': '4px 0',
+      'margin': '0',
+      'min-height': '22px',
+      'box-sizing': 'border-box',
+      'flex-shrink': '1',
+      'word-wrap': 'break-word',
+      'overflow-wrap': 'break-word',
+      'hyphens': 'auto'
+    };
+    
+    // Apply each style with !important
+    Object.entries(criticalStyles).forEach(([property, value]) => {
+      layerNameSpan.style.setProperty(property, value, 'important');
+    });
+    
+    // Force a final check and text assignment
+    setTimeout(() => {
+      if (!layerNameSpan.textContent || layerNameSpan.textContent.trim() === '') {
+        layerNameSpan.textContent = layerName;
+        console.warn('⚠️ Had to force text content for layer:', layerName);
+      }
+    }, 10);
+    
+    console.log('✅ Layer name span created:', {
+      text: layerNameSpan.textContent,
+      display: layerNameSpan.style.display,
+      visibility: layerNameSpan.style.visibility,
+      color: layerNameSpan.style.color,
+      element: layerNameSpan
+    });
+    
+    // Add click handler for layer selection
+    layerNameSpan.addEventListener('click', (e: MouseEvent) => {
+      if (this.get('selection')) {
+        e.stopPropagation();
+        this.selectLayer(layer);
       }
     });
     
-    // Force the color directly on the element to override any CSS
-    layerNameSpan.style.setProperty('color', '#000000', 'important');
-    layerNameSpan.style.setProperty('font-weight', '600', 'important');
-    layerNameSpan.style.setProperty('font-size', '13px', 'important');
-    layerNameSpan.style.setProperty('display', 'inline-block', 'important');
-    layerNameSpan.style.setProperty('visibility', 'visible', 'important');
-    layerNameSpan.style.setProperty('opacity', '1', 'important');
-    layerNameSpan.style.setProperty('text-shadow', 'none', 'important');
-    layerNameSpan.style.setProperty('background', 'transparent', 'important');
-    
-    // Debug: Add some visible styling to test
-    layerNameSpan.style.setProperty('border', '1px solid red', 'important');
-    layerNameSpan.style.setProperty('padding', '2px', 'important');
-    
-    console.log('🔧 Created layer span for:', layer.get('title'), layerNameSpan);
+    console.log('🔧 Created layer span for:', layerName, 'Element:', layerNameSpan);
 
     if (this.reordering) {
         ol_ext_element.create('div', {
@@ -704,27 +943,7 @@ class ol_control_LayerSwitcher extends Control {
       this.setprogress_(layer as TileLayer<TileSource>);
     }
 
-    if (layer instanceof Layer) {
-      const opacityDiv = ol_ext_element.create('div', { className: 'layerswitcher-opacity', parent: content });
-      opacityDiv.addEventListener('click', (e: MouseEvent) => {
-        if (e.target !== opacityDiv) return;
-        e.stopPropagation();
-        e.preventDefault();
-        const op = Math.max(0, Math.min(1, e.offsetX / opacityDiv.offsetWidth));
-        (layer as Layer<Source>).setOpacity(op);
-        (opacityDiv.nextElementSibling as HTMLElement).innerHTML = `${Math.round(op * 100)}`;
-      });
-
-      ol_ext_element.create('div', {
-        className: 'layerswitcher-opacity-cursor ol-noscroll',
-        style: { left: `${(layer as Layer<Source>).getOpacity() * 100}%` }, parent: opacityDiv,
-        on: { 'mousedown': (e: MouseEvent) => this.dragOpacity_(e), 'touchstart': (e: TouchEvent) => this.dragOpacity_(e) }
-      });
-      ol_ext_element.create('div', {
-        className: 'layerswitcher-opacity-label',
-        html: Math.round((layer as Layer<Source>).getOpacity() * 100), parent: content
-      });
-    }
+    // OPACITY SLIDERS REMOVED - Not needed for this application
 
     if (layer instanceof LayerGroup && layer.get("openInLayerSwitcher") === true) {
       li.classList.add('ol-layer-group');

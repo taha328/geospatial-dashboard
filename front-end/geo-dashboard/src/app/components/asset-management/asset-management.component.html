@@ -57,7 +57,7 @@
       class="tab-btn"
       [class.active]="activeTab === 'maintenance'"
       (click)="setActiveTab('maintenance')">
-      <span class="tab-icon">🔧</span>
+      <span class="tab-icon">�</span>
       Maintenance
     </button>
   </div>
@@ -1274,7 +1274,7 @@
         <div class="inspections-container">
           <div class="inspections-grid">
             <div *ngFor="let inspection of getFilteredInspections()" 
-                 class="inspection-card-modern" 
+                 class="inspection-card-modern inspection-card-larger" 
                  [class]="'type-' + inspection.typeInspection?.nom + ' status-' + inspection.statut">
               
               <!-- Card Header -->
@@ -1356,23 +1356,15 @@
               </div>
 
               <!-- Action Buttons -->
-              <div class="card-actions">
-                <!-- Planned Inspection Actions -->
-                <button class="action-btn primary" 
-                        *ngIf="inspection.statut === 'planifiee'"
-                        (click)="startInspection(inspection)"
-                        title="Démarrer l'inspection">
-                  <i class="btn-icon">▶️</i>
-                  Démarrer
-                </button>
-                
-                <!-- In Progress Actions -->
+              <div class="card-actions" style="display: flex !important; padding: 15px !important; border-top: 1px solid #ddd !important; background: #f8f9fa !important;">
+                <!-- Complete Inspection Button - Only show for incomplete inspections -->
                 <button class="action-btn success" 
-                        *ngIf="inspection.statut === 'en_cours'"
-                        (click)="completeInspection(inspection)"
-                        title="Terminer l'inspection">
+                        *ngIf="inspection.statut !== 'terminee'"
+                        (click)="openCompleteInspectionModal(inspection)"
+                        title="Compléter l'inspection"
+                        style="display: inline-flex !important; padding: 10px 20px !important; background: #28a745 !important; color: white !important; border: none !important; border-radius: 5px !important; cursor: pointer !important;">
                   <i class="btn-icon">✅</i>
-                  Terminer
+                  Compléter l'Inspection
                 </button>
                 
                 <!-- View Details -->
@@ -1946,5 +1938,253 @@
   (close)="onCompletionCancelled()">
 </app-complete-maintenance-modal>
 
+<!-- Complete Inspection Modal -->
+<div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" *ngIf="showCompleteInspectionModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-inspection-large">
+    <div class="modal-content modern-modal">
+      <div class="modal-header modern-header">
+        <h5 class="modal-title">
+          🔍 Compléter l'Inspection - {{ selectedInspectionForCompletion?.titre }}
+        </h5>
+        <button type="button" class="btn-close modern-close" (click)="closeCompleteInspectionModal()"></button>
+      </div>
+      
+      <div class="modal-body" *ngIf="selectedInspectionForCompletion">
+        <form [formGroup]="inspectionCompletionForm" class="inspection-completion-form">
+          
+          <!-- Asset Information Display -->
+          <div class="form-section info-section">
+            <div class="section-title">
+              <span class="section-icon">🏗️</span>
+              Actif Inspecté
+            </div>
+            <div class="asset-info-display">
+              <div class="info-item">
+                <span class="info-label">Nom:</span>
+                <span class="info-value">{{ selectedInspectionForCompletion?.actif?.nom }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Code:</span>
+                <span class="info-value">{{ selectedInspectionForCompletion?.actif?.code }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Type:</span>
+                <span class="info-value">{{ selectedInspectionForCompletion?.typeInspection?.typeInspection }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inspection Details Section -->
+          <div class="form-section details-section">
+            <div class="section-title">
+              <span class="section-icon">📋</span>
+              Détails de l'Inspection
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="dateRealisation">Date de Réalisation *</label>
+                  <input 
+                    type="date" 
+                    id="dateRealisation"
+                    class="form-control" 
+                    formControlName="dateRealisation"
+                    [value]="getCurrentDate()">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="inspecteurResponsable">Inspecteur Responsable</label>
+                  <input 
+                    type="text" 
+                    id="inspecteurResponsable"
+                    class="form-control" 
+                    formControlName="inspecteurResponsable"
+                    placeholder="Nom de l'inspecteur">
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="organismeInspection">Organisme d'Inspection</label>
+                  <input 
+                    type="text" 
+                    id="organismeInspection"
+                    class="form-control" 
+                    formControlName="organismeInspection"
+                    placeholder="Nom de l'organisme">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="coutInspection">Coût de l'Inspection (€)</label>
+                  <input 
+                    type="number" 
+                    id="coutInspection"
+                    class="form-control" 
+                    formControlName="coutInspection"
+                    placeholder="0.00">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div class="form-section results-section">
+            <div class="section-title">
+              <span class="section-icon">📊</span>
+              Résultats de l'Inspection
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="resultatGeneral">Résultat Général *</label>
+                  <select 
+                    id="resultatGeneral"
+                    class="form-control" 
+                    formControlName="resultatGeneral">
+                    <option value="">Sélectionner un résultat</option>
+                    <option value="bon">Bon</option>
+                    <option value="moyen">Moyen</option>
+                    <option value="mauvais">Mauvais</option>
+                    <option value="critique">Critique</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="conformite">Conformité *</label>
+                  <select 
+                    id="conformite"
+                    class="form-control" 
+                    formControlName="conformite">
+                    <option value="">Sélectionner la conformité</option>
+                    <option value="conforme">Conforme</option>
+                    <option value="non_conforme">Non Conforme</option>
+                    <option value="avec_reserves">Avec Réserves</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="mesuresRelevees">Mesures Relevées</label>
+              <textarea 
+                id="mesuresRelevees"
+                class="form-control" 
+                formControlName="mesuresRelevees"
+                rows="3"
+                placeholder="Détails des mesures effectuées..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label for="observations">Observations</label>
+              <textarea 
+                id="observations"
+                class="form-control" 
+                formControlName="observations"
+                rows="3"
+                placeholder="Observations générales..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label for="recommandations">Recommandations</label>
+              <textarea 
+                id="recommandations"
+                class="form-control" 
+                formControlName="recommandations"
+                rows="3"
+                placeholder="Recommandations pour l'avenir..."></textarea>
+            </div>
+          </div>
+
+          <!-- Documents Section -->
+          <div class="form-section documents-section">
+            <div class="section-title">
+              <span class="section-icon">📎</span>
+              Documents et Photos
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="photosRapport">Photos du Rapport</label>
+                  <input 
+                    type="file" 
+                    id="photosRapport"
+                    class="form-control file-input" 
+                    accept="image/*"
+                    multiple
+                    (change)="onPhotosSelected($event)"
+                    #photosInput>
+                  <small class="form-text text-muted">
+                    Sélectionnez une ou plusieurs images (JPG, PNG, etc.)
+                  </small>
+                  <div class="selected-files-preview" *ngIf="selectedPhotos.length > 0">
+                    <div class="file-preview" *ngFor="let photo of selectedPhotos; let i = index">
+                      <span class="file-name">{{ photo.name }}</span>
+                      <button type="button" class="btn-remove" (click)="removePhoto(i)">&times;</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="documentsAnnexes">Documents Annexes</label>
+                  <input 
+                    type="file" 
+                    id="documentsAnnexes"
+                    class="form-control file-input" 
+                    accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                    multiple
+                    (change)="onDocumentsSelected($event)"
+                    #documentsInput>
+                  <small class="form-text text-muted">
+                    Sélectionnez des documents (PDF, Word, Excel, etc.)
+                  </small>
+                  <div class="selected-files-preview" *ngIf="selectedDocuments.length > 0">
+                    <div class="file-preview" *ngFor="let doc of selectedDocuments; let i = index">
+                      <span class="file-name">{{ doc.name }}</span>
+                      <button type="button" class="btn-remove" (click)="removeDocument(i)">&times;</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      
+      <div class="modal-footer modern-footer">
+        <button type="button" class="btn btn-secondary modern-btn" (click)="closeCompleteInspectionModal()">
+          <span class="btn-icon">✕</span>
+          Annuler
+        </button>
+        
+        <!-- Complete without anomaly -->
+        <button 
+          type="button" 
+          class="btn btn-success modern-btn" 
+          (click)="completeInspectionSuccessfully()"
+          [disabled]="!inspectionCompletionForm.valid">
+          <span class="btn-icon">✅</span>
+          Terminer sans Anomalie
+        </button>
+        
+        <!-- Complete with anomaly -->
+        <button 
+          type="button" 
+          class="btn btn-warning modern-btn" 
+          (click)="completeInspectionWithAnomalie()"
+          [disabled]="!inspectionCompletionForm.valid">
+          <span class="btn-icon">⚠️</span>
+          Créer Anomalie
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal backdrop -->
-<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal || showMaintenanceDetailsModal || showCompleteMaintenanceModal"></div>
+<div class="modal-backdrop fade show" *ngIf="showAssetDetailsModal || showCreateAnomalieModal || showScheduleMaintenanceModal || showMaintenanceDetailsModal || showCompleteMaintenanceModal || showCompleteInspectionModal"></div>
